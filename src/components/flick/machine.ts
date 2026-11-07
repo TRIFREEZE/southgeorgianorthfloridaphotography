@@ -11,6 +11,7 @@ export type FlickState =
   | "wander"
   | "peek"
   | "inspect"
+  | "antic"
   | "react"
   | "help"
   | "hide"
@@ -26,6 +27,7 @@ export const PRIORITY: Record<FlickState, number> = {
   help: 70,
   react: 60,
   inspect: 50,
+  antic: 45,
   peek: 40,
   hide: 40,
   notice: 30,
@@ -46,6 +48,7 @@ export const DURATION: Record<FlickState, number> = {
   wander: 3200,
   peek: 4200,
   inspect: 3600,
+  antic: 14000,
   react: 1500,
   help: 6000,
   hide: 5200,
@@ -56,8 +59,9 @@ export const DURATION: Record<FlickState, number> = {
 export const COOLDOWN: Partial<Record<FlickState, number>> = {
   notice: 4000,
   wander: 6000,
-  peek: 22000,
-  inspect: 14000,
+  peek: 16000,
+  inspect: 9000,
+  antic: 3000,
   hide: 50000,
   react: 1800,
   help: 90000,
@@ -65,7 +69,7 @@ export const COOLDOWN: Partial<Record<FlickState, number>> = {
 };
 
 /** Behaviors that move Flick around. Disabled for reduced motion and on low-motion devices. */
-export const MOTION_STATES: FlickState[] = ["wander", "peek", "inspect", "hide"];
+export const MOTION_STATES: FlickState[] = ["wander", "peek", "inspect", "hide", "antic"];
 
 export type FlickEvent =
   | { type: "tick" }

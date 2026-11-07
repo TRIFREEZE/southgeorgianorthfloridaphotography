@@ -47,8 +47,16 @@ describe("Flick state machine", () => {
 
   it("disables movement behaviors when motion isn't allowed (reduced motion / mobile)", () => {
     const m = initialMachine(0, false);
-    for (const s of ["wander", "peek", "inspect", "hide"] as const) expect(req(m, s, 10).state).toBe("rest");
+    for (const s of ["wander", "peek", "inspect", "hide", "antic"] as const) expect(req(m, s, 10).state).toBe("rest");
     expect(req(m, "react", 10).state).toBe("react");
+  });
+
+  it("runs antics, which a click reaction can interrupt but a wander can't", () => {
+    let m = req(initialMachine(0), "antic", 0);
+    expect(m.state).toBe("antic");
+    expect(req(m, "wander", 10).state).toBe("antic");
+    m = req(m, "react", 20);
+    expect(m.state).toBe("react");
   });
 
   it("sleeps when idle and wakes on activity", () => {

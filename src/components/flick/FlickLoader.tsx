@@ -21,11 +21,11 @@ export function FlickLoader({ filmStrip }: { filmStrip: FilmStripPhoto[] }) {
     const go = () => {
       if (cancelled) return;
       const ric = window.requestIdleCallback;
-      if (ric) idleId = ric(() => !cancelled && setReady(true), { timeout: 4000 });
-      else timer = setTimeout(() => !cancelled && setReady(true), 1500);
+      if (ric) idleId = ric(() => !cancelled && setReady(true), { timeout: 1500 });
+      else timer = setTimeout(() => !cancelled && setReady(true), 600);
     };
-    if (document.readyState === "complete") timer = setTimeout(go, 800);
-    else window.addEventListener("load", () => (timer = setTimeout(go, 800)), { once: true });
+    if (document.readyState === "complete") timer = setTimeout(go, 300);
+    else window.addEventListener("load", () => (timer = setTimeout(go, 300)), { once: true });
     return () => {
       cancelled = true;
       if (idleId !== undefined) window.cancelIdleCallback?.(idleId);

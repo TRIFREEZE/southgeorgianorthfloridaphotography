@@ -10,21 +10,25 @@ import { setFlickHidden, setFlickMuted, useFlickPrefs } from "./prefs";
 import type { FilmStripPhoto, FlickMood, FlickProp } from "./types";
 import { useCompactMode, useReducedMotion } from "./useMediaFlags";
 
+/** Flick's size (the SVG box; the lens itself is half of this). */
+export const FLICK_SIZE = { desktop: 124, compact: 96 } as const;
+
 /**
- * Flick's React shell: renders the character, speech bubble, menu, film strip and
- * guide. All behavior lives in FlickController. Mounted lazily (see FlickLoader).
+ * Flick's React shell: renders the character, speech bubble, intro card, menu,
+ * film strip and guide. All behavior lives in FlickController.
  */
 export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }) {
   const prefs = useFlickPrefs();
   const reducedMotion = useReducedMotion();
   const compact = useCompactMode();
-  const size = compact ? 60 : 76;
+  const size = compact ? FLICK_SIZE.compact : FLICK_SIZE.desktop;
 
   const [mood, setMood] = useState<FlickMood>("neutral");
   const [prop, setProp] = useState<FlickProp>(null);
   const [feet, setFeet] = useState(false);
   const [bubble, setBubble] = useState<Bubble | null>(null);
   const [menu, setMenu] = useState<(Placement & { open: boolean }) | null>(null);
+  const [intro, setIntro] = useState<Placement | null>(null);
   const [strip, setStrip] = useState<Placement | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
   const [shown, setShown] = useState(false);
@@ -44,9 +48,11 @@ export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }
       setFeet,
       setBubble,
       setMenu,
+      setIntro,
       setStrip,
       setGuide: setGuideOpen,
       setShown,
+      setMuted: (on) => setFlickMuted(on),
       dismiss: () => setFlickHidden(true),
     }),
     [],
@@ -91,15 +97,32 @@ export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }
     };
   }, [menu]);
 
+  // Intro: Escape dismisses it like "Got it".
+  useEffect(() => {
+    if (!intro) return;
+    const onKey = (ev: KeyboardEvent) => ev.key === "Escape" && ctrl.current?.endIntro("ok");
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [intro]);
+
   if (prefs.hidden) return null;
+
+  const hoverAnim = reducedMotion ? "none" : `flick-hover ${mood === "sleepy" ? 5.2 : 3.2}s ease-in-out infinite`;
+  const panelPos = (p: Placement) => `${p.right ? "right-0" : "left-0"} ${p.below ? "top-[calc(100%+8px)]" : "bottom-[calc(100%+8px)]"}`;
 
   return (
     <>
       <div ref={rootRef} className="pointer-events-none fixed inset-0 z-30" style={{ visibility: shown ? "visible" : "hidden" }} data-flick-root>
         <div ref={trailRef} className="absolute inset-0 overflow-hidden" aria-hidden />
         <div ref={bodyRef} className="absolute left-0 top-0 will-change-transform" style={{ width: size, height: size }}>
+          {/* soft hover shadow, breathing with the float */}
+          <span
+            aria-hidden
+            className="absolute left-1/2 block rounded-[50%] bg-ink/40 blur-[3px]"
+            style={{ bottom: -size * 0.04, width: size * 0.36, height: size * 0.07, animation: reducedMotion ? "none" : `flick-hover-shadow ${mood === "sleepy" ? 5.2 : 3.2}s ease-in-out infinite`, transform: "translateX(-50%)" }}
+          />
           <div ref={squashRef} className="h-full w-full">
-            <div className="h-full w-full" style={{ animation: reducedMotion ? "none" : `flick-breathe ${mood === "sleepy" ? 5.4 : 3.8}s ease-in-out infinite` }}>
+            <div className="h-full w-full" style={{ animation: hoverAnim }}>
               <button
                 ref={buttonRef}
                 type="button"
@@ -118,10 +141,10 @@ export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }
             </div>
           </div>
 
-          {bubble && !menu?.open && (
+          {bubble && !menu?.open && !intro && (
             <div
               key={bubble.key}
-              className={`pointer-events-none absolute w-max max-w-[15rem] rounded-2xl bg-ink px-3.5 py-2 text-[0.88rem] leading-snug text-gallery shadow-lg ${bubble.side === "right" ? "right-1" : "left-1"} ${bubble.below ? "top-[calc(100%+6px)]" : "bottom-[calc(100%+4px)]"}`}
+              className={`pointer-events-none absolute w-max max-w-[16rem] rounded-2xl bg-ink px-4 py-2.5 text-[0.95rem] font-medium leading-snug text-gallery shadow-xl ${bubble.side === "right" ? "right-3" : "left-3"} ${bubble.below ? "top-[calc(100%+4px)]" : "bottom-[calc(100%-6px)]"}`}
               style={{ animation: reducedMotion ? "none" : "flick-bubble 260ms var(--ease-out-soft) both" }}
               role={bubble.announce ? "status" : undefined}
               aria-hidden={bubble.announce ? undefined : true}
@@ -130,14 +153,55 @@ export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }
             </div>
           )}
 
-          {menu?.open && (
-            <div
-              ref={menuRef}
-              role="group"
-              aria-label="Flick options"
-              className={`pointer-events-auto absolute w-60 rounded-2xl border border-line bg-gallery p-2 text-sm text-ink shadow-xl ${menu.right ? "right-0" : "left-0"} ${menu.below ? "top-[calc(100%+6px)]" : "bottom-[calc(100%+6px)]"}`}
+          {intro && (
+            <section
+              role="dialog"
+              aria-modal="false"
+              aria-labelledby="flick-intro-title"
+              className={`pointer-events-auto absolute w-[min(22rem,calc(100vw-1.5rem))] rounded-[1.4rem] border border-line bg-gallery p-5 text-ink shadow-2xl ${panelPos(intro)}`}
+              style={{ animation: reducedMotion ? "none" : "flick-intro 420ms var(--ease-out-soft) both" }}
             >
-              <p className="px-3 pb-1 pt-2 text-xs text-muted">Hi, I&apos;m Flick. I mostly look at photos.</p>
+              <h2 id="flick-intro-title" className="font-display text-[1.6rem] leading-tight">
+                Hi! I&apos;m Flick.
+              </h2>
+              <p className="mt-1.5 text-[0.95rem] text-ink-soft">The little lens who lives here. I keep the photos tidy (mostly) and know my way around.</p>
+              <ul className="mt-3 space-y-1.5 text-[0.92rem] text-ink-soft">
+                <li className="flex gap-2">
+                  <span aria-hidden className="text-clay">●</span>
+                  <span>
+                    <strong>Tap me anytime</strong> to ask about sessions, prices or where we work.
+                  </span>
+                </li>
+                {!compact && (
+                  <li className="flex gap-2">
+                    <span aria-hidden className="text-clay">●</span>
+                    <span>You can drag me around, too. I don&apos;t mind.</span>
+                  </li>
+                )}
+                <li className="flex gap-2">
+                  <span aria-hidden className="text-clay">●</span>
+                  <span>
+                    <strong>Too chatty?</strong> Tap me and choose <em>Quiet please</em>, or hide me from the footer.
+                  </span>
+                </li>
+              </ul>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button type="button" onClick={() => ctrl.current?.endIntro("ask")} className="min-h-11 rounded-full bg-ink px-4 text-sm font-semibold text-gallery hover:bg-clay-deep">
+                  Ask me something
+                </button>
+                <button type="button" onClick={() => ctrl.current?.endIntro("ok")} className="min-h-11 rounded-full border border-ink/25 px-4 text-sm font-semibold hover:border-ink">
+                  Got it
+                </button>
+                <button type="button" onClick={() => ctrl.current?.endIntro("mute")} className="min-h-11 rounded-full px-3 text-sm font-semibold text-muted underline">
+                  Quiet please
+                </button>
+              </div>
+            </section>
+          )}
+
+          {menu?.open && (
+            <div ref={menuRef} role="group" aria-label="Flick options" className={`pointer-events-auto absolute w-64 rounded-2xl border border-line bg-gallery p-2 text-sm text-ink shadow-xl ${panelPos(menu)}`}>
+              <p className="px-3 pb-1 pt-2 text-xs text-muted">Hi, I&apos;m Flick. What can I do for you?</p>
               <MenuButton
                 onClick={() => {
                   ctrl.current?.closeMenu();
@@ -147,6 +211,7 @@ export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }
               >
                 Ask Flick a question
               </MenuButton>
+              <MenuButton onClick={() => ctrl.current?.doTrick()}>Do a trick</MenuButton>
               <MenuButton
                 onClick={() => {
                   setFlickMuted(!prefs.muted);
@@ -155,14 +220,7 @@ export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }
               >
                 {prefs.muted ? "Let Flick talk again" : "Quiet please (mute chatter)"}
               </MenuButton>
-              <MenuButton
-                onClick={() => {
-                  ctrl.current?.moveOtherSide();
-                  ctrl.current?.closeMenu();
-                }}
-              >
-                Move to the other side
-              </MenuButton>
+              <MenuButton onClick={() => ctrl.current?.replayIntro()}>Introduce yourself again</MenuButton>
               <MenuButton onClick={() => ctrl.current?.dismiss()}>
                 Hide Flick <span className="block text-xs text-muted">Bring him back from the footer anytime.</span>
               </MenuButton>

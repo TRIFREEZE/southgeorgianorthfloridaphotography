@@ -52,7 +52,7 @@ Three practical guides are included. Add posts by copying one and editing the bl
 
 ## Flick
 
-Visitors can mute or hide Flick anytime (menu or footer). If you ever want Flick gone site-wide, remove `<FlickLoader … />` from `src/app/(site)/layout.tsx`. To change what Flick says, edit `src/components/flick/lines.ts`. Keep it dry, kind and never pushy.
+Flick introduces himself on a visitor's first visit, chats, and keeps busy tidying and "fixing" the page. Visitors can mute or hide him anytime (his menu, the intro card, or the footer). To tone him down, raise the timing ranges described in docs/FLICK.md → Tuning. If you ever want Flick gone site-wide, remove `<FlickLoader … />` from `src/app/(site)/layout.tsx`. To change what Flick says, edit `src/components/flick/lines.ts`. Keep it dry, kind and never pushy.
 
 ## Experiments
 

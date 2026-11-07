@@ -21,7 +21,8 @@ Additions for the web: squash/stretch along velocity, little feet that peek out 
 components/flick/
   FlickLoader.tsx   lazy-mounts Flick after load + idle (never competes with LCP/INP)
   FlickRoot.tsx     React shell: renders character, bubble, menu, film strip, guide
-  controller.ts     the brain: machine + engine + signals + scheduling + speech rules
+  controller.ts     the brain: machine + engine + signals + scheduling + speech + intro
+  antics.ts         page performances: tidy, straighten, margin fix, hammer disaster, polish, snap
   machine.ts        pure finite state machine (unit-tested)
   engine.ts         spring physics, transform-only DOM writes, echo trail, blink, hop, clip
   safeSpots.ts      where Flick may sit (samples what's under a spot)
@@ -37,7 +38,7 @@ components/flick/
 
 ### States
 
-`rest · notice · blink · wander · peek · inspect · react · help · hide · celebrate · sleep · drag · dismissed`
+`rest · notice · blink · wander · peek · inspect · antic · react · help · hide · celebrate · sleep · drag · dismissed`
 
 Each state has a **priority**, a **maximum duration** and a **cooldown** (`machine.ts`). Higher priority interrupts lower. When a behavior ends, Flick returns to rest and that behavior can't recur until its cooldown passes. **Pauses** (typing, menu open, lightbox open, hidden tab) are a set of reasons: every reason must clear before Flick resumes.
 
@@ -60,24 +61,35 @@ Each state has a **priority**, a **maximum duration** and a **cooldown** (`machi
 | Drag (desktop mouse) | spring-follows the cursor with feet out; dropped on the nearest free spot |
 | Triple-click | film strip of real portfolio thumbnails |
 
-### Never in the way
+### The star of the page
 
-- **Placement samples reality:** `document.elementsFromPoint` checks what's actually under a candidate spot and rejects text, links, buttons, inputs, images, nav, dialogs, forms and anything marked `data-flick-avoid` (both booking forms are). If no free spot exists, Flick tucks mostly off the screen edge.
-- **Speech bubbles** only appear where their own rectangle is free. Otherwise the line is skipped.
-- Measurements happen only when a decision is made, never per frame. The animation loop runs only while Flick is moving.
-- The layer is `pointer-events: none` except the button itself, so it never steals clicks, scrolls or swipes.
-- **First 10 seconds:** silent. Ambient lines at most every 35–60s of *active* browsing, a 15s minimum gap between any lines, and no repeats until a pool is exhausted.
+- **First visit:** Flick swoops in and introduces himself in a card: who he is, *tap me anytime to ask a question*, *drag me around* (desktop), and *too chatty? tap me → Quiet please, or hide me from the footer*. Buttons: **Ask me something**, **Got it**, **Quiet please**. Shown once per browser (`localStorage rcl:flick:introduced`); replay it from his menu ("Introduce yourself again"). Returning visitors get a "welcome back".
+- **Size:** 124px on desktop, 96px on phones (`FLICK_SIZE` in `FlickRoot.tsx`).
+- **Home:** always the bottom-right corner, hovering with a gentle float and a breathing shadow, on desktop *and* mobile.
+- **Chatty:** something to say about every page on arrival, ambient lines every ~12–20s of active browsing, comments when section headings scroll into view (pricing, FAQ, the photographer…), photo hovers, booking buttons, fast scrolling and reaching the bottom of the page.
+- **Antics** (`antics.ts`), Flick's main hobby, every ~6–9s while idle (7–11s on phones):
+  - **Tidy:** flies to a card or photo, wipes it with a cloth, sparkles, shine sweep. "missed a spot? no. i never miss a spot."
+  - **Straighten:** a heading or card goes slightly crooked; he notices, shoves it level.
+  - **Margin fix:** a paragraph drifts off its margin; he pushes it back into alignment. "that margin's off by a pixel. or six."
+  - **Hammer disaster:** a "tiny adjustment" with a hammer → crack lines, the card tilts, chips fly; he panics, zips back and forth ("don't look. don't look."), comes back with a wrench, the crack fades, the card springs back. "…fixed. nobody saw that."
+  - **Polish:** buffs a booking/portfolio button until it gleams.
+  - **Snap:** lines up a photo and takes a picture (a flash over the photo).
+  - Plus wanders, peeking from behind photo edges, hide-and-seek off the screen edge, and cleaning his own lens. "Do a trick" in his menu triggers an antic on demand.
 
-### Mobile
+### Guardrails (still on)
 
-Flick stays tucked at the edge (small, eyes peeking) and pops into a free corner only briefly: for a reaction, a celebration or the occasional line. No cursor chase, no wandering, no dragging, no covering controls. Smaller size.
+- Antics are **visual only**: Web Animations on page elements (cancelled afterwards, which restores them exactly) and temporary overlays in Flick's own `pointer-events: none` layer. No content, layout or form control is ever changed. They never target forms, dialogs, the header, nav, the footer or anything marked `data-flick-avoid`.
+- Every antic aborts instantly on scroll, typing, menus, dialogs, resize, tab switch or navigation, with its timers cancelled and elements restored.
+- While Flick is **flying or performing he can't catch clicks** (his button is `pointer-events: none` until he's resting), so he never intercepts a click meant for the page.
+- **Focusing any form field** silences him and tucks him off the screen edge until typing is done. Both booking forms are `data-flick-avoid`.
+- Muting stops speech (antics continue silently); hiding removes him until restored from the footer.
 
 ### Accessibility & motion
 
 - Flick is a real `<button>` ("Flick, the site helper. Open Flick's menu"). The menu takes focus, Escape closes it and focus returns. Tabbing to a tucked Flick brings him into view.
 - Menu: **Ask Flick**, **Quiet please** (mutes speech for the session), **Move to the other side** (keyboard alternative to dragging), **Hide Flick** (until restored from the footer link, which is always present).
 - `prefers-reduced-motion`: no wandering, trail, hops, confetti or breathing. Flick appears in place and only changes expression.
-- Low-power devices (≤2 cores, ≤2 GB memory, Save-Data, or battery under 20% and not charging): no trail, no wandering.
+- Low-power devices (≤2 cores, ≤2 GB memory, Save-Data, or battery under 20% and not charging): no echo trail.
 - Ambient chatter is `aria-hidden`. Helpful/celebration lines are announced politely.
 
 ### Ask Flick
@@ -89,7 +101,8 @@ If you later add an LLM, do it server-side behind a route handler with retrieval
 ## Tuning
 
 - Speech frequency: `QUIET_MS`, `MIN_LINE_GAP` and the `nextAmbient` range in `controller.ts`
+- Antic frequency and mix: `nextBehavior` and the heartbeat's weighted choice in `controller.ts`; antic timelines in `antics.ts`
 - Personality: `lines.ts`
 - Behavior mix: the heartbeat's weighted choice in `controller.ts`
 - Durations, cooldowns, priorities: `machine.ts` (covered by `tests/unit/machine.test.ts`)
-- Size: `FlickRoot.tsx` (`76` desktop / `60` compact)
+- Size: `FLICK_SIZE` in `FlickRoot.tsx`

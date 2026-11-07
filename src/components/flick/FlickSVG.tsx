@@ -116,6 +116,24 @@ export function FlickSVG({
           <circle cx="13" cy="-3.5" r="1.1" fill="#8E5A46" />
         </g>
       )}
+      {prop === "hammer" && (
+        <g transform="translate(17 4)">
+          <g className="flick-hammer">
+            <line x1="-6" y1="6" x2="0" y2="0" stroke="#A46B55" strokeWidth="2.6" strokeLinecap="round" />
+            <rect x="1" y="-17" width="3.2" height="18" rx="1.2" fill="#8a6a4f" transform="rotate(30)" />
+            <rect x="-6" y="-21" width="15" height="7" rx="1.6" fill="#5d5c55" stroke="#3b3a33" strokeWidth="0.6" transform="rotate(30)" />
+          </g>
+        </g>
+      )}
+      {prop === "wrench" && (
+        <g transform="translate(17 6)">
+          <g className="flick-wrench">
+            <line x1="-6" y1="5" x2="0" y2="0" stroke="#A46B55" strokeWidth="2.6" strokeLinecap="round" />
+            <path d="M0 0 L9 -12" stroke="#9aa09a" strokeWidth="3.4" strokeLinecap="round" />
+            <path d="M6.5 -16 a4.6 4.6 0 1 0 6.4 2.4 l-3 1.2 -1.6 -2.6 z" fill="#9aa09a" />
+          </g>
+        </g>
+      )}
       {prop === "cloth" && (
         <g className="flick-cloth">
           <rect x="-7" y="-6" width="12" height="10" rx="2.5" fill="#E6D3CC" stroke="#cfa996" strokeWidth="0.7" transform="rotate(-14)" />

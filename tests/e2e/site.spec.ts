@@ -1,6 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+// Site tests exercise the website itself; Flick has his own spec.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.setItem("rcl:flick:hidden", "1"));
+});
+
 const routes = [
   "/", "/portfolio", "/portfolio/people", "/portfolio/animals", "/portfolio/weddings-events", "/portfolio/brands",
   "/services", "/services/portraits-families", "/services/pets-horses", "/services/weddings-events", "/services/business-branding",

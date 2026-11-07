@@ -1,23 +1,31 @@
 /**
  * FlickController: Flick's brain. Owns the behavior machine, the motion engine,
- * interaction signals, scheduling and speech rules. React only renders what it is
- * told (mood, prop, bubble, menu) through the `ui` callbacks.
+ * the antic director, interaction signals, scheduling and speech. React only
+ * renders what it is told (mood, prop, bubble, menu, intro) via `ui`.
+ *
+ * Flick is the star of the page: he introduces himself on a first visit,
+ * chats often, comments on what you're looking at, and keeps busy tidying and
+ * "fixing" the site. Guardrails stay: he goes quiet and tucks away while
+ * someone types, pauses for menus and dialogs, honors reduced motion, never
+ * catches clicks while he's flying around, and can be muted or hidden.
  *
  * Every listener and timer registered here is released in destroy().
  */
+import { AnticDirector } from "./antics";
 import { onFlick } from "./bus";
 import { FlickEngine, type Vec } from "./engine";
-import { ambient, contextFor, pickLine, reactions, type LineEvent } from "./lines";
+import { ambient, anticLines, contextFor, pickLine, reactions, sectionComments, type LineEvent } from "./lines";
 import { initialMachine, isPaused, transition, type FlickEvent, type FlickState, type Machine } from "./machine";
 import { sessionFlag } from "./prefs";
-import { findFreeSpot, randomFreeSpot, rectIsFree, setFlickRoot, spotIsFree, tuckSpot, visiblePhotos, type Spot } from "./safeSpots";
+import { randomFreeSpot, rectIsFree, setFlickRoot, tuckSpot, visiblePhotos, type Spot } from "./safeSpots";
 import type { FlickMood, FlickProp } from "./types";
 import { isLowPowerDevice } from "./useMediaFlags";
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
-const QUIET_MS = 10_000; // never speak during the first 10 seconds
-const MIN_LINE_GAP = 15_000;
-const SLEEP_AFTER = 45_000;
+const QUIET_MS = 1500;
+const MIN_LINE_GAP = 6500;
+const SLEEP_AFTER = 60_000;
+const INTRO_KEY = "rcl:flick:introduced";
 
 export interface Bubble {
   text: string;
@@ -40,7 +48,9 @@ export interface FlickUI {
   setMenu(m: (Placement & { open: boolean }) | null): void;
   setStrip(p: Placement | null): void;
   setGuide(open: boolean): void;
+  setIntro(p: Placement | null): void;
   setShown(on: boolean): void;
+  setMuted(on: boolean): void;
   dismiss(): void;
 }
 
@@ -62,9 +72,11 @@ export interface FlickOptions {
 export class FlickController {
   private engine: FlickEngine;
   private machine: Machine;
+  private antics: AnticDirector;
   private home: Spot | null = null;
   private pointer: Vec | null = null;
   private lastActivity = 0;
+  private lastScroll = 0;
   private lastLine = 0;
   private shownLines = new Set<string>();
   private lowPower = false;
@@ -76,9 +88,13 @@ export class FlickController {
   private drag: { id: number; start: Vec; moved: boolean } | null = null;
   private suppressClick = false;
   private menuOpen = false;
+  private introOpen = false;
   private hesitate: ReturnType<typeof setTimeout> | undefined;
   private cleanups: (() => void)[] = [];
-  private mood: FlickMood = "neutral";
+  private path = "";
+  private commented = new Set<string>();
+  private saidBottom = false;
+  private lastFastScroll = 0;
 
   constructor(
     private dom: FlickDom,
@@ -88,6 +104,18 @@ export class FlickController {
     this.lowPower = isLowPowerDevice();
     this.engine = new FlickEngine(dom.body, dom.squash, dom.button, dom.trail, { size: opts.size, trail: this.trailOn() });
     this.machine = initialMachine(performance.now(), this.canMove());
+    this.antics = new AnticDirector({
+      engine: this.engine,
+      size: opts.size,
+      layer: dom.trail,
+      say: (line) => this.say(anticLines[line], { interrupt: true }),
+      setMood: (m, ms) => (ms ? this.moodFor(m, ms) : this.ui.setMood(m)),
+      setProp: (p) => this.ui.setProp(p),
+      setFeet: (on) => this.ui.setFeet(on),
+      done: () => {
+        if (this.machine.state === "antic") this.dispatch({ type: "done" });
+      },
+    });
   }
 
   /* ------------------------------------------------------------- setup */
@@ -98,7 +126,7 @@ export class FlickController {
       .then((b) => {
         if (!b.charging && b.level < 0.2) {
           this.lowPower = true;
-          this.syncMotion();
+          this.engine.setOptions({ trail: false });
         }
       })
       .catch(() => {});
@@ -109,16 +137,22 @@ export class FlickController {
       /* ignore */
     }
     this.lastActivity = performance.now();
+    this.path = window.location.pathname;
 
-    // Entrance: glide in from the right edge shedding echoes (or simply appear).
-    const first = this.defaultHome();
+    // Entrance: swoop in from the right edge, shedding echoes, into the corner.
+    const first = this.homeSpot();
     this.home = first;
     if (this.opts.reducedMotion) this.engine.jumpTo(first);
     else {
-      this.engine.jumpTo({ x: window.innerWidth + this.opts.size, y: first.y });
-      this.engine.moveTo(first, 22, 8);
+      this.engine.jumpTo({ x: window.innerWidth + this.opts.size, y: first.y - 120 });
+      this.engine.moveTo(first, 18, 7);
     }
     this.ui.setShown(true);
+
+    if (!this.introduced()) this.later(() => this.startIntro(), this.opts.reducedMotion ? 300 : 1300);
+    else if (!sessionFlag("greeted")) this.later(() => this.sayEvent("welcome-back", { force: true }), 1800);
+    else this.later(() => this.pageHello(), 1600);
+    sessionFlag("greeted", true);
 
     this.listen(window, "pointermove", this.onPointerMove, { passive: true });
     this.listen(document, "pointerover", this.onOver, { passive: true });
@@ -136,6 +170,7 @@ export class FlickController {
   }
 
   destroy() {
+    this.antics.abort();
     this.cleanups.forEach((c) => c());
     this.cleanups = [];
     this.timers.forEach(clearTimeout);
@@ -144,6 +179,8 @@ export class FlickController {
     if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
     if (this.hesitate) clearTimeout(this.hesitate);
     if (this.rafLook) cancelAnimationFrame(this.rafLook);
+    if (this.scrollEnd) clearTimeout(this.scrollEnd);
+    if (this.resizeT) clearTimeout(this.resizeT);
     this.persistLines();
     this.engine.destroy();
     setFlickRoot(null);
@@ -151,12 +188,69 @@ export class FlickController {
 
   setReducedMotion(on: boolean) {
     this.opts.reducedMotion = on;
-    this.syncMotion();
+    this.engine.setOptions({ trail: this.trailOn() });
+    this.machine = { ...this.machine, allowMotion: this.canMove() };
+    if (on) this.abortAntic();
   }
 
   setMuted(on: boolean) {
     this.opts.muted = on;
     if (on) this.ui.setBubble(null);
+  }
+
+  /* ------------------------------------------------------------- intro */
+  private introduced() {
+    try {
+      return window.localStorage.getItem(INTRO_KEY) === "1";
+    } catch {
+      return sessionFlag("introduced");
+    }
+  }
+
+  private startIntro() {
+    if (this.introOpen) return;
+    this.abortAntic();
+    this.closeMenu();
+    this.ui.setBubble(null);
+    this.dispatch({ type: "pause", reason: "intro" });
+    this.introOpen = true;
+    const spot = this.homeSpot();
+    this.home = spot;
+    this.go(spot, 40, 10);
+    this.later(() => {
+      this.moodFor("happy", 2200);
+      this.engine.hop(18, 2);
+      this.engine.emit(0.5, 1.1, 1.8);
+      this.ui.setIntro(this.placement());
+    }, this.opts.reducedMotion ? 0 : 500);
+    this.later(() => this.introOpen && this.endIntro("timeout"), 45_000);
+  }
+
+  /** Called by the intro card's buttons. */
+  endIntro(action: "ok" | "ask" | "mute" | "timeout") {
+    if (!this.introOpen) return;
+    this.introOpen = false;
+    try {
+      window.localStorage.setItem(INTRO_KEY, "1");
+    } catch {
+      sessionFlag("introduced", true);
+    }
+    this.ui.setIntro(null);
+    this.dispatch({ type: "resume", reason: "intro" });
+    this.lastActivity = performance.now();
+    if (action === "ask") this.ui.setGuide(true);
+    if (action === "mute") {
+      this.ui.setMuted(true);
+      this.engine.blink(true);
+      this.moodFor("sleepy", 1200);
+    }
+    if (action === "ok") this.later(() => this.say(["have fun looking around!", "i'll be right here. tidying.", "go on, explore. i'll keep it tidy."], { force: true }), 500);
+    this.nextBehavior = performance.now() + rand(3500, 6000);
+  }
+
+  replayIntro() {
+    this.closeMenu();
+    this.startIntro();
   }
 
   /* ------------------------------------------------------------- helpers */
@@ -179,12 +273,7 @@ export class FlickController {
   }
 
   private canMove() {
-    return !this.opts.reducedMotion && !this.lowPower && !this.opts.compact;
-  }
-
-  private syncMotion() {
-    this.engine.setOptions({ trail: this.trailOn() });
-    this.machine = { ...this.machine, allowMotion: this.canMove() };
+    return !this.opts.reducedMotion;
   }
 
   private go(spot: Spot, k = 34, d = 10) {
@@ -192,46 +281,34 @@ export class FlickController {
     else this.engine.moveTo(spot, k, d);
   }
 
-  private defaultHome(): Spot {
+  /** Home is always the bottom-right corner: visible, hovering, out of the reading flow. */
+  private homeSpot(): Spot {
     const { size, compact } = this.opts;
-    // On phones Flick lives tucked at the edge and pops in only briefly.
-    if (compact) return tuckSpot(size, true);
-    return findFreeSpot(size, false) ?? tuckSpot(size, false);
+    const m = compact ? 10 : 22;
+    return { x: window.innerWidth - m - size / 2, y: window.innerHeight - m - size / 2 };
   }
 
-  private setMood(m: FlickMood) {
-    this.mood = m;
-    this.ui.setMood(m);
+  /** Flick only catches clicks while resting; in flight he's a ghost to the pointer. */
+  private setInteractive(on: boolean) {
+    this.dom.button.style.pointerEvents = on ? "auto" : "none";
   }
 
   private moodFor(m: FlickMood, ms: number) {
-    this.setMood(m);
+    this.ui.setMood(m);
     if (this.moodTimer) clearTimeout(this.moodTimer);
-    this.moodTimer = setTimeout(() => this.setMood(this.machine.state === "sleep" ? "sleepy" : "neutral"), ms);
+    this.moodTimer = setTimeout(() => this.ui.setMood(this.machine.state === "sleep" ? "sleepy" : "neutral"), ms);
   }
 
   private placeHome(jump = false) {
-    const { size, compact } = this.opts;
-    const prev = this.home;
-    const keep = prev && !compact && spotIsFree(prev.x, prev.y, size) ? prev : null;
-    const spot = keep ?? this.defaultHome();
+    const spot = this.homeSpot();
     this.home = spot;
     if (jump) this.engine.jumpTo(spot);
-    else this.go(spot);
-  }
-
-  /** Phone pop-in: come out to a free corner for a moment, then tuck again. */
-  private popIn(ms = 2800) {
-    if (!this.opts.compact) return;
-    const spot = findFreeSpot(this.opts.size, true);
-    if (!spot) return;
-    this.go(spot, 60, 12);
-    this.later(() => this.placeHome(), ms);
+    else this.go(spot, 30, 9);
   }
 
   private placement(): Placement {
     const p = this.engine.pos;
-    return { right: p.x > window.innerWidth / 2, below: p.y < 260 };
+    return { right: p.x > window.innerWidth / 2, below: p.y < 300 };
   }
 
   private persistLines() {
@@ -242,35 +319,47 @@ export class FlickController {
     }
   }
 
+  private abortAntic() {
+    if (this.antics.isRunning) this.antics.abort();
+    if (this.machine.state === "antic") this.dispatch({ type: "done" });
+  }
+
   /* ------------------------------------------------------------- speech */
-  say(pool: string[], opts: { force?: boolean; announce?: boolean } = {}) {
+  say(pool: string[], opts: { force?: boolean; announce?: boolean; interrupt?: boolean } = {}) {
     const now = performance.now();
-    if (this.opts.muted || this.menuOpen) return false;
+    if (this.opts.muted || this.menuOpen || this.introOpen) return false;
+    if (isPaused(this.machine) && !opts.announce) return false;
     if (now < QUIET_MS) return false;
-    if (!opts.force && now - this.lastLine < MIN_LINE_GAP) return false;
+    // interrupt: part of a performance (antics), always speaks; force: events, short gap; otherwise ambient pacing.
+    if (!opts.interrupt && !opts.force && now - this.lastLine < MIN_LINE_GAP) return false;
+    if (!opts.interrupt && opts.force && now - this.lastLine < 1800) return false;
     const text = pickLine(pool, this.shownLines);
     if (!text) return false;
     const { size } = this.opts;
     const p = this.engine.pos;
     const vw = window.innerWidth;
     const side: Bubble["side"] = p.x > vw / 2 ? "right" : "left";
-    const w = Math.min(240, vw - 24);
+    const w = Math.min(260, vw - 24);
     const left = side === "right" ? p.x + size / 2 - w : p.x - size / 2;
-    const aboveOk = p.y - size / 2 - 64 > 80 && rectIsFree(left, p.y - size / 2 - 60, w, 52);
-    const belowOk = !aboveOk && p.y + size / 2 + 64 < window.innerHeight && rectIsFree(left, p.y + size / 2 + 6, w, 52);
-    // A bubble must never cover content: skip the line rather than intrude.
-    if (!aboveOk && !belowOk && !opts.force) return false;
+    const roomAbove = p.y - size / 2 - 70 > 76;
+    const freeBelow = p.y + size / 2 + 70 < window.innerHeight && rectIsFree(left, p.y + size / 2 + 6, w, 56);
+    const below = !roomAbove || (freeBelow && !rectIsFree(left, p.y - size / 2 - 64, w, 56) && p.y < window.innerHeight * 0.4);
     this.lastLine = now;
     this.shownLines.add(text);
     this.persistLines();
-    this.ui.setBubble({ text, key: now, side, below: !aboveOk && belowOk, announce: Boolean(opts.announce) });
+    this.ui.setBubble({ text, key: now, side, below, announce: Boolean(opts.announce) });
     if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
-    this.bubbleTimer = setTimeout(() => this.ui.setBubble(null), Math.max(2800, text.length * 70));
+    this.bubbleTimer = setTimeout(() => this.ui.setBubble(null), Math.max(3000, text.length * 75));
     return true;
   }
 
   private sayEvent(e: LineEvent, opts?: { force?: boolean; announce?: boolean }) {
     return this.say(reactions[e], opts);
+  }
+
+  private pageHello() {
+    const ctx = contextFor(window.location.pathname);
+    this.say(ambient[ctx], { force: true });
   }
 
   /* ------------------------------------------------------------- machine */
@@ -285,46 +374,50 @@ export class FlickController {
   private enter(s: FlickState, prev: FlickState) {
     const e = this.engine;
     const { size } = this.opts;
+    if (prev === "antic") this.antics.abort();
     if (prev === "sleep") {
-      this.setMood("surprised");
+      this.ui.setMood("surprised");
       e.blink(true);
-      this.later(() => this.setMood("neutral"), 700);
-      this.sayEvent("wake");
+      this.later(() => this.ui.setMood("neutral"), 700);
+      this.sayEvent("wake", { force: true });
     }
     if (prev === "peek" || prev === "inspect" || prev === "hide") {
       e.clip(null);
       e.lookAt(this.pointer);
     }
     this.ui.setFeet(false);
+    this.setInteractive(s === "rest" || s === "sleep" || s === "notice" || s === "react" || s === "celebrate" || s === "help" || s === "drag");
 
     switch (s) {
       case "rest":
-        if (["wander", "peek", "inspect", "hide", "notice"].includes(prev)) this.placeHome();
+        if (["wander", "peek", "inspect", "hide", "notice", "antic"].includes(prev) && !isPaused(this.machine)) this.placeHome();
         break;
       case "sleep":
-        this.setMood("sleepy");
+        this.ui.setMood("sleepy");
+        break;
+      case "antic":
+        if (!this.antics.run()) this.later(this.done, 0);
         break;
       case "notice": {
         if (prev !== "sleep") this.moodFor("surprised", 500);
         e.blink();
         const p = this.pointer;
         if (p && this.home && this.canMove()) {
-          // Curious lean toward the cursor, then back.
           const dx = p.x - this.home.x;
           const dy = p.y - this.home.y;
           const d = Math.hypot(dx, dy) || 1;
-          e.moveTo({ x: this.home.x + (dx / d) * 16, y: this.home.y + (dy / d) * 16 }, 50, 10);
+          e.moveTo({ x: this.home.x + (dx / d) * 22, y: this.home.y + (dy / d) * 22 }, 50, 10);
           this.later(this.done, 1000);
         }
         break;
       }
       case "wander": {
-        const spot = this.home ? randomFreeSpot(size, false, this.home) : null;
+        const spot = this.home ? randomFreeSpot(size, this.opts.compact, this.home) : null;
         if (!spot) return this.later(this.done, 0);
         this.ui.setFeet(true);
-        this.home = spot;
-        e.moveTo(spot, 26, 9);
-        this.later(this.done, 2600);
+        e.moveTo(spot, 22, 8);
+        if (Math.random() < 0.4) this.later(() => this.say(ambient.general), 900);
+        this.later(this.done, 2800);
         break;
       }
       case "peek": {
@@ -341,7 +434,6 @@ export class FlickController {
         const hidden = size / 2 - size * 0.1;
         const clipSide = side;
         e.moveTo({ x: side === "left" ? rightX : leftX, y: cy }, 30, 10);
-        // Visual-only trick: clip the half that overlaps the photo, so Flick seems to peek from behind it.
         this.later(() => {
           if (this.machine.state !== "peek") return;
           e.clip(clipSide, hidden);
@@ -351,6 +443,7 @@ export class FlickController {
           if (this.machine.state !== "peek") return;
           e.lookAt(this.pointer);
           e.blink();
+          this.sayEvent("found");
         }, 2200);
         this.later(this.done, 3400);
         break;
@@ -360,18 +453,13 @@ export class FlickController {
         if (!el) return this.later(this.done, 0);
         const r = el.getBoundingClientRect();
         const center = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-        const cands = [
-          { x: r.right + size * 0.5 + 6, y: r.bottom - size * 0.5 },
-          { x: r.left - size * 0.5 - 6, y: r.bottom - size * 0.5 },
-          { x: r.right + size * 0.5 + 6, y: r.top + size * 0.5 },
-        ];
-        const spot = cands.find((c) => c.x > size / 2 && c.x < window.innerWidth - size / 2 && spotIsFree(c.x, c.y, size));
+        const spot = { x: Math.min(window.innerWidth - size / 2 - 6, r.right + size * 0.3), y: Math.max(80 + size / 2, r.top + size * 0.2) };
         e.lookAt(center);
-        this.setMood("curious");
-        if (spot) e.moveTo(spot, 30, 10);
-        if (Math.random() < 0.45) this.later(() => this.sayEvent("inspect"), 600);
+        this.ui.setMood("curious");
+        e.moveTo(spot, 30, 10);
+        this.later(() => this.sayEvent("inspect"), 600);
         this.later(() => {
-          this.setMood("neutral");
+          this.ui.setMood("neutral");
           this.done();
         }, 2800);
         break;
@@ -388,31 +476,27 @@ export class FlickController {
         }, 2000);
         this.later(() => {
           if (this.machine.state !== "hide") return;
-          const p = this.pointer;
-          if (p && Math.hypot(p.x - e.pos.x, p.y - e.pos.y) < 260) this.sayEvent("found");
+          this.sayEvent("found", { force: true });
           this.done();
         }, 4200);
         break;
       }
       case "react":
         e.flash();
-        e.hop(12);
+        e.hop(14);
         this.moodFor("happy", 1300);
-        this.popIn();
         break;
       case "celebrate":
         this.moodFor("happy", 2600);
-        e.hop(20, 2);
+        e.hop(22, 2);
         e.emit(0.6, 1.1, 1.6);
         this.later(() => e.emit(0.5, 1.1, 2.2), 180);
         this.later(() => e.emit(0.4, 1.2, 2.9), 360);
         this.confetti(e.pos);
-        this.popIn(3200);
         break;
       case "help":
         this.moodFor("curious", 2400);
         e.blink();
-        this.popIn(4200);
         break;
       default:
         break;
@@ -422,11 +506,11 @@ export class FlickController {
   private confetti(p: Vec) {
     if (this.opts.reducedMotion) return;
     const colors = ["#A46B55", "#D4A28C", "#727F70", "#E6D3CC", "#DFD2C0"];
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 18; i++) {
       const s = document.createElement("span");
-      const ang = (i / 14) * 360 + rand(-10, 10);
+      const ang = (i / 18) * 360 + rand(-10, 10);
       s.className = "pointer-events-none absolute block rounded-[1px]";
-      s.style.cssText = `left:${p.x}px;top:${p.y}px;width:${rand(4, 7)}px;height:${rand(7, 11)}px;background:${colors[i % colors.length]};--r:${ang}deg;--d:${-rand(40, 78)}px;animation:flick-confetti ${rand(0.7, 1.1)}s cubic-bezier(.22,1,.36,1) forwards;`;
+      s.style.cssText = `left:${p.x}px;top:${p.y}px;width:${rand(5, 8)}px;height:${rand(8, 13)}px;background:${colors[i % colors.length]};--r:${ang}deg;--d:${-rand(60, 110)}px;animation:flick-confetti ${rand(0.8, 1.2)}s cubic-bezier(.22,1,.36,1) forwards;`;
       s.addEventListener("animationend", () => s.remove());
       this.dom.trail.appendChild(s);
     }
@@ -443,11 +527,11 @@ export class FlickController {
       this.rafLook = 0;
       if (this.machine.state === "sleep") this.dispatch({ type: "activity" });
       const p = this.pointer;
-      if (!p || this.opts.compact || this.opts.reducedMotion || this.hoverPhoto) return;
+      if (!p || this.opts.reducedMotion || this.hoverPhoto || this.machine.state === "antic") return;
       const e = this.engine;
       const d = Math.hypot(p.x - e.pos.x, p.y - e.pos.y);
-      e.lookAt(d < 520 ? p : null);
-      if (d < 150 && this.machine.state === "rest") this.dispatch({ type: "request", state: "notice" });
+      e.lookAt(d < 900 ? p : null);
+      if (d < 170 && this.machine.state === "rest") this.dispatch({ type: "request", state: "notice" });
     });
   };
 
@@ -456,36 +540,73 @@ export class FlickController {
     const photo = t?.closest?.<HTMLElement>("[data-flick-look]");
     if (photo && photo !== this.hoverPhoto?.el) {
       this.hoverPhoto = { el: photo, since: performance.now() };
-      if (!this.opts.compact && !this.opts.reducedMotion) {
+      if (!this.opts.reducedMotion && this.machine.state !== "antic") {
         const r = photo.getBoundingClientRect();
         this.engine.lookAt({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
       }
+      if (Math.random() < 0.3) this.sayEvent("photo-hover");
     } else if (!photo && this.hoverPhoto) {
       this.hoverPhoto = null;
       this.engine.lookAt(this.pointer);
     }
-    if (t?.closest?.('a[href^="/book"]') && !sessionFlag("cta-line") && Math.random() < 0.3) {
-      if (this.sayEvent("cta")) sessionFlag("cta-line", true);
+    const cta = t?.closest?.<HTMLElement>('a[href^="/book"]');
+    if (cta && !cta.dataset.flickSeen && Math.random() < 0.5) {
+      cta.dataset.flickSeen = "1";
+      this.sayEvent("cta");
     }
   };
 
   private scrollEnd: ReturnType<typeof setTimeout> | undefined;
   private lastY = 0;
+  private scrollBurst = { y: 0, t: 0 };
   private onScroll = () => {
-    this.lastActivity = performance.now();
+    const now = performance.now();
+    this.lastActivity = now;
+    this.lastScroll = now;
     const dy = window.scrollY - this.lastY;
     this.lastY = window.scrollY;
     const e = this.engine;
-    if (!this.opts.reducedMotion) e.lookAt({ x: e.pos.x, y: e.pos.y + (dy > 0 ? 200 : -200) });
+    if (!this.opts.reducedMotion && this.machine.state !== "antic") e.lookAt({ x: e.pos.x, y: e.pos.y + (dy > 0 ? 200 : -200) });
     const st = this.machine.state;
-    if (st === "peek" || st === "inspect" || st === "notice") this.done();
+    if (st === "peek" || st === "inspect" || st === "notice" || st === "antic") this.done();
     if (st === "sleep") this.dispatch({ type: "activity" });
+
+    if (now - this.scrollBurst.t > 600) this.scrollBurst = { y: window.scrollY, t: now };
+    else if (Math.abs(window.scrollY - this.scrollBurst.y) > 2200 && now - this.lastFastScroll > 45_000) {
+      this.lastFastScroll = now;
+      this.sayEvent("fast-scroll");
+    }
+
     if (this.scrollEnd) clearTimeout(this.scrollEnd);
     this.scrollEnd = setTimeout(() => {
       e.lookAt(this.pointer);
       if (!isPaused(this.machine) && (this.machine.state === "rest" || this.machine.state === "sleep")) this.placeHome();
-    }, 220);
+      this.commentOnSection();
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60;
+      if (atBottom && !this.saidBottom) {
+        this.saidBottom = true;
+        this.sayEvent("scroll-bottom");
+      }
+    }, 260);
   };
+
+  /** When a new section heading settles into view, Flick has something to say about it. */
+  private commentOnSection() {
+    const vh = window.innerHeight;
+    const h = Array.from(document.querySelectorAll<HTMLElement>("main h2")).find((el) => {
+      const r = el.getBoundingClientRect();
+      return r.top > 70 && r.top < vh * 0.6;
+    });
+    if (!h) return;
+    const key = h.textContent?.trim().slice(0, 60) ?? "";
+    if (!key || this.commented.has(key)) return;
+    this.commented.add(key);
+    const hit = sectionComments.find((c) => c.match.test(key));
+    if (hit && Math.random() < 0.8) {
+      this.engine.lookAt({ x: h.getBoundingClientRect().left + 80, y: h.getBoundingClientRect().top + 20 });
+      this.say(hit.lines);
+    }
+  }
 
   private isField = (el: EventTarget | null) => el instanceof HTMLElement && (el.matches("input, textarea, select") || el.isContentEditable);
 
@@ -498,9 +619,10 @@ export class FlickController {
 
   private onFocusIn = (ev: FocusEvent) => {
     if (!this.isField(ev.target) || (ev.target instanceof Node && this.dom.root.contains(ev.target))) return;
+    this.abortAntic();
     this.dispatch({ type: "pause", reason: "typing" });
     this.ui.setBubble(null);
-    // Get completely out of the way of forms while someone types.
+    // Forms are sacred: get completely out of the way while someone types.
     this.go(tuckSpot(this.opts.size, this.opts.compact), 40, 11);
     if ((ev.target as HTMLElement).closest("form")) this.armHesitation();
   };
@@ -527,8 +649,10 @@ export class FlickController {
   };
 
   private onVisibility = () => {
-    if (document.hidden) this.dispatch({ type: "pause", reason: "hidden" });
-    else {
+    if (document.hidden) {
+      this.abortAntic();
+      this.dispatch({ type: "pause", reason: "hidden" });
+    } else {
       this.dispatch({ type: "resume", reason: "hidden" });
       this.lastActivity = performance.now();
     }
@@ -537,28 +661,32 @@ export class FlickController {
   private resizeT: ReturnType<typeof setTimeout> | undefined;
   private onResize = () => {
     if (this.resizeT) clearTimeout(this.resizeT);
-    this.resizeT = setTimeout(() => this.placeHome(true), 200);
+    this.resizeT = setTimeout(() => {
+      this.abortAntic();
+      this.placeHome(true);
+    }, 200);
   };
 
   private onSignal = (s: Parameters<Parameters<typeof onFlick>[0]>[0]) => {
     this.lastActivity = performance.now();
     switch (s.type) {
       case "photo-click":
+        this.abortAntic();
         this.dispatch({ type: "request", state: "react" });
-        if (Math.random() < 0.55) this.sayEvent("photo-click");
+        this.sayEvent("photo-click", { force: true });
         break;
       case "photo-favorite":
         this.dispatch({ type: "request", state: "react" });
-        this.sayEvent("photo-favorite", { force: !sessionFlag("fav-line") });
-        sessionFlag("fav-line", true);
+        this.sayEvent("photo-favorite", { force: true, announce: true });
         break;
       case "card-pick":
-        this.engine.hop(10);
+        this.engine.hop(12);
         this.moodFor("happy", 900);
-        if (Math.random() < 0.3) this.sayEvent("card-pick");
+        if (Math.random() < 0.6) this.sayEvent("card-pick", { force: true });
         break;
       case "booking-step":
         this.engine.blink();
+        this.engine.hop(8);
         break;
       case "booking-complete":
         this.dispatch({ type: "request", state: "celebrate" });
@@ -566,7 +694,7 @@ export class FlickController {
         break;
       case "story-complete":
         this.dispatch({ type: "request", state: "celebrate" });
-        this.sayEvent("celebrate-story", { force: true });
+        this.sayEvent("celebrate-story", { force: true, announce: true });
         break;
       case "form-error":
         if ((this.machine.cooldownUntil.help ?? 0) > performance.now()) break;
@@ -574,6 +702,7 @@ export class FlickController {
         this.sayEvent("help-error", { force: true, announce: true });
         break;
       case "pause":
+        this.abortAntic();
         this.dispatch({ type: "pause", reason: s.reason });
         this.ui.setBubble(null);
         this.closeMenu();
@@ -584,21 +713,32 @@ export class FlickController {
       case "open-guide":
         this.ui.setGuide(true);
         break;
-      default:
+      case "show":
         break;
     }
   };
 
-  /* ------------------------------------------------------------- heartbeat (1 Hz, no animation loop) */
-  private nextBehavior = performance.now() + rand(9000, 14000);
+  /* ------------------------------------------------------------- heartbeat (1 Hz) */
+  private nextBehavior = performance.now() + rand(5000, 8000);
   private nextBlink = performance.now() + rand(2600, 5200);
-  private nextAmbient = Math.max(QUIET_MS + 8000, performance.now() + rand(18_000, 30_000));
+  private nextAmbient = performance.now() + rand(9000, 14000);
   private lastZ = 0;
 
   private heartbeat = () => {
     if (document.hidden) return;
     const now = performance.now();
     const e = this.engine;
+
+    // Client-side navigation: new page, new things to talk about.
+    if (window.location.pathname !== this.path) {
+      this.path = window.location.pathname;
+      this.commented.clear();
+      this.saidBottom = false;
+      this.abortAntic();
+      this.later(() => this.pageHello(), 1200);
+      this.nextBehavior = now + rand(4000, 7000);
+    }
+
     this.dispatch({ type: "tick" });
     if (this.machine.state === "rest" && !isPaused(this.machine) && now - this.lastActivity > SLEEP_AFTER) this.dispatch({ type: "idle" });
 
@@ -618,40 +758,44 @@ export class FlickController {
     if (isPaused(this.machine)) return;
 
     if (now > this.nextBlink) {
-      this.nextBlink = now + rand(2600, 6200);
-      e.blink(Math.random() < 0.14);
+      this.nextBlink = now + rand(2400, 5600);
+      e.blink(Math.random() < 0.18);
     }
 
     // Hovering one photo for a while → go have a closer look (once per hover).
     const hp = this.hoverPhoto;
     if (hp && now - hp.since > 1200 && this.canMove() && this.machine.state === "rest") {
       hp.since = now + 20_000;
-      if (Math.random() < 0.5) this.dispatch({ type: "request", state: "inspect" });
+      if (Math.random() < 0.6) this.dispatch({ type: "request", state: "inspect" });
     }
 
-    if (this.machine.state === "rest" && now > this.nextBehavior) {
-      this.nextBehavior = now + rand(6000, 12000);
+    // Stay busy: antics most of the time, plus wanders, peeks and hide-and-seek.
+    const settledScroll = now - this.lastScroll > 1400;
+    if (this.machine.state === "rest" && now > this.nextBehavior && settledScroll) {
+      this.nextBehavior = now + (this.opts.compact ? rand(7000, 11000) : rand(5500, 9000));
       const r = Math.random();
       if (this.canMove()) {
-        if (r < 0.34) this.dispatch({ type: "request", state: "wander" });
-        else if (r < 0.52 && visiblePhotos().length) this.dispatch({ type: "request", state: "peek" });
-        else if (r < 0.58) this.dispatch({ type: "request", state: "hide" });
-        else if (r < 0.66) {
-          this.ui.setProp("cloth"); // pretends to clean the lens
+        if (r < 0.55) this.dispatch({ type: "request", state: "antic" });
+        else if (r < 0.68) this.dispatch({ type: "request", state: "wander" });
+        else if (r < 0.8 && !this.opts.compact && visiblePhotos().length) this.dispatch({ type: "request", state: "peek" });
+        else if (r < 0.86 && !this.opts.compact) this.dispatch({ type: "request", state: "hide" });
+        else if (r < 0.94) {
+          this.ui.setProp("cloth"); // cleans his own lens
           this.later(() => this.ui.setProp(null), 2900);
-        } else e.blink(true);
-      } else if (r < 0.3) e.blink(true);
+          if (Math.random() < 0.5) this.say(["just cleaning my lens.", "smudge. gone.", "a clean lens is a happy lens."]);
+        } else {
+          e.hop(12);
+          e.blink(true);
+        }
+      } else if (r < 0.4) e.blink(true);
     }
 
-    // Ambient line: only during active browsing, roughly every 35–60s.
-    if (now > this.nextAmbient && now - this.lastActivity < 20_000 && this.machine.state === "rest") {
-      this.nextAmbient = now + rand(35_000, 60_000);
+    // Ambient chatter while you browse.
+    if (now > this.nextAmbient && now - this.lastActivity < 30_000 && this.machine.state === "rest") {
+      this.nextAmbient = now + rand(12_000, 20_000);
       const ctx = contextFor(window.location.pathname);
-      const pool = [...ambient[ctx], ...(ctx === "general" ? [] : ambient.general.slice(0, 2))];
-      if (this.opts.compact) {
-        this.popIn(3600);
-        this.later(() => this.say(pool), 500);
-      } else this.say(pool);
+      const pool = [...ambient[ctx], ...(ctx === "general" ? [] : ambient.general)];
+      if (this.say(pool)) e.hop(8);
     }
   };
 
@@ -667,8 +811,9 @@ export class FlickController {
     if (!d || d.id !== ev.pointerId) return;
     if (!d.moved && Math.hypot(ev.clientX - d.start.x, ev.clientY - d.start.y) > 6) {
       d.moved = true;
+      this.abortAntic();
       this.dispatch({ type: "drag-start" });
-      this.setMood("surprised");
+      this.ui.setMood("surprised");
       this.ui.setFeet(true);
       this.closeMenu();
       this.ui.setBubble(null);
@@ -680,19 +825,13 @@ export class FlickController {
     const d = this.drag;
     this.drag = null;
     if (!d || !d.moved) return;
-    const { size } = this.opts;
-    const drop = { x: ev.clientX, y: ev.clientY };
-    const cands = [drop, { x: drop.x, y: drop.y - 60 }, { x: drop.x, y: drop.y + 60 }, { x: drop.x - 70, y: drop.y }, { x: drop.x + 70, y: drop.y }];
-    const spot =
-      cands.find((c) => c.x > size / 2 && c.x < window.innerWidth - size / 2 && c.y > 90 && spotIsFree(c.x, c.y, size)) ??
-      findFreeSpot(size, false) ??
-      tuckSpot(size, false);
-    this.home = spot;
+    void ev;
     this.dispatch({ type: "drag-end" });
-    this.engine.moveTo(spot, 30, 9);
     this.ui.setFeet(false);
     this.moodFor("happy", 900);
-    if (Math.random() < 0.6) this.sayEvent("dragged", { force: true });
+    this.sayEvent("dragged", { force: true });
+    // Floats back home to the corner after a moment.
+    this.later(() => this.machine.state === "rest" && this.placeHome(), 2200);
     this.suppressClick = true;
   }
 
@@ -712,23 +851,19 @@ export class FlickController {
       this.ui.setStrip(this.placement());
       return;
     }
-    if (this.opts.compact && this.engine.pos.x > window.innerWidth - this.opts.size * 0.3) this.popIn(6000);
+    if (this.introOpen) return;
     if (this.menuOpen) this.closeMenu();
     else {
+      this.abortAntic();
       this.menuOpen = true;
       this.ui.setBubble(null);
       this.ui.setMenu({ open: true, ...this.placement() });
     }
   }
 
-  /** Keyboard users tabbing to a tucked Flick bring him fully into view. */
+  /** Keyboard users tabbing to a tucked Flick bring him back into view. */
   onButtonFocus() {
-    const { size, compact } = this.opts;
-    const e = this.engine;
-    if (e.pos.x > window.innerWidth - size * 0.3) {
-      const spot = findFreeSpot(size, compact) ?? { x: window.innerWidth - size / 2 - 12, y: e.pos.y };
-      this.go(spot, 60, 12);
-    }
+    if (this.engine.pos.x > window.innerWidth - this.opts.size * 0.3) this.go(this.homeSpot(), 60, 12);
   }
 
   closeMenu() {
@@ -737,23 +872,20 @@ export class FlickController {
     this.ui.setMenu(null);
   }
 
-  moveOtherSide() {
-    const { size, compact } = this.opts;
-    const e = this.engine;
-    const vw = window.innerWidth;
-    const target = { x: e.pos.x > vw / 2 ? 22 + size / 2 : vw - 22 - size / 2, y: e.pos.y };
-    const spot = spotIsFree(target.x, target.y, size) ? target : findFreeSpot(size, compact, e.pos, vw / 3) ?? target;
-    this.home = spot;
-    this.go(spot, 26, 9);
+  /** Keyboard-accessible alternative to dragging: hop over and do a trick. */
+  doTrick() {
+    this.closeMenu();
+    if (!this.canMove()) {
+      this.engine.blink(true);
+      return;
+    }
+    this.dispatch({ type: "request", state: "antic" });
   }
 
   dismiss() {
     this.closeMenu();
+    this.abortAntic();
     this.dispatch({ type: "dismiss" });
     this.ui.dismiss();
-  }
-
-  get currentMood() {
-    return this.mood;
   }
 }

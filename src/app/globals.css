@@ -275,6 +275,96 @@
     transform: translate3d(0, -2.5px, 0) scale(1.012, 0.99);
   }
 }
+.flick-hammer {
+  transform-box: view-box;
+  transform-origin: 17px 10px;
+  animation: flick-swing 0.42s ease-in-out infinite;
+}
+@keyframes flick-swing {
+  0%,
+  100% {
+    transform: rotate(-30deg);
+  }
+  50% {
+    transform: rotate(38deg);
+  }
+}
+.flick-wrench {
+  transform-box: view-box;
+  transform-origin: 17px 12px;
+  animation: flick-twist 0.5s ease-in-out infinite;
+}
+@keyframes flick-twist {
+  0%,
+  100% {
+    transform: rotate(-18deg);
+  }
+  50% {
+    transform: rotate(22deg);
+  }
+}
+/* Hovering idle: Flick floats, and his shadow breathes with him. */
+@keyframes flick-hover {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translate3d(0, -9px, 0) rotate(1.5deg);
+  }
+}
+@keyframes flick-hover-shadow {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.32;
+  }
+  50% {
+    transform: translateX(-50%) scale(0.72);
+    opacity: 0.16;
+  }
+}
+@keyframes flick-sparkle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.1) rotate(90deg);
+  }
+}
+@keyframes flick-shine {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-18deg);
+  }
+}
+@keyframes flick-crack {
+  from {
+    stroke-dashoffset: 120;
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+@keyframes flick-intro {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 .flick-cloth {
   animation: flick-wipe 1.4s ease-in-out 2;
 }

@@ -12,4 +12,4 @@ export interface FilmStripPhoto {
 }
 
 export type FlickMood = "neutral" | "happy" | "sleepy" | "surprised" | "curious";
-export type FlickProp = null | "map" | "cloth";
+export type FlickProp = null | "map" | "cloth" | "hammer" | "wrench";
