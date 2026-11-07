@@ -1,0 +1,541 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { formatPrice, pricing, type PackageId } from "@/content/pricing";
+import { bookingCategories, type BookingCategory } from "@/content/services";
+import { site } from "@/content/site";
+import { storyFeelings, storySubjects } from "@/content/story";
+import { estimate, isPackageEligible } from "@/lib/inquiry/estimate";
+import { useFavorites } from "@/lib/favorites";
+import { track } from "@/lib/analytics";
+import { emitFlick } from "@/components/flick/bus";
+import { Button } from "@/components/ui/primitives";
+import { captureAttribution } from "./attribution";
+import { Checkbox, ConsentLabel, FormAlert, Honeypot, SelectField, TextArea, TextField } from "./fields";
+import { Turnstile } from "./Turnstile";
+import { useInquirySubmit } from "./useInquirySubmit";
+
+type Draft = {
+  category: BookingCategory | "";
+  packageId: PackageId | "";
+  extraPhotos: number;
+  addOns: string[];
+  groupDetails: string;
+  animals: string;
+  specialNeeds: string;
+  locationPreference: string;
+  city: string;
+  zip: string;
+  dateFlexibility: "flexible" | "specific" | "range";
+  preferredDate: string;
+  preferredDateAlt: string;
+  preferredTime: "" | "morning" | "midday" | "evening" | "any";
+  travelNotes: string;
+  name: string;
+  email: string;
+  phone: string;
+  smsOptIn: boolean;
+  message: string;
+  consent: boolean;
+  storySubject: string;
+  storyFeeling: string;
+};
+
+const EMPTY: Draft = {
+  category: "",
+  packageId: "",
+  extraPhotos: 0,
+  addOns: [],
+  groupDetails: "",
+  animals: "",
+  specialNeeds: "",
+  locationPreference: "",
+  city: "",
+  zip: "",
+  dateFlexibility: "flexible",
+  preferredDate: "",
+  preferredDateAlt: "",
+  preferredTime: "",
+  travelNotes: "",
+  name: "",
+  email: "",
+  phone: "",
+  smsOptIn: false,
+  message: "",
+  consent: false,
+  storySubject: "",
+  storyFeeling: "",
+};
+
+const DRAFT_KEY = "rcl:booking-draft";
+/** Contact details are never written to storage. */
+const PERSISTED: (keyof Draft)[] = ["category", "packageId", "extraPhotos", "addOns", "groupDetails", "animals", "locationPreference", "city", "zip", "dateFlexibility", "preferredDate", "preferredDateAlt", "preferredTime", "storySubject", "storyFeeling"];
+
+const steps = ["What are we capturing?", "What would make this perfect?", "Where & when?", "Let's make it happen"] as const;
+
+const settings = ["Your home, yard or farm", "A park or outdoor spot", "Downtown or a business", "A venue", "Not sure yet: help me choose"];
+
+export function BookingWizard() {
+  const favorites = useFavorites();
+  const { state, submit } = useInquirySubmit();
+  const [step, setStep] = useState(0);
+  const [d, setD] = useState<Draft>(EMPTY);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [token, setToken] = useState("");
+  const startedAt = useRef(0);
+  const started = useRef(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const hydrated = useRef(false);
+
+  // Restore draft + URL prefill (from service pages, pricing cards, story cards).
+  useEffect(() => {
+    startedAt.current = Date.now();
+    captureAttribution();
+    // Read the URL directly (not useSearchParams) so the wizard prerenders without a Suspense swap (no layout shift).
+    const params = new URLSearchParams(window.location.search);
+    let next = { ...EMPTY };
+    try {
+      const saved = JSON.parse(window.sessionStorage.getItem(DRAFT_KEY) ?? "null") as Partial<Draft> | null;
+      if (saved) next = { ...next, ...Object.fromEntries(Object.entries(saved).filter(([k]) => PERSISTED.includes(k as keyof Draft))) };
+    } catch {
+      /* ignore */
+    }
+    const cat = params.get("category");
+    if (cat && bookingCategories.some((c) => c.id === cat)) next.category = cat as BookingCategory;
+    const pkg = params.get("package");
+    if (pkg && pricing.packages.some((p) => p.id === pkg)) next.packageId = pkg as PackageId;
+    const subject = params.get("subject");
+    if (subject && storySubjects.some((s) => s.id === subject)) next.storySubject = subject;
+    const feeling = params.get("feeling");
+    if (feeling && storyFeelings.some((f) => f.id === feeling)) next.storyFeeling = feeling;
+    const town = site.serviceArea.towns.find((t) => t.slug === params.get("town"));
+    if (town) next.city = `${town.name}, ${town.state}`;
+    hydrated.current = true;
+    // Initializing from browser storage and the URL is a one-time sync with external state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setD(next);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated.current) return;
+    try {
+      window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify(Object.fromEntries(PERSISTED.map((k) => [k, d[k]]))));
+    } catch {
+      /* ignore */
+    }
+  }, [d]);
+
+  const set = useCallback(<K extends keyof Draft>(k: K, v: Draft[K]) => {
+    if (!started.current) {
+      started.current = true;
+      track("start_booking");
+    }
+    setD((x) => ({ ...x, [k]: v }));
+    setErrors((e) => {
+      if (!e[k as string]) return e;
+      const n = { ...e };
+      delete n[k as string];
+      return n;
+    });
+  }, []);
+
+  const eligible = d.category ? isPackageEligible(d.category) : false;
+  const est = useMemo(
+    () => (d.category ? estimate({ category: d.category, packageId: d.packageId || null, extraPhotos: d.extraPhotos, addOns: d.addOns }) : null),
+    [d.category, d.packageId, d.extraPhotos, d.addOns],
+  );
+
+
+  // Server-side field errors (from the final submit) are shown alongside local checks.
+  const shownErrors: Record<string, string> = { ...(state.status === "error" ? state.fields : {}), ...errors };
+
+  const validate = (s: number) => {
+    const e: Record<string, string> = {};
+    if (s === 0 && !d.category) e.category = "Choose what we're photographing.";
+    if (s === 1 && eligible && !d.packageId) e.packageId = "Choose how many photos you'd like.";
+    if (s === 2) {
+      if (d.zip && !/^\d{5}$/.test(d.zip)) e.zip = "Use a 5-digit ZIP code.";
+      if (d.dateFlexibility !== "flexible" && !d.preferredDate) e.preferredDate = "Add a date, or choose “I'm flexible”.";
+    }
+    if (s === 3) {
+      if (!d.name.trim()) e.name = "Please add your name.";
+      if (!/^\S+@\S+\.\S+$/.test(d.email.trim())) e.email = "Please check your email address.";
+      if (d.smsOptIn && !d.phone.trim()) e.phone = "Add a phone number to receive texts, or untick the text option.";
+      if (!d.consent) e.consent = "Please agree to the privacy policy so we can reply.";
+    }
+    setErrors(e);
+    if (Object.keys(e).length) {
+      emitFlick({ type: "form-error" });
+      requestAnimationFrame(() => document.querySelector<HTMLElement>("[aria-invalid='true'], [data-error-anchor]")?.focus());
+      return false;
+    }
+    return true;
+  };
+
+  const goto = (s: number) => {
+    setStep(s);
+    emitFlick({ type: "booking-step", step: s });
+    requestAnimationFrame(() => {
+      headingRef.current?.focus();
+      headingRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+    });
+  };
+
+  const next = () => {
+    if (validate(step)) goto(step + 1);
+  };
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (step < 3) return next();
+    if (!validate(3)) return;
+    const company = (e.currentTarget as HTMLFormElement).elements.namedItem("company_website") as HTMLInputElement | null;
+    void submit({
+      kind: "wizard",
+      ...d,
+      packageId: eligible ? d.packageId : "",
+      extraPhotos: eligible ? d.extraPhotos : 0,
+      addOns: eligible ? d.addOns : [],
+      preferredTime: d.preferredTime || undefined,
+      inspirationIds: favorites,
+      company_website: company?.value ?? "",
+      startedAt: startedAt.current,
+      turnstileToken: token,
+    }).then((ok) => {
+      if (ok) {
+        try {
+          window.sessionStorage.removeItem(DRAFT_KEY);
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+  };
+
+  const onToken = useCallback((t: string) => setToken(t), []);
+  const catLabel = bookingCategories.find((c) => c.id === d.category)?.label;
+
+  return (
+    <form onSubmit={onSubmit} noValidate className="relative" data-flick-avoid aria-labelledby="wizard-step-title">
+      <Honeypot />
+      <ol className="mb-8 grid grid-cols-4 gap-2" aria-label="Booking steps">
+        {steps.map((label, i) => (
+          <li key={label} aria-current={i === step ? "step" : undefined}>
+            <button
+              type="button"
+              disabled={i > step}
+              onClick={() => i < step && goto(i)}
+              className="group block w-full text-left disabled:cursor-default"
+              aria-label={`Step ${i + 1}: ${label}${i < step ? " (completed, edit)" : ""}`}
+            >
+              <span className={`block h-1 rounded-full transition-colors ${i <= step ? "bg-clay-deep" : "bg-line"}`} />
+              <span className={`mt-2 hidden text-xs font-semibold sm:block ${i === step ? "text-ink" : "text-muted"}`}>
+                {i + 1}. {label}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+
+      <div className="grid gap-8 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <p className="eyebrow" aria-hidden>
+            Step {step + 1} of 4
+          </p>
+          <h2 id="wizard-step-title" ref={headingRef} tabIndex={-1} className="mt-2 text-display-sm outline-none">
+            {steps[step]}
+          </h2>
+
+          <div className="mt-7 space-y-7">
+            {step === 0 && (
+              <fieldset>
+                <legend className="sr-only">Session type</legend>
+                <div className="grid gap-3 sm:grid-cols-2" data-error-anchor={shownErrors.category ? true : undefined} tabIndex={shownErrors.category ? -1 : undefined}>
+                  {bookingCategories.map((c) => (
+                    <label
+                      key={c.id}
+                      className={`flex min-h-20 cursor-pointer flex-col justify-center rounded-[var(--radius-card)] border p-5 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-clay-deep ${
+                        d.category === c.id ? "border-ink bg-ink text-gallery" : "border-line bg-gallery hover:border-ink/40"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="category"
+                        value={c.id}
+                        className="sr-only"
+                        checked={d.category === c.id}
+                        onChange={() => {
+                          set("category", c.id);
+                          track("select_category", { category: c.id });
+                          emitFlick({ type: "card-pick" });
+                        }}
+                      />
+                      <span className="font-display text-[1.35rem]">{c.label}</span>
+                      <span className={`text-sm ${d.category === c.id ? "text-sand" : "text-muted"}`}>{c.hint}</span>
+                    </label>
+                  ))}
+                </div>
+                {shownErrors.category && <p className="mt-3 text-sm font-medium text-[#a3392b]" role="alert">{shownErrors.category}</p>}
+              </fieldset>
+            )}
+
+            {step === 1 && (
+              <>
+                {eligible ? (
+                  <fieldset>
+                    <legend className="mb-3 font-semibold">How many finished photos?</legend>
+                    <div className="grid gap-3 sm:grid-cols-3" data-error-anchor={shownErrors.packageId ? true : undefined} tabIndex={shownErrors.packageId ? -1 : undefined}>
+                      {pricing.packages.map((p) => (
+                        <label
+                          key={p.id}
+                          className={`relative flex cursor-pointer flex-col rounded-[var(--radius-card)] border p-5 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-clay-deep ${
+                            d.packageId === p.id ? "border-ink bg-ink text-gallery" : "border-line bg-gallery hover:border-ink/40"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="packageId"
+                            value={p.id}
+                            className="sr-only"
+                            checked={d.packageId === p.id}
+                            onChange={() => {
+                              set("packageId", p.id);
+                              track("select_package", { package: p.id });
+                              emitFlick({ type: "card-pick" });
+                            }}
+                          />
+                          <span className="font-display text-[2.2rem] leading-none">{p.photos}</span>
+                          <span className="text-sm">photos · {formatPrice(p.priceCents)}</span>
+                          <span className={`mt-2 text-xs ${d.packageId === p.id ? "text-sand" : "text-muted"}`}>{p.name}</span>
+                          {p.highlightLabel && <span className={`mt-2 text-xs font-semibold ${d.packageId === p.id ? "text-clay-light" : "text-clay-deep"}`}>{p.highlightLabel}</span>}
+                        </label>
+                      ))}
+                    </div>
+                    {shownErrors.packageId && <p className="mt-3 text-sm font-medium text-[#a3392b]" role="alert">{shownErrors.packageId}</p>}
+                    <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                      <div>
+                        <p className="mb-1.5 text-[0.92rem] font-semibold" id="extra-label">
+                          Extra photos <span className="font-normal text-muted">({formatPrice(pricing.extraPhoto.priceCents)} each)</span>
+                        </p>
+                        <div className="flex items-center gap-2" role="group" aria-labelledby="extra-label">
+                          <button type="button" className="h-12 w-12 rounded-full border border-ink/25 text-xl" onClick={() => set("extraPhotos", Math.max(0, d.extraPhotos - 1))} aria-label="One fewer extra photo">
+                            −
+                          </button>
+                          <output className="min-w-12 text-center font-display text-2xl" aria-live="polite">
+                            {d.extraPhotos}
+                          </output>
+                          <button type="button" className="h-12 w-12 rounded-full border border-ink/25 text-xl" onClick={() => set("extraPhotos", Math.min(60, d.extraPhotos + 1))} aria-label="One more extra photo">
+                            +
+                          </button>
+                        </div>
+                        <p className="mt-1.5 text-xs text-muted">You can also decide after you see your gallery.</p>
+                      </div>
+                      <div>
+                        {pricing.addOns
+                          .filter((a) => a.id !== "extra-photos")
+                          .map((a) => (
+                            <Checkbox
+                              key={a.id}
+                              id={`addon-${a.id}`}
+                              checked={d.addOns.includes(a.id)}
+                              onChange={(e) => set("addOns", e.target.checked ? [...d.addOns, a.id] : d.addOns.filter((x) => x !== a.id))}
+                              label={
+                                <>
+                                  <span className="font-semibold">{a.name}</span>
+                                  <span className="block text-muted">{a.description} {a.priceCents == null ? "Quoted personally." : `+${formatPrice(a.priceCents)}`}</span>
+                                </>
+                              }
+                            />
+                          ))}
+                      </div>
+                    </div>
+                  </fieldset>
+                ) : (
+                  <div className="rounded-[var(--radius-card)] border border-line bg-gallery p-5">
+                    <p className="font-semibold">{d.category === "other" ? "Tell us your idea" : "This one gets a custom quote"}</p>
+                    <p className="mt-1 text-muted">{est && est.kind === "quote" ? est.reason : ""}</p>
+                  </div>
+                )}
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {d.category === "animals" ? (
+                    <TextField id="w-animals" label="Who are the animals?" hint="e.g. two dogs and a very opinionated horse" value={d.animals} onChange={(e) => set("animals", e.target.value)} optional />
+                  ) : null}
+                  <TextField
+                    id="w-group"
+                    label={d.category === "weddings-events" ? "Guest count & hours you're thinking" : d.category === "business-branding" ? "Headcount & what you need" : "Who's in the photos?"}
+                    hint={d.category === "weddings-events" ? "e.g. ~80 guests, ceremony + reception" : d.category === "business-branding" ? "e.g. 6 team headshots + product photos" : "e.g. 2 adults, 3 kids, grandma"}
+                    value={d.groupDetails}
+                    onChange={(e) => set("groupDetails", e.target.value)}
+                    optional
+                  />
+                  <SelectField id="w-setting" label="Setting" optional value={d.locationPreference} onChange={(e) => set("locationPreference", e.target.value)}>
+                    <option value="">Choose one</option>
+                    {settings.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
+                <TextArea id="w-special" label="Anything we should plan around?" hint="Mobility or sensory needs, an anxious pet, a horse that spooks, a surprise proposal…" rows={3} value={d.specialNeeds} onChange={(e) => set("specialNeeds", e.target.value)} optional />
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <div className="grid gap-5 sm:grid-cols-[2fr_1fr]">
+                  <TextField id="w-city" label="City or area" autoComplete="address-level2" value={d.city} onChange={(e) => set("city", e.target.value)} optional hint={`We serve ${site.region}; farther is quoted.`} />
+                  <TextField id="w-zip" label="ZIP" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={d.zip} onChange={(e) => set("zip", e.target.value.replace(/\D/g, ""))} optional error={shownErrors.zip} />
+                </div>
+                <fieldset>
+                  <legend className="mb-3 font-semibold">Dates</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        ["flexible", "I'm flexible"],
+                        ["specific", "A specific date"],
+                        ["range", "A couple of options"],
+                      ] as const
+                    ).map(([v, label]) => (
+                      <label key={v} className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-clay-deep ${d.dateFlexibility === v ? "border-ink bg-ink text-gallery" : "border-ink/20 bg-gallery"}`}>
+                        <input type="radio" name="dateFlexibility" className="sr-only" checked={d.dateFlexibility === v} onChange={() => set("dateFlexibility", v)} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                  {d.dateFlexibility !== "flexible" && (
+                    <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                      <TextField id="w-date" type="date" label={d.dateFlexibility === "range" ? "First choice" : "Date"} value={d.preferredDate} onChange={(e) => set("preferredDate", e.target.value)} error={shownErrors.preferredDate} />
+                      {d.dateFlexibility === "range" && <TextField id="w-date2" type="date" label="Second choice" value={d.preferredDateAlt} onChange={(e) => set("preferredDateAlt", e.target.value)} optional />}
+                    </div>
+                  )}
+                </fieldset>
+                <SelectField id="w-time" label="Preferred time of day" optional value={d.preferredTime} onChange={(e) => set("preferredTime", e.target.value as Draft["preferredTime"])}>
+                  <option value="">No preference</option>
+                  <option value="morning">Morning (soft light, cooler)</option>
+                  <option value="midday">Midday</option>
+                  <option value="evening">Evening / golden hour</option>
+                  <option value="any">Whatever works best</option>
+                </SelectField>
+                <TextArea id="w-travel" label="Travel or location notes" rows={2} value={d.travelNotes} onChange={(e) => set("travelNotes", e.target.value)} optional hint="Farm address comes later. Just the general area for now." />
+                <p className="rounded-xl bg-gallery px-4 py-3 text-sm text-ink-soft">
+                  <strong>We&apos;ll confirm availability personally.</strong> This form doesn&apos;t reserve a slot. Real availability is confirmed by a
+                  real person.
+                </p>
+              </>
+            )}
+
+            {step === 3 && (
+              <>
+                {state.status === "error" && <FormAlert message={state.message} />}
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <TextField id="w-name" label="Your name" autoComplete="name" value={d.name} onChange={(e) => set("name", e.target.value)} error={shownErrors.name} required />
+                  <TextField id="w-email" type="email" label="Email" autoComplete="email" inputMode="email" value={d.email} onChange={(e) => set("email", e.target.value)} error={shownErrors.email} required />
+                </div>
+                <TextField id="w-phone" type="tel" label="Phone" autoComplete="tel" inputMode="tel" value={d.phone} onChange={(e) => set("phone", e.target.value)} error={shownErrors.phone} optional />
+                {d.phone.trim() && (
+                  <Checkbox id="w-sms" checked={d.smsOptIn} onChange={(e) => set("smsOptIn", e.target.checked)} label="It's okay to text me about this inquiry. Message and data rates may apply. Reply STOP to opt out." />
+                )}
+                <TextArea id="w-message" label="Inspiration & notes" rows={4} value={d.message} onChange={(e) => set("message", e.target.value)} optional hint="Ideas, Pinterest-style descriptions, what matters most to you." error={shownErrors.message} />
+                {favorites.length > 0 && <p className="text-sm text-muted">{favorites.length} saved inspiration photo{favorites.length === 1 ? "" : "s"} will be included.</p>}
+
+                <section aria-labelledby="review-title" className="rounded-[var(--radius-card)] border border-line bg-gallery p-5">
+                  <h3 id="review-title" className="font-sans text-sm font-bold uppercase tracking-[0.12em] text-clay-deep">
+                    Your summary
+                  </h3>
+                  <dl className="mt-3 grid gap-x-6 gap-y-2 text-[0.95rem] sm:grid-cols-2">
+                    <Row k="Session" v={catLabel} />
+                    {eligible && <Row k="Package" v={pricing.packages.find((p) => p.id === d.packageId)?.name} />}
+                    {eligible && d.extraPhotos > 0 && <Row k="Extra photos" v={String(d.extraPhotos)} />}
+                    <Row k="Where" v={[d.city, d.zip].filter(Boolean).join(" ") || "To discuss"} />
+                    <Row k="When" v={d.dateFlexibility === "flexible" ? "Flexible" : [d.preferredDate, d.preferredDateAlt].filter(Boolean).join(" or ")} />
+                    <Row k="Estimate" v={est?.label} />
+                  </dl>
+                </section>
+
+                <Checkbox id="w-consent" checked={d.consent} onChange={(e) => set("consent", e.target.checked)} label={<ConsentLabel />} error={shownErrors.consent} />
+                <Turnstile onToken={onToken} />
+              </>
+            )}
+          </div>
+
+          {est && est.kind !== "incomplete" && (
+            <p className="mt-8 rounded-xl bg-ink px-4 py-3 text-sm text-gallery lg:hidden" aria-hidden>
+              {est.kind === "package" ? `${est.label} · travel quoted if needed` : "Custom quote: you'll get a written quote"}
+            </p>
+          )}
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            {step > 0 && (
+              <Button type="button" variant="secondary" onClick={() => goto(step - 1)}>
+                Back
+              </Button>
+            )}
+            {step < 3 ? (
+              <Button type="button" onClick={next}>
+                Continue
+              </Button>
+            ) : (
+              <Button type="submit" disabled={state.status === "submitting"}>
+                {state.status === "submitting" ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-gallery/40 border-t-gallery" aria-hidden />
+                    Sending…
+                  </>
+                ) : (
+                  "Send my inquiry"
+                )}
+              </Button>
+            )}
+            <p className="sr-only" aria-live="polite">
+              {state.status === "submitting" ? "Sending your inquiry" : ""}
+            </p>
+          </div>
+        </div>
+
+        <aside className="lg:col-span-4" aria-label="Estimate">
+          <div className="rounded-[var(--radius-card)] bg-ink p-6 text-gallery on-dark lg:sticky lg:top-28">
+            <p className="eyebrow">Live estimate</p>
+            {!est || est.kind === "incomplete" ? (
+              <p className="mt-3 text-sand/90">{est?.label ?? "Choose a session type to see pricing."}</p>
+            ) : est.kind === "quote" ? (
+              <>
+                <p className="mt-3 font-display text-[2rem] leading-none">Custom quote</p>
+                <p className="mt-3 text-sm text-sand/85">No calculator guesses here. You&apos;ll get a written quote for exactly what you need.</p>
+              </>
+            ) : (
+              <>
+                <p className="mt-3 font-display text-[2.6rem] leading-none" aria-live="polite">
+                  {formatPrice(est.totalCents)}
+                </p>
+                <ul className="mt-4 space-y-1.5 text-sm text-sand/90">
+                  {est.lines.map((l) => (
+                    <li key={l.label} className="flex justify-between gap-4">
+                      <span>{l.label}</span>
+                      <span>{formatPrice(l.cents)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <ul className="mt-3 space-y-1 border-t border-sand/15 pt-3 text-xs text-sand/70">
+                  {est.quotedItems.map((q) => (
+                    <li key={q}>+ {q}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+            <p className="mt-5 text-xs text-sand/70">An estimate from our published rates, not a booking. We&apos;ll confirm everything with you personally.</p>
+          </div>
+        </aside>
+      </div>
+    </form>
+  );
+}
+
+function Row({ k, v }: { k: string; v?: string }) {
+  return (
+    <div className="flex justify-between gap-4 border-b border-line/70 py-1 sm:block sm:border-0">
+      <dt className="text-muted">{k}</dt>
+      <dd className="font-medium">{v || "–"}</dd>
+    </div>
+  );
+}
