@@ -1,4 +1,4 @@
--- Red Clay & Light: photography CMS (draft → preview → publish), site content,
+-- Southstill: photography CMS (draft → preview → publish), site content,
 -- private client galleries and storage usage.
 -- Run after 20261107000000_init.sql. Safe to re-run.
 

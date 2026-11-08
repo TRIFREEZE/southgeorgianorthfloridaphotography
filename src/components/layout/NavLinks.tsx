@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { site } from "@/content/site";
 
-function List({ active }: { active?: string }) {
+export type NavItem = { label: string; href: string };
+
+function List({ active, items }: { active?: string; items: NavItem[] }) {
   return (
     <ul className="flex items-center gap-1">
-      {site.nav.map((item) => {
+      {items.map((item) => {
         const isActive = active ? active === item.href || active.startsWith(item.href + "/") : false;
         return (
           <li key={item.href}>
@@ -27,11 +28,11 @@ function List({ active }: { active?: string }) {
   );
 }
 
-export function NavLinks() {
+export function NavLinks({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
-  return <List active={pathname} />;
+  return <List active={pathname} items={items} />;
 }
 
-export function NavLinksStatic() {
-  return <List />;
+export function NavLinksStatic({ items }: { items: NavItem[] }) {
+  return <List items={items} />;
 }

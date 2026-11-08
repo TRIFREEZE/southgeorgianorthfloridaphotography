@@ -26,3 +26,10 @@ export const experienceSteps = [
 ];
 
 export const processHeadline = "A little planning. A lot less posing.";
+
+/** "What to expect" columns on the Our approach page. */
+export const experiencePrep = [
+  { title: "Before", items: ["A quick call or messages to plan the idea", "Location and time chosen around the best light", "A simple wardrobe and prep guide", "A weather backup plan"] },
+  { title: "During", items: ["Prompts and gentle direction, never stiff posing", "Breaks for little ones, animals and humans", "Safety first around horses, livestock and traffic", "No countdown for standard portraits"] },
+  { title: "After", items: ["Carefully edited, natural-looking photos", "A private online gallery to download and share", "Personal-use print release for portraits", "Option to add extra photos from your gallery"] },
+];

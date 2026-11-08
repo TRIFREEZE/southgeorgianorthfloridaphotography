@@ -14,7 +14,7 @@ The site launches with clearly labeled sample placeholders. Here's the fastest w
 
 1. **Name your files descriptively** before uploading (`bay-mare-sunset-thomasville.jpg`). The name becomes the starting title and alt text. Camera names like `IMG_2041` are ignored.
 2. **Photo library → choose a category → drop the whole folder** onto the drop zone. Upload as many as you like at once; each file shows its own progress. Repeat for each category.
-3. **Site photos** shows every photo spot on the site as a card: the homepage hero, the 7 "selected work" tiles, your portrait, each category cover, each service page and each journal post. Cards still showing samples are marked **Sample**. **Drag a file from your computer onto any card** to replace it in one step, or press **Library** to choose a photo you've already uploaded.
+3. **Site photos** shows every photo spot on the site as a card: the homepage hero, the 7 "selected work" tiles, your portrait and up to three extra About-page photos, each category cover, each service page and each journal post. Cards still showing samples are marked **Sample**. **Drag a file from your computer onto any card** to replace it in one step, or press **Library** to choose a photo you've already uploaded.
 4. Press **Preview**, check desktop and phone, then **Publish**.
 
 Spots you don't set by hand are **Automatic**: they use your *Featured* photos first, then the first photo in the category. Once a category has any real photo, its samples disappear.
@@ -45,7 +45,9 @@ Your originals are always kept untouched in private storage. The site gets an op
 **Pricing & text** has four tabs. Every save is a draft; publish to go live.
 
 - **Pricing:** package names, prices and photo counts, what's included, extra-photo price, add-ons, custom-quote wording for weddings/events and businesses, travel, deposit, the "no stopwatch" promise and small print. Tick **These prices are final** when you've confirmed them. The booking estimate always uses these exact numbers.
-- **Page text:** every headline and paragraph on the main pages, grouped by page. An empty box uses the original wording (shown in grey). In the homepage headline, the last word is set in italic clay.
+- **All site text:** every word on the site, about 300 boxes, listed by page on the left: the header menu and footer, the homepage, About, the portfolio, the services list and **each service page** (including its name, so "Portraits & Families" can become whatever you like), pricing, Our approach, booking and thank-you pages, contact, FAQ page headings, the service area, the story builder (every choice and prep tip) and every journal article. Use the search box to jump straight to a phrase you saw on the site. Each box shows the current wording. Change it and save, or press **Reset** to bring back the original. A few boxes fill themselves in: `{price}` becomes your lowest package price, `{extraPrice}` your extra-photo price, `{service}` the service name.
+  - **Journal articles** are plain text: a blank line between paragraphs, `## ` at the start of a line for a heading, `### ` for a smaller one, `- ` for a bullet and `> ` for a highlighted note.
+  - Category names and descriptions (the portfolio filters and homepage story cards) are in **Categories**. Package names, prices and what's included are in the **Pricing** tab. Legal pages (privacy, terms) stay in code on purpose. Have them reviewed rather than edited casually.
 - **FAQs:** edit, add, remove and reorder, and choose where each appears (FAQ page, homepage, and any service page). Ask Flick answers from these too.
 - **Testimonials:** only real words from real clients, with their permission. One appears on the site only when both *Client gave permission* and *Show on site* are ticked.
 

@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { experienceSteps } from "@/content/experience";
 import { publishedPosts } from "@/content/journal";
 import { site } from "@/content/site";
+import { getT } from "@/lib/cms/data";
 import type { Category, Faq, Pricing, Testimonial } from "@/lib/cms/schema";
-import { textOf } from "@/lib/cms/texts";
+import { editedExperience, editedPost, editedTrust, textOf } from "@/lib/cms/texts";
 import type { Photo } from "@/lib/photo-types";
 import { PhotoFill } from "@/components/media/Photo";
 import { SamplePlate } from "@/components/media/SamplePlate";
@@ -13,28 +13,14 @@ import { PackageCard } from "./PackageCard";
 
 type Texts = Record<string, string>;
 
-export function UtilityLine({ text }: { text: string }) {
-  return (
-    <div className="border-b border-line/70 bg-gallery/60">
-      <Container className="flex min-h-9 items-center justify-center py-2 text-center text-[0.78rem] tracking-wide text-muted">{text}</Container>
-    </div>
-  );
-}
-
-const trust = [
-  { title: "Relaxed sessions", body: "Portraits aren't run on a stopwatch." },
-  { title: "Clear photo counts", body: "Know exactly how many finished photos you get." },
-  { title: "Transparent pricing", body: "Real prices on the site, quotes in writing." },
-  { title: "People, pets & businesses", body: "Families, horses, dogs, weddings, brands." },
-];
-
-export function TrustBar() {
+export async function TrustBar() {
+  const trust = editedTrust((await getT()).texts);
   return (
     <section aria-label="What to expect" className="border-y border-line bg-gallery">
       <Container>
         <ul className="grid grid-cols-2 divide-line lg:grid-cols-4 lg:divide-x">
           {trust.map((t, i) => (
-            <li key={t.title} className={`px-1 py-6 sm:px-4 lg:px-8 ${i % 2 === 1 ? "pl-4 sm:pl-6" : ""}`} data-reveal style={{ ["--reveal-delay" as string]: `${i * 60}ms` }}>
+            <li key={i} className={`px-1 py-6 sm:px-4 lg:px-8 ${i % 2 === 1 ? "pl-4 sm:pl-6" : ""}`} data-reveal style={{ ["--reveal-delay" as string]: `${i * 60}ms` }}>
               <p className="font-display text-[1.2rem] leading-tight sm:text-[1.35rem]">{t.title}</p>
               <p className="mt-1.5 text-sm text-muted">{t.body}</p>
             </li>
@@ -51,7 +37,7 @@ export function UnhurriedPromise({ pricing, texts }: { pricing: Pricing; texts: 
       <Container className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-6">
           <p className="eyebrow mb-4" data-reveal>
-            The unhurried promise
+            {textOf(texts, "home.promise.eyebrow")}
           </p>
           <h2 id="promise-title" className="text-display-lg" data-reveal>
             {textOf(texts, "home.promise.title")} <em className="text-clay">{textOf(texts, "home.promise.accent")}</em>
@@ -61,7 +47,7 @@ export function UnhurriedPromise({ pricing, texts }: { pricing: Pricing; texts: 
           <p>{pricing.noStopwatch.body}</p>
           <p className="text-base text-muted">{pricing.noStopwatch.boundaries}</p>
           <ButtonLink href="/experience" variant="ghost">
-            How a session works <Arrow />
+            {textOf(texts, "home.promise.cta")} <Arrow />
           </ButtonLink>
         </div>
       </Container>
@@ -81,7 +67,7 @@ export function ChooseYourStory({ items, texts }: { items: StoryCardItem[]; text
   return (
     <section className="py-20 sm:py-24" aria-labelledby="choose-title">
       <Container>
-        <SectionHeading id="choose-title" eyebrow="Choose your story" title={textOf(texts, "home.choose.title")} lede={textOf(texts, "home.choose.lede")} />
+        <SectionHeading id="choose-title" eyebrow={textOf(texts, "home.choose.eyebrow")} title={textOf(texts, "home.choose.title")} lede={textOf(texts, "home.choose.lede")} />
         <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:gap-5">
           {items.map(({ category: c, cover, href, tone }, i) => (
             <li key={c.id} data-reveal style={{ ["--reveal-delay" as string]: `${i * 80}ms` }}>
@@ -120,9 +106,9 @@ export function PricingPreview({ pricing, texts }: { pricing: Pricing; texts: Te
     <section className="bg-gallery py-20 sm:py-28" aria-labelledby="pricing-preview-title">
       <Container>
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <SectionHeading id="pricing-preview-title" eyebrow="Straightforward pricing" title={pricing.noStopwatch.headline} lede={textOf(texts, "home.pricing.lede")} />
+          <SectionHeading id="pricing-preview-title" eyebrow={textOf(texts, "home.pricing.eyebrow")} title={pricing.noStopwatch.headline} lede={textOf(texts, "home.pricing.lede")} />
           <ButtonLink href="/pricing" variant="ghost" className="shrink-0">
-            Full pricing &amp; inclusions <Arrow />
+            {textOf(texts, "home.pricing.cta")} <Arrow />
           </ButtonLink>
         </div>
         <div className="mt-12 grid gap-4 md:grid-cols-3 lg:gap-5">
@@ -131,9 +117,9 @@ export function PricingPreview({ pricing, texts }: { pricing: Pricing; texts: Te
           ))}
         </div>
         <p className="mt-8 text-center text-muted">
-          Not sure?{" "}
+          {textOf(texts, "home.pricing.help")}{" "}
           <Link href="/book" className="font-semibold text-clay-deep underline">
-            We&apos;ll help you choose.
+            {textOf(texts, "home.pricing.helpLink")}
           </Link>
         </p>
       </Container>
@@ -141,11 +127,13 @@ export function PricingPreview({ pricing, texts }: { pricing: Pricing; texts: Te
   );
 }
 
-export function ExperienceTimeline({ title }: { title: string }) {
+export async function ExperienceTimeline({ title }: { title: string }) {
+  const t = await getT();
+  const { steps: experienceSteps } = editedExperience(t.texts);
   return (
     <section className="py-20 sm:py-28" aria-labelledby="timeline-title">
       <Container>
-        <SectionHeading id="timeline-title" eyebrow="How it works" title={title} />
+        <SectionHeading id="timeline-title" eyebrow={t("home.timeline.eyebrow")} title={title} />
         <ol className="relative mt-14 grid gap-10 md:grid-cols-4 md:gap-6">
           <span aria-hidden className="absolute left-[1.1rem] top-2 bottom-2 w-px bg-line md:left-0 md:right-0 md:top-[1.1rem] md:bottom-auto md:h-px md:w-auto" />
           {experienceSteps.map((s, i) => (
@@ -171,14 +159,14 @@ export function MeetPhotographer({ portrait, texts }: { portrait: Photo; texts: 
           </div>
         </div>
         <div className="md:col-span-6 md:col-start-7" data-reveal>
-          <p className="eyebrow mb-4">Meet the photographer</p>
+          <p className="eyebrow mb-4">{textOf(texts, "home.meet.eyebrow")}</p>
           <h2 id="meet-title" className="text-display-md">
             {textOf(texts, "about.lead")}
           </h2>
           <p className="mt-6 text-lede text-ink-soft">{textOf(texts, "about.short")}</p>
           <div className="mt-8">
             <ButtonLink href="/about" variant="secondary">
-              The longer story <Arrow />
+              {textOf(texts, "home.meet.cta")} <Arrow />
             </ButtonLink>
           </div>
         </div>
@@ -187,16 +175,19 @@ export function MeetPhotographer({ portrait, texts }: { portrait: Photo; texts: 
   );
 }
 
-export function FeaturedStories({ covers }: { covers: Record<string, Photo | null> }) {
-  const posts = publishedPosts().slice(0, 3);
+export async function FeaturedStories({ covers }: { covers: Record<string, Photo | null> }) {
+  const t = await getT();
+  const posts = publishedPosts()
+    .slice(0, 3)
+    .map((p) => editedPost(t.texts, p));
   if (!posts.length) return null;
   return (
     <section className="py-20 sm:py-28" aria-labelledby="stories-title">
       <Container>
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <SectionHeading id="stories-title" eyebrow="From the journal" title="Useful, honest notes before your session." />
+          <SectionHeading id="stories-title" eyebrow={t("home.journal.eyebrow")} title={t("home.journal.title")} />
           <ButtonLink href="/journal" variant="ghost" className="shrink-0">
-            All journal posts <Arrow />
+            {t("home.journal.cta")} <Arrow />
           </ButtonLink>
         </div>
         <ul className="mt-12 grid gap-8 md:grid-cols-3">
@@ -225,13 +216,14 @@ export function FeaturedStories({ covers }: { covers: Record<string, Photo | nul
   );
 }
 
-export function Reviews({ testimonials }: { testimonials: Testimonial[] }) {
+export async function Reviews({ testimonials }: { testimonials: Testimonial[] }) {
   const items = testimonials.filter((t) => t.published && t.consent);
   if (items.length === 0) return null; // Real, consented reviews only.
+  const t = await getT();
   return (
     <section className="bg-gallery py-20 sm:py-28" aria-labelledby="reviews-title">
       <Container>
-        <SectionHeading id="reviews-title" eyebrow="Kind words" title="From people we've photographed" />
+        <SectionHeading id="reviews-title" eyebrow={t("home.reviews.eyebrow")} title={t("home.reviews.title")} />
         <ul className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {items.map((r) => (
             <li key={r.id} className="rounded-[var(--radius-card)] border border-line bg-parchment p-7" data-reveal>
@@ -246,12 +238,13 @@ export function Reviews({ testimonials }: { testimonials: Testimonial[] }) {
   );
 }
 
-export function AreasServed({ pricing, title }: { pricing: Pricing; title: string }) {
+export async function AreasServed({ pricing, title }: { pricing: Pricing; title: string }) {
+  const t = await getT();
   return (
     <section className="py-20 sm:py-24" aria-labelledby="areas-title">
       <Container className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <SectionHeading id="areas-title" eyebrow="Where we work" title={title} />
+          <SectionHeading id="areas-title" eyebrow={t("home.areas.eyebrow")} title={title} />
         </div>
         <div className="lg:col-span-6 lg:col-start-7" data-reveal>
           <ul className="flex flex-wrap gap-2.5">
@@ -260,27 +253,28 @@ export function AreasServed({ pricing, title }: { pricing: Pricing; title: strin
                 {t.name}, {t.state}
               </li>
             ))}
-            <li className="rounded-full border border-dashed border-ink/25 px-4 py-2 text-[0.95rem] text-muted">and nearby</li>
+            <li className="rounded-full border border-dashed border-ink/25 px-4 py-2 text-[0.95rem] text-muted">{t("home.areas.nearby")}</li>
           </ul>
           <p className="mt-6 text-ink-soft">{pricing.travel.copy}</p>
-          <p className="mt-3 text-muted">{site.serviceArea.outsideAreaNote}</p>
+          <p className="mt-3 text-muted">{t("site.outsideArea")}</p>
         </div>
       </Container>
     </section>
   );
 }
 
-export function FaqPreview({ faqs, title }: { faqs: Faq[]; title: string }) {
+export async function FaqPreview({ faqs, title }: { faqs: Faq[]; title: string }) {
   const items = faqs.filter((f) => f.home);
   if (!items.length) return null;
+  const t = await getT();
   return (
     <section className="py-20 sm:py-24" aria-labelledby="faq-title">
       <Container className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-4">
-          <SectionHeading id="faq-title" eyebrow="Good questions" title={title} />
+          <SectionHeading id="faq-title" eyebrow={t("home.faq.eyebrow")} title={title} />
           <div className="mt-8" data-reveal>
             <ButtonLink href="/faq" variant="ghost">
-              All FAQs <Arrow />
+              {t("home.faq.cta")} <Arrow />
             </ButtonLink>
           </div>
         </div>

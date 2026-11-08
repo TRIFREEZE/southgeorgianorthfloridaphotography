@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { site } from "@/content/site";
-import { composeStory, storyFeelings, storySeasons, storySubjects } from "@/content/story";
+import { composeStory, defaultStory, type StoryContent } from "@/content/story";
 import type { Pricing } from "@/lib/cms/schema";
+import type { StoryLabels } from "@/lib/cms/texts";
 import type { Photo } from "@/lib/photo-types";
 import { track } from "@/lib/analytics";
 import { emitFlick } from "@/components/flick/bus";
@@ -15,7 +16,22 @@ import { StoryCard, storyShareQuery } from "./StoryCard";
  * Optional 30-second "Build Your Story" experience. Never gates booking:
  * the regular booking links stay one click away throughout.
  */
-export function BuildYourStory({ photos, pricing, title = "Picture it first.", headingId }: { photos: Photo[]; pricing: Pricing; title?: string; headingId: string }) {
+export function BuildYourStory({
+  photos,
+  pricing,
+  title = "Picture it first.",
+  headingId,
+  content = defaultStory,
+  labels,
+}: {
+  photos: Photo[];
+  pricing: Pricing;
+  title?: string;
+  headingId: string;
+  content?: StoryContent;
+  labels: StoryLabels;
+}) {
+  const { subjects: storySubjects, feelings: storyFeelings, seasons: storySeasons } = content;
   const [subject, setSubject] = useState<string | null>(null);
   const [feeling, setFeeling] = useState<string | null>(null);
   const [town, setTown] = useState<string>("");
@@ -26,7 +42,7 @@ export function BuildYourStory({ photos, pricing, title = "Picture it first.", h
 
   const subj = storySubjects.find((s) => s.id === subject);
   const pool = useMemo(() => photos.filter((p) => !subj || p.category === subj.category).slice(0, 8), [photos, subj]);
-  const story = composeStory({ subject, feeling, town: town || null, season: season || null });
+  const story = composeStory({ subject, feeling, town: town || null, season: season || null }, content);
   const mood = picked.length ? pool.filter((p) => picked.includes(p.id)) : pool.slice(0, 4);
 
   const finish = () => {
@@ -50,15 +66,14 @@ export function BuildYourStory({ photos, pricing, title = "Picture it first.", h
   return (
     <div className="grid gap-10 lg:grid-cols-12">
       <div className="lg:col-span-5">
-        <p className="eyebrow mb-4">Build your story · optional</p>
+        <p className="eyebrow mb-4">{labels.eyebrow}</p>
         <h2 id={headingId} className="text-display-md">
           {title}
         </h2>
         <p className="mt-5 text-ink-soft">
-          Four quick choices and we&apos;ll sketch your session: the feel, a suggested package with honest pricing, travel, and one
-          prep tip. Takes about 30 seconds. Or skip it and{" "}
+          {labels.lede}{" "}
           <Link href="/book" className="font-semibold text-clay-deep underline">
-            just ask a human
+            {labels.skipLink}
           </Link>
           .
         </p>
@@ -71,6 +86,7 @@ export function BuildYourStory({ photos, pricing, title = "Picture it first.", h
               story={story}
               photos={mood}
               pricing={pricing}
+              labels={{ eyebrow: labels.cardEyebrow, cta: labels.cardCta }}
               actions={
                 <>
                   <button type="button" onClick={copy} className="inline-flex min-h-12 items-center rounded-full border border-ink/25 px-5 font-semibold hover:border-ink">
@@ -87,7 +103,7 @@ export function BuildYourStory({ photos, pricing, title = "Picture it first.", h
         ) : (
           <div className="space-y-8 rounded-[1.4rem] border border-line bg-gallery p-6 sm:p-8">
             <fieldset>
-              <legend className="font-display text-[1.35rem]">1. Who or what do you love?</legend>
+              <legend className="font-display text-[1.35rem]">{labels.q1}</legend>
               <div className="mt-4 flex flex-wrap gap-2">
                 {storySubjects.map((s) => (
                   <Chip
@@ -104,7 +120,7 @@ export function BuildYourStory({ photos, pricing, title = "Picture it first.", h
               </div>
             </fieldset>
             <fieldset>
-              <legend className="font-display text-[1.35rem]">2. What should it feel like?</legend>
+              <legend className="font-display text-[1.35rem]">{labels.q2}</legend>
               <div className="mt-4 flex flex-wrap gap-2">
                 {storyFeelings.map((f) => (
                   <Chip key={f.id} name="bys-feeling" checked={feeling === f.id} onChange={() => setFeeling(f.id)} label={f.label} />
@@ -112,7 +128,7 @@ export function BuildYourStory({ photos, pricing, title = "Picture it first.", h
               </div>
             </fieldset>
             <fieldset className="grid gap-4 sm:grid-cols-2">
-              <legend className="mb-4 font-display text-[1.35rem]">3. Roughly where and when?</legend>
+              <legend className="mb-4 font-display text-[1.35rem]">{labels.q3}</legend>
               <label className="block text-sm font-semibold">
                 Area
                 <select className="field mt-1.5" value={town} onChange={(e) => setTown(e.target.value)}>
@@ -139,7 +155,7 @@ export function BuildYourStory({ photos, pricing, title = "Picture it first.", h
             {subject && pool.length > 0 && (
               <fieldset>
                 <legend className="font-display text-[1.35rem]">
-                  4. Any photos that inspire you? <span className="text-base text-muted">(optional, up to 4)</span>
+                  {labels.q4} <span className="text-base text-muted">(optional, up to 4)</span>
                 </legend>
                 <ul className="mt-4 grid grid-cols-4 gap-2">
                   {pool.map((p) => {
@@ -173,9 +189,9 @@ export function BuildYourStory({ photos, pricing, title = "Picture it first.", h
                 disabled={!story}
                 className="inline-flex min-h-12 items-center rounded-full bg-ink px-6 font-semibold text-gallery hover:bg-clay-deep disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Show my session story
+                {labels.button}
               </button>
-              {!story && <p className="text-sm text-muted">Pick a subject and a feeling to continue.</p>}
+              {!story && <p className="text-sm text-muted">{labels.hint}</p>}
             </div>
           </div>
         )}

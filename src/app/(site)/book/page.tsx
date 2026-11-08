@@ -7,7 +7,7 @@ import { Container, PageHero } from "@/components/ui/primitives";
 import { publicEnv } from "@/lib/env";
 import { getSiteData } from "@/lib/cms/data";
 import { portfolio } from "@/lib/cms/resolve";
-import { textOf } from "@/lib/cms/texts";
+import { editedStory, storyLabels, textOf } from "@/lib/cms/texts";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -21,17 +21,18 @@ export default async function BookPage() {
   const d = await getSiteData();
   const { photos } = portfolio(d);
   const { pricing, texts } = d.content;
+  const t = (k: string) => textOf(texts, k);
   return (
     <>
       <PageHero
-        eyebrow="Book a session"
-        title={textOf(texts, "book.title")}
-        lede={textOf(texts, "book.lede")}
+        eyebrow={t("book.eyebrow")}
+        title={t("book.title")}
+        lede={t("book.lede")}
       >
         <p className="mt-5 text-sm text-muted">
-          Already know what you want?{" "}
+          {t("book.quickPrompt")}{" "}
           <a href="#quick" className="font-semibold text-clay-deep underline">
-            Send a quick inquiry
+            {t("book.quickLink")}
           </a>
           {publicEnv.contactEmail && (
             <>
@@ -59,11 +60,11 @@ export default async function BookPage() {
       <section id="quick" aria-labelledby="quick-title" className="scroll-mt-24 bg-gallery py-20">
         <Container className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="eyebrow mb-4">Option B</p>
+            <p className="eyebrow mb-4">{t("book.quick.eyebrow")}</p>
             <h2 id="quick-title" className="text-display-sm">
-              Quick inquiry
+              {t("book.quick.title")}
             </h2>
-            <p className="mt-4 text-muted">Name, email, a sentence about your idea. That&apos;s it.</p>
+            <p className="mt-4 text-muted">{t("book.quick.body")}</p>
           </div>
           <div className="lg:col-span-8">
             <QuickInquiry idPrefix="book" />
@@ -73,7 +74,7 @@ export default async function BookPage() {
 
       <section aria-labelledby="book-bys" className="py-20">
         <Container>
-          <BuildYourStory photos={photos} pricing={pricing} title={textOf(texts, "home.bys.title")} headingId="book-bys" />
+          <BuildYourStory photos={photos} pricing={pricing} title={t("home.bys.title")} headingId="book-bys" content={editedStory(texts)} labels={storyLabels(texts)} />
         </Container>
       </section>
     </>

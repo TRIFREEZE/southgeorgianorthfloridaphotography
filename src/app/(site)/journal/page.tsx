@@ -3,7 +3,8 @@ import Link from "next/link";
 import { publishedPosts } from "@/content/journal";
 import { PhotoFill } from "@/components/media/Photo";
 import { SamplePlate } from "@/components/media/SamplePlate";
-import { getSiteData } from "@/lib/cms/data";
+import { getSiteData, getT } from "@/lib/cms/data";
+import { editedPost } from "@/lib/cms/texts";
 import { journalCover } from "@/lib/cms/resolve";
 import { Container, PageHero } from "@/components/ui/primitives";
 import { pageMetadata } from "@/lib/seo";
@@ -18,10 +19,11 @@ const fmt = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US"
 
 export default async function JournalPage() {
   const d = await getSiteData();
-  const posts = publishedPosts();
+  const t = await getT();
+  const posts = publishedPosts().map((p) => editedPost(t.texts, p));
   return (
     <>
-      <PageHero eyebrow="Journal" title="Notes from behind the camera." lede="Useful guides before your session, and stories from real shoots once clients say we can share them." />
+      <PageHero eyebrow={t("journal.eyebrow")} title={t("journal.title")} lede={t("journal.lede")} />
       <Container>
         <ul className="grid gap-x-8 gap-y-14 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((p, i) => (

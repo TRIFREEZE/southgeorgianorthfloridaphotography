@@ -266,19 +266,26 @@ export async function saveCategories(repo: CmsRepo, list: Category[]) {
 
 /* ------------------------------------------------------------------ placements ("Site photos") */
 
-export type SlotKey = "hero" | "founder" | `category:${string}` | `service:${string}` | `journal:${string}` | `mosaic:${number}`;
+export type SlotKey = "hero" | "founder" | `category:${string}` | `service:${string}` | `journal:${string}` | `mosaic:${number}` | `about:${number}`;
 
-const slotSchema = z.string().regex(/^(hero|founder|(category|service|journal):[a-z0-9-]{1,60}|mosaic:[0-6])$/);
+const slotSchema = z.string().regex(/^(hero|founder|(category|service|journal):[a-z0-9-]{1,60}|mosaic:[0-6]|about:[0-2])$/);
 
 export function applySlot(layout: Layout, slot: string, photoId: string | null): Layout {
   slotSchema.parse(slot);
-  const next: Layout = { ...layout, mosaic: [...layout.mosaic], categoryCovers: { ...layout.categoryCovers }, serviceCovers: { ...layout.serviceCovers }, journalCovers: { ...layout.journalCovers } };
+  const next: Layout = { ...layout, mosaic: [...layout.mosaic], aboutPhotos: [...layout.aboutPhotos], categoryCovers: { ...layout.categoryCovers }, serviceCovers: { ...layout.serviceCovers }, journalCovers: { ...layout.journalCovers } };
   const [kind, key] = slot.split(":");
   if (kind === "hero") next.hero = photoId;
   else if (kind === "founder") next.founder = photoId;
   else if (kind === "category") next.categoryCovers[key] = photoId;
   else if (kind === "service") next.serviceCovers[key] = photoId;
   else if (kind === "journal") next.journalCovers[key] = photoId;
+  else if (kind === "about") {
+    const i = Number(key);
+    const arr = [0, 1, 2].map((j) => next.aboutPhotos[j] ?? null);
+    arr[i] = photoId;
+    while (arr.length && arr[arr.length - 1] == null) arr.pop();
+    next.aboutPhotos = arr;
+  }
   else if (kind === "mosaic") {
     const i = Number(key);
     const arr = next.mosaic.filter(Boolean);
@@ -340,6 +347,7 @@ async function scrubLayout(repo: CmsRepo, ids: string[]) {
       hero: layout.hero && ids.includes(layout.hero) ? null : layout.hero,
       founder: layout.founder && ids.includes(layout.founder) ? null : layout.founder,
       mosaic: layout.mosaic.filter((x) => !ids.includes(x)),
+      aboutPhotos: layout.aboutPhotos.map((x) => (x && ids.includes(x) ? null : x)),
       categoryCovers: strip(layout.categoryCovers),
       serviceCovers: strip(layout.serviceCovers),
       journalCovers: strip(layout.journalCovers),
@@ -445,6 +453,8 @@ export function usageLabels(id: string, c: SiteContent, state: PhotoState) {
   for (const [k, v] of Object.entries(l.categoryCovers)) if (v === id) out.push(`${c.categories.find((x) => x.id === k)?.label ?? k} cover`);
   for (const [k, v] of Object.entries(l.serviceCovers)) if (v === id) out.push(`Service page: ${k}`);
   for (const [k, v] of Object.entries(l.journalCovers)) if (v === id) out.push(`Journal: ${k}`);
+  const ai = l.aboutPhotos.indexOf(id);
+  if (ai >= 0) out.push(`About page photo #${ai + 1}`);
   const cat = c.categories.find((x) => x.id === state.categoryId);
   if (cat && state.published) out.push(`${cat.label} gallery`);
   return out;

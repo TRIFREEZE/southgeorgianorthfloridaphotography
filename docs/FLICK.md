@@ -1,6 +1,6 @@
 # Flick: the lens who lives on the site
 
-Flick is ECHO, recolored for Red Clay & Light. The geometry and motion are ported directly from ECHO's `EchoRing` (the plugin character):
+Flick is ECHO, recolored for Southstill. The geometry and motion are ported directly from ECHO's `EchoRing` (the plugin character):
 
 | ECHO (JUCE) | Flick (web) |
 |---|---|
@@ -53,7 +53,7 @@ Each state has a **priority**, a **maximum duration** and a **cooldown** (`machi
 | Pick a package / story chip | approving hop |
 | Booking or story complete | *celebrate*: double hop, echo burst, confetti |
 | Form error / long hesitation | *help*: one short, kind line ("a sentence or two is plenty.") |
-| Focus any input | tucks away at the screen edge until typing is done |
+| Focus a text field | goes quiet and moves to a spot on his side that's clear of the field (always fully visible). Radio buttons and checkboxes don't count |
 | Menu / lightbox / dialog open | pause |
 | 45s idle | *sleep* (sleepy eyes, "z"), wakes on activity ("i wasn't sleeping. i was exposing slowly.") |
 | Scroll | eyes glance in the scroll direction; re-finds a free spot when scrolling stops |
@@ -73,7 +73,7 @@ Each state has a **priority**, a **maximum duration** and a **cooldown** (`machi
 - **Antics** (`antics.ts`): rare (every ~1–2 minutes), desktop only, and only with things right beside his side of the page. He floats up or down to reach them:
   - **Polish:** buffs a nearby card, photo or button with his cloth: a soft shine sweep and a few sparkles.
   - **Break:** a careful tap with a hammer → a small hairline crack and a barely-there tilt, a quiet "oops.", out comes the wrench, crack fades, the card eases back. "fixed. nobody saw that."
-  - "Do a trick" in his menu triggers one on demand (or a float if nothing's within reach).
+  - "Do a trick" in his menu plays one of **five tricks** in rotation (`tricks.ts`): a backflip, "say cheese" (flash + a tiny instant photo prints out), juggling lens caps, a barrel roll and an aperture zoom-out/zoom-in. They play in place, so they work in his phone corner too, and clean up every element they add.
 - **Speech bubbles:** small, soft rose with a tail (deliberately unlike any button), spring in, words arrive one by one, float gently, then shrink away. Never clickable.
 
 ### Guardrails (still on)
@@ -81,12 +81,14 @@ Each state has a **priority**, a **maximum duration** and a **cooldown** (`machi
 - Antics are **visual only**: Web Animations on page elements (cancelled afterwards, which restores them exactly) and temporary overlays in Flick's own `pointer-events: none` layer. No content, layout or form control is ever changed. They never target forms, dialogs, the header, nav, the footer or anything marked `data-flick-avoid`.
 - Every antic aborts instantly on scroll, typing, menus, dialogs, resize, tab switch or navigation, with its timers cancelled and elements restored.
 - While Flick is **flying or performing he can't catch clicks** (his button is `pointer-events: none` until he's resting), so he never intercepts a click meant for the page.
-- **Focusing any form field** silences him and tucks him off the screen edge until typing is done. Both booking forms are `data-flick-avoid`.
+- **Focusing a text field** silences him and moves him clear of it, still fully on screen. Both booking forms are `data-flick-avoid`.
+- **Popups never open under the header or off screen:** before the menu, intro card or film strip opens he checks there's room; if not, he glides to the bottom of his side first.
+- **Phone toolbars:** his box is anchored to the bottom of the viewport, so when the browser toolbar slides in and out while scrolling he rides along with the edge instead of jumping.
 - Muting stops speech (antics continue silently); hiding removes him until restored from the footer.
 
 ### Accessibility & motion
 
-- Flick is a real `<button>` ("Flick, the site helper. Open Flick's menu"). The menu takes focus, Escape closes it and focus returns. Tabbing to a tucked Flick brings him into view.
+- Flick is a real `<button>` ("Flick, the site helper. Open Flick's menu"). The menu takes focus, Escape closes it and focus returns. Tabbing to Flick brings him into view if he's near an edge.
 - Menu: **Ask Flick**, **Quiet please** (mutes speech for the session), **Move to the other side** (keyboard alternative to dragging), **Hide Flick** (until restored from the footer link, which is always present).
 - `prefers-reduced-motion`: no wandering, trail, hops, confetti or breathing. Flick appears in place and only changes expression.
 - Low-power devices (≤2 cores, ≤2 GB memory, Save-Data, or battery under 20% and not charging): no echo trail.

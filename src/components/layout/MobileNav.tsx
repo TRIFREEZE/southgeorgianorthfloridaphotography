@@ -6,13 +6,14 @@ import { site } from "@/content/site";
 import { publicEnv } from "@/lib/env";
 import { emitFlick } from "@/components/flick/bus";
 import { Lockup } from "@/components/ui/Logo";
+import type { NavItem } from "./NavLinks";
 
 /**
  * Full-height mobile menu built on the native <dialog>: focus is trapped by the
  * browser, Escape closes it, focus returns to the trigger, and the page behind
  * is inert.
  */
-export function MobileNav() {
+export function MobileNav({ items, bookLabel }: { items: NavItem[]; bookLabel: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -75,7 +76,7 @@ export function MobileNav() {
         </div>
         <nav aria-label="Mobile" className="flex flex-1 flex-col overflow-y-auto px-5 pb-8 pt-6">
           <ul className="space-y-1">
-            {[{ label: "Home", href: "/" }, ...site.nav, { label: "Journal", href: "/journal" }, { label: "Contact", href: "/contact" }].map(
+            {[{ label: "Home", href: "/" }, ...items, { label: "Journal", href: "/journal" }, { label: "Contact", href: "/contact" }].map(
               (item, i) => (
                 <li key={item.href} style={{ animationDelay: `${i * 35}ms` }} className="animate-[flick-bubble_420ms_var(--ease-out-soft)_both]">
                   <Link
@@ -96,7 +97,7 @@ export function MobileNav() {
               onClick={close}
               className="flex min-h-14 w-full items-center justify-center rounded-full bg-ink text-base font-semibold text-gallery"
             >
-              {site.bookCta.label}
+              {bookLabel}
             </Link>
             <p className="text-center text-sm text-muted">
               {publicEnv.contactEmail ? (

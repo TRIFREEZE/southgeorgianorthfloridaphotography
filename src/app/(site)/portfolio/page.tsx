@@ -19,7 +19,7 @@ export default async function PortfolioPage() {
   const { photos, isReal } = portfolio(d);
   return (
     <>
-      <PageHero eyebrow="Portfolio" title={textOf(d.content.texts, "portfolio.title")} lede={textOf(d.content.texts, "portfolio.lede")} />
+      <PageHero eyebrow={textOf(d.content.texts, "portfolio.eyebrow")} title={textOf(d.content.texts, "portfolio.title")} lede={textOf(d.content.texts, "portfolio.lede")} />
       <PortfolioView photos={photos} isReal={isReal} categories={visibleCategories(d)} />
       <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Portfolio", path: "/portfolio" }])} />
     </>

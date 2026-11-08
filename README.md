@@ -1,6 +1,6 @@
-# Red Clay & Light Photography
+# Southstill Photography
 
-Production website and lightweight booking workflow for **Red Clay & Light Photography** (South Georgia & North Florida), with **Flick**, an ECHO-style animated lens mascot.
+Production website and lightweight booking workflow for **Southstill** (South Georgia & North Florida), with **Flick**, an ECHO-style animated lens mascot.
 
 > *Your moments. Our time. No rush.*
 
@@ -58,7 +58,7 @@ The full guide is in **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**. In short:
 | **Site photos** | Every photo position: homepage hero, the 7 "selected work" tiles, photographer portrait, each category cover, each service page cover, each journal cover. Drag a file onto a card to replace it. |
 | **Photo library** | Bulk drag-and-drop upload with progress, categories, drag-to-reorder, featured, show/hide, delete with safeguards, and the photo editor (independent desktop and mobile focal point + zoom with live crop previews, title, alt text, description, location, permission). |
 | **Categories** | Create, rename, change web address, reorder, hide, delete (photos are never deleted with a category). |
-| **Pricing & text** | Packages, add-ons, custom quotes, travel, deposit, policies; every headline and paragraph on the main pages; FAQs (and where each appears); testimonials (shown only with permission). |
+| **Pricing & text** | Packages, add-ons, custom quotes, travel, deposit, policies; **all site text** (~300 fields by page, searchable: menus, footer, every page section, service names and pages, the story builder, journal articles); FAQs (and where each appears); testimonials (shown only with permission). |
 | **Client galleries** | Private password-protected galleries with expiry, downloads on/off and signed, expiring links. |
 | **Preview / Publish** | All edits are drafts. Preview shows the site on a desktop and a phone side by side; Publish makes everything live at once; Discard rolls back. |
 

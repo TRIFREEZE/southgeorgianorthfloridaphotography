@@ -32,7 +32,7 @@ export interface SlotView {
  */
 export function SlotBoard({ slots, photos, categories }: { slots: SlotView[]; photos: AdminPhoto[]; categories: Category[] }) {
   const groups = [...new Set(slots.map((s) => s.group))];
-  const samples = slots.filter((s) => !s.current?.src).length;
+  const samples = slots.filter((s) => s.current && !s.current.src).length;
   return (
     <div className="space-y-12">
       <p className="rounded-xl border border-line bg-parchment p-4 text-sm">
@@ -110,7 +110,7 @@ function SlotCard({ slot, photos, categories }: { slot: SlotView; photos: AdminP
       data-slot={slot.key}
     >
       <div className="relative overflow-hidden bg-sand" style={{ aspectRatio: slot.ratio }}>
-        {slot.current ? <PhotoFill photo={slot.current} sizes="(min-width:1280px) 25vw, (min-width:640px) 45vw, 100vw" quality={60} /> : <div className="absolute inset-0 grid place-items-center text-sm text-muted">Empty</div>}
+        {slot.current ? <PhotoFill photo={slot.current} sizes="(min-width:1280px) 25vw, (min-width:640px) 45vw, 100vw" quality={60} /> : <div className="absolute inset-0 grid place-items-center p-4 text-center text-sm text-muted">Drop a photo here</div>}
         {drop.over && <div className="absolute inset-0 grid place-items-center bg-ink/55 font-display text-xl text-gallery">Drop to replace</div>}
         {upload && upload.status !== "done" && (
           <div className="absolute inset-0 grid place-items-center bg-ink/60 p-4 text-center text-sm font-semibold text-gallery" role="status">
@@ -118,7 +118,7 @@ function SlotCard({ slot, photos, categories }: { slot: SlotView; photos: AdminP
           </div>
         )}
         <span className="absolute left-2 top-2 flex gap-1">
-          {!slot.current?.src ? <Badge tone="danger">Sample</Badge> : slot.explicitId ? <Badge tone="ok">Chosen</Badge> : <Badge tone="muted">Automatic</Badge>}
+          {!slot.current ? <Badge tone="muted">Empty</Badge> : !slot.current.src ? <Badge tone="danger">Sample</Badge> : slot.explicitId ? <Badge tone="ok">Chosen</Badge> : <Badge tone="muted">Automatic</Badge>}
         </span>
       </div>
       <div className="flex flex-1 flex-col p-4">

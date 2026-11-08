@@ -1,5 +1,8 @@
 import { ImageResponse } from "next/og";
+import { logoSvg } from "@/components/ui/logo-paths";
 import { site } from "@/content/site";
+
+const lockup = `data:image/svg+xml;base64,${Buffer.from(logoSvg()).toString("base64")}`;
 
 export const alt = `${site.name}: ${site.seoHeadline}`;
 export const size = { width: 1200, height: 630 };
@@ -10,15 +13,8 @@ export default function OpengraphImage() {
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "#F6F2EA", padding: 72, color: "#252723" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <svg width="72" height="72" viewBox="0 0 48 48">
-            <circle cx="24" cy="24" r="21.5" fill="none" stroke="#252723" strokeWidth="2.2" />
-            <path d="M13.5 26.5a10.5 10.5 0 0 1 21 0" fill="#A46B55" />
-            <path d="M7 26.5h34" stroke="#252723" strokeWidth="2.2" strokeLinecap="round" />
-            <path d="M10.5 32h27M15.5 37.2h17" stroke="#A46B55" strokeWidth="2.2" strokeLinecap="round" />
-          </svg>
-          <div style={{ fontSize: 40, letterSpacing: -0.5 }}>Red Clay & Light</div>
-        </div>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- rendered to PNG by ImageResponse */}
+        <img src={lockup} width={420} height={82} />
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: 76, lineHeight: 1.04, letterSpacing: -2, maxWidth: 980 }}>The good moments deserve more than a timer.</div>
           <div style={{ fontSize: 30, marginTop: 28, color: "#5d5c55" }}>{site.seoHeadline}</div>

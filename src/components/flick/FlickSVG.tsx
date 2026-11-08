@@ -2,7 +2,7 @@ import { useId, type Ref } from "react";
 import type { FlickMood, FlickProp } from "./types";
 
 /**
- * Flick: the ECHO ring, recolored for Red Clay & Light.
+ * Flick: the ECHO ring, recolored for Southstill.
  * Geometry mirrors ECHO's EchoRing::paint, scaled to r = 20:
  *   - dark lens face, ring stroke with a slowly rotating two-tone gradient, restrained halo
  *   - round eyes at x = ±0.33r, y = −0.06r, radius 0.15r; gaze offset up to 0.16r

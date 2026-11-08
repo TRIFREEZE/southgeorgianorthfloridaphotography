@@ -175,3 +175,56 @@ export const journalPosts: JournalPost[] = [
 export const publishedPosts = () =>
   journalPosts.filter((p) => p.published).sort((a, b) => b.date.localeCompare(a.date));
 export const postBySlug = (slug: string) => journalPosts.find((p) => p.slug === slug && p.published);
+
+/**
+ * Plain-text article format used by the dashboard editor:
+ *   ## Heading      ### Smaller heading      - bullet      > Note
+ * Paragraphs are separated by a blank line.
+ */
+export function blocksToText(blocks: Block[]): string {
+  return blocks
+    .map((b) => {
+      if (b.type === "h2") return `## ${b.text}`;
+      if (b.type === "h3") return `### ${b.text}`;
+      if (b.type === "ul") return b.items.map((i) => `- ${i}`).join("\n");
+      if (b.type === "note") return `> ${b.text}`;
+      return b.text;
+    })
+    .join("\n\n");
+}
+
+export function textToBlocks(text: string): Block[] {
+  const out: Block[] = [];
+  let para: string[] = [];
+  let list: string[] = [];
+  const flush = () => {
+    if (para.length) out.push({ type: "p", text: para.join(" ") });
+    if (list.length) out.push({ type: "ul", items: list });
+    para = [];
+    list = [];
+  };
+  for (const raw of text.replace(/\r/g, "").split("\n")) {
+    const line = raw.trim();
+    if (!line) {
+      flush();
+      continue;
+    }
+    const bullet = line.match(/^[-*•]\s+(.*)$/);
+    if (bullet) {
+      if (para.length) flush();
+      list.push(bullet[1]);
+      continue;
+    }
+    if (list.length) flush();
+    const heading = line.match(/^(#{2,3})\s+(.*)$/);
+    if (heading) {
+      flush();
+      out.push({ type: heading[1] === "##" ? "h2" : "h3", text: heading[2] });
+    } else if (line.startsWith("> ")) {
+      flush();
+      out.push({ type: "note", text: line.slice(2) });
+    } else para.push(line);
+  }
+  flush();
+  return out;
+}

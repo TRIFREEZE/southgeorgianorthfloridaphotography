@@ -4,6 +4,7 @@ import { QuickInquiry } from "@/components/booking/QuickInquiry";
 import { ContactLink } from "@/components/layout/ContactLink";
 import { Container, PageHero } from "@/components/ui/primitives";
 import { publicEnv, socialLinks } from "@/lib/env";
+import { getT } from "@/lib/cms/data";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -12,18 +13,19 @@ export const metadata: Metadata = pageMetadata({
   path: "/contact",
 });
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const t = await getT();
   return (
     <>
-      <PageHero eyebrow="Contact" title="Say hello." lede="Questions, ideas, a date you're holding? Send a note and you'll hear back from a real person." />
+      <PageHero eyebrow={t("contact.eyebrow")} title={t("contact.title")} lede={t("contact.lede")} />
       <Container className="grid gap-12 pb-8 lg:grid-cols-12">
         <div className="lg:col-span-7">
-          <QuickInquiry kind="contact" idPrefix="contact" submitLabel="Send message" />
+          <QuickInquiry kind="contact" idPrefix="contact" submitLabel={t("contact.submit")} />
         </div>
         <aside className="space-y-8 lg:col-span-4 lg:col-start-9">
           {(publicEnv.contactEmail || publicEnv.contactPhone) && (
             <div>
-              <h2 className="font-sans text-sm font-bold uppercase tracking-[0.12em] text-clay-deep">Direct</h2>
+              <h2 className="font-sans text-sm font-bold uppercase tracking-[0.12em] text-clay-deep">{t("contact.direct")}</h2>
               <ul className="mt-3 space-y-2 text-lede">
                 {publicEnv.contactEmail && (
                   <li>
@@ -39,16 +41,12 @@ export default function ContactPage() {
             </div>
           )}
           <div>
-            <h2 className="font-sans text-sm font-bold uppercase tracking-[0.12em] text-clay-deep">Where we work</h2>
-            <p className="mt-3 text-ink-soft">
-              {site.region}
-              {publicEnv.baseCity ? `, based near ${publicEnv.baseCity}` : ""}. Sessions happen on location: homes, farms, parks,
-              venues and businesses. There&apos;s no public studio.
-            </p>
+            <h2 className="font-sans text-sm font-bold uppercase tracking-[0.12em] text-clay-deep">{t("contact.whereTitle")}</h2>
+            <p className="mt-3 text-ink-soft">{t("contact.where")}</p>
           </div>
           {socialLinks.length > 0 && (
             <div>
-              <h2 className="font-sans text-sm font-bold uppercase tracking-[0.12em] text-clay-deep">Follow along</h2>
+              <h2 className="font-sans text-sm font-bold uppercase tracking-[0.12em] text-clay-deep">{t("contact.follow")}</h2>
               <ul className="mt-3 flex flex-wrap gap-3">
                 {socialLinks.map((s) => (
                   <li key={s.href}>
@@ -61,10 +59,11 @@ export default function ContactPage() {
             </div>
           )}
           <div>
-            <h2 className="font-sans text-sm font-bold uppercase tracking-[0.12em] text-clay-deep">Ready to plan?</h2>
-            <p className="mt-3 text-ink-soft">
-              The <a className="underline" href="/book">session finder</a> gives you a live estimate first.
-            </p>
+            <h2 className="font-sans text-sm font-bold uppercase tracking-[0.12em] text-clay-deep">{t("contact.readyTitle")}</h2>
+            <p className="mt-3 text-ink-soft">{t("contact.ready")}</p>
+            <a className="mt-2 inline-block font-semibold text-clay-deep underline" href="/book">
+              {t("contact.readyLink")}
+            </a>
           </div>
         </aside>
       </Container>

@@ -42,6 +42,15 @@ const tips: Record<StorySubjectId, string> = {
   business: "Make a short list of where the photos will live, like your website, socials or print. It shapes the whole shot list.",
 };
 
+const nouns: Record<StorySubjectId, string> = {
+  family: "family portraits",
+  couple: "couple portraits",
+  horse: "horse portraits",
+  pet: "pet portraits",
+  wedding: "celebration",
+  business: "brand session",
+};
+
 const feelingTips: Record<StoryFeelingId, string> = {
   candid: "We'll keep direction light and let things unfold.",
   golden: "We'll aim for the last hour or so before sunset, weather permitting.",
@@ -50,17 +59,25 @@ const feelingTips: Record<StoryFeelingId, string> = {
   playful: "Bring a prop or game that makes your crew laugh.",
 };
 
-export function composeStory(input: { subject?: string | null; feeling?: string | null; town?: string | null; season?: string | null }) {
-  const subject = storySubjects.find((s) => s.id === input.subject) ?? null;
-  const feeling = storyFeelings.find((f) => f.id === input.feeling) ?? null;
-  const season = storySeasons.find((s) => s.id === input.season) ?? null;
+/** Everything the story builder says. Words are editable in /admin → Page text → Build your story. */
+export const defaultStory = {
+  subjects: storySubjects.map((x) => ({ ...x, noun: nouns[x.id], tip: tips[x.id] })),
+  feelings: storyFeelings.map((x) => ({ ...x, tip: feelingTips[x.id] })),
+  seasons: storySeasons.map((x) => ({ ...x })),
+};
+export type StoryContent = typeof defaultStory;
+
+export function composeStory(input: { subject?: string | null; feeling?: string | null; town?: string | null; season?: string | null }, content: StoryContent = defaultStory) {
+  const subject = content.subjects.find((s) => s.id === input.subject) ?? null;
+  const feeling = content.feelings.find((f) => f.id === input.feeling) ?? null;
+  const season = content.seasons.find((s) => s.id === input.season) ?? null;
   if (!subject || !feeling) return null;
   return {
     subject,
     feeling,
     season,
     town: input.town ?? null,
-    tip: `${tips[subject.id]} ${feelingTips[feeling.id]}`,
+    tip: `${subject.tip} ${feeling.tip}`,
   };
 }
 

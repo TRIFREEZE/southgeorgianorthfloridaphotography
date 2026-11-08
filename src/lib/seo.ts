@@ -48,7 +48,7 @@ export function businessJsonLd() {
     "@type": ["ProfessionalService", "LocalBusiness"],
     "@id": ORG_ID(),
     name: site.name,
-    alternateName: site.shortName,
+    alternateName: `${site.shortName} Photography`,
     url: absoluteUrl("/"),
     description: site.description,
     slogan: site.primaryLine,

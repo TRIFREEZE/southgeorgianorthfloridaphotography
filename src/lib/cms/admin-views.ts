@@ -24,7 +24,21 @@ export async function siteSlots(repo: CmsRepo): Promise<SlotView[]> {
       categoryId: null,
       href: "/#work",
     })),
-    { key: "founder", group: "Homepage", label: "Photographer portrait", hint: "“Meet the photographer” on the homepage and the About page.", ratio: "4 / 5", current: founderPhoto(d), explicitId: l.founder, categoryId: null, href: "/about" },
+    { key: "founder", group: "About page", label: "Your portrait", hint: "Top of the About page and “Meet the photographer” on the homepage.", ratio: "4 / 5", current: founderPhoto(d), explicitId: l.founder, categoryId: null, href: "/about" },
+    ...[0, 1, 2].map((i) => {
+      const id = l.aboutPhotos[i] ?? null;
+      return {
+        key: `about:${i}`,
+        group: "About page",
+        label: `About page photo #${i + 1}`,
+        hint: "Optional photo strip on the About page. Empty spots are simply hidden.",
+        ratio: "4 / 5",
+        current: id ? (d.photos.find((p) => p.id === id) ?? null) : null,
+        explicitId: id,
+        categoryId: null,
+        href: "/about",
+      };
+    }),
     ...visibleCategories(d).map((c) => ({
       key: `category:${c.id}`,
       group: "Portfolio category covers",

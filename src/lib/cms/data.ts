@@ -1,10 +1,12 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { draftMode } from "next/headers";
+import { cache } from "react";
 import type { Photo } from "@/lib/photo-types";
 import { defaultContent } from "./defaults";
 import { getRepo } from "./repo";
 import type { SiteData } from "./resolve";
+import { makeT } from "./texts";
 import { contentSchemas, type ContentKey, type PhotoState, type SiteContent } from "./schema";
 
 export const CONTENT_TAG = "content";
@@ -85,3 +87,6 @@ export async function getSiteData(): Promise<SiteData> {
 
   return { content, photos, preview };
 }
+
+/** Site text lookup for server components: `const t = await getT(); t("home.hero.headline")`. One read per request. */
+export const getT = cache(async () => makeT((await getSiteData()).content.texts));

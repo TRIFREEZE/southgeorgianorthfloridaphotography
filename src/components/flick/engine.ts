@@ -46,6 +46,24 @@ export class FlickEngine {
     return this.opts.size;
   }
 
+  /**
+   * Flick's box is anchored to the BOTTOM of the viewport, so when a phone's
+   * toolbar slides in or out while scrolling he rides along with the edge
+   * instead of jumping afterwards. Coordinates stay top-based; `viewH` is the
+   * viewport height they refer to.
+   */
+  viewH = typeof window === "undefined" ? 800 : window.innerHeight;
+
+  /** The viewport height changed (phone toolbar): keep him the same distance from the bottom, with no visible move. */
+  rebase(newH: number) {
+    const dH = newH - this.viewH;
+    if (!dH) return;
+    this.viewH = newH;
+    this.pos.y += dH;
+    this.target.y += dH;
+    this.write(0);
+  }
+
   setOptions(o: Partial<EngineOptions>) {
     this.opts = { ...this.opts, ...o };
   }
@@ -111,7 +129,7 @@ export class FlickEngine {
 
   private write(speed: number) {
     const s = this.opts.size;
-    this.body.style.transform = `translate3d(${(this.pos.x - s / 2).toFixed(2)}px, ${(this.pos.y - s / 2).toFixed(2)}px, 0)`;
+    this.body.style.transform = `translate3d(${(this.pos.x - s / 2).toFixed(2)}px, ${(this.pos.y - this.viewH + s / 2).toFixed(2)}px, 0)`;
     if (speed > 30) {
       const ang = (Math.atan2(this.vel.y, this.vel.x) * 180) / Math.PI;
       const k = Math.min(speed / 2200, 0.16);

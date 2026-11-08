@@ -10,7 +10,7 @@ import { Btn, dollars, Field, toCents, useConfirm, useToast } from "./ui";
 type Tab = "pricing" | "texts" | "faqs" | "testimonials";
 const TABS: { id: Tab; label: string }[] = [
   { id: "pricing", label: "Pricing" },
-  { id: "texts", label: "Page text" },
+  { id: "texts", label: "All site text" },
   { id: "faqs", label: "FAQs" },
   { id: "testimonials", label: "Testimonials" },
 ];
@@ -227,28 +227,110 @@ function PricingEditor({ initial }: { initial: Pricing }) {
 
 /* ------------------------------------------------------------------ page text */
 
+const GROUPS = [...new Set(TEXT_FIELDS.map((f) => f.group))];
+const DEFAULTS = Object.fromEntries(TEXT_FIELDS.map((f) => [f.key, f.default]));
+
+/** Only store what differs from the original wording; an empty box means "use the original". */
+function overridesOf(values: Record<string, string>) {
+  const out: Record<string, string> = {};
+  for (const f of TEXT_FIELDS) {
+    const v = (values[f.key] ?? "").trim();
+    if (v && v !== f.default.trim()) out[f.key] = values[f.key];
+  }
+  return out;
+}
+
 function TextsEditor({ initial }: { initial: Texts }) {
-  const [t, setT] = useState(initial);
-  const { bar } = useSave("texts", t, initial);
-  const groups = [...new Set(TEXT_FIELDS.map((f) => f.group))];
+  const start = Object.fromEntries(TEXT_FIELDS.map((f) => [f.key, initial[f.key]?.trim() ? initial[f.key] : f.default]));
+  const [values, setValues] = useState<Record<string, string>>(start);
+  const [group, setGroup] = useState(GROUPS.includes("Homepage") ? "Homepage" : GROUPS[0]);
+  const [q, setQ] = useState("");
+  const overrides = overridesOf(values);
+  const { bar } = useSave("texts", overrides, overridesOf(start));
+  const query = q.trim().toLowerCase();
+  const shown = query
+    ? TEXT_FIELDS.filter((f) => `${f.group} ${f.label} ${values[f.key]}`.toLowerCase().includes(query))
+    : TEXT_FIELDS.filter((f) => f.group === group);
+  const editedIn = (g: string) => TEXT_FIELDS.filter((f) => f.group === g && overrides[f.key] !== undefined).length;
+
   return (
-    <div className="max-w-3xl space-y-10">
-      <p className="text-sm text-muted">Leave a box empty to use the original wording (shown in grey). In the homepage headline, the last word is set in italic clay.</p>
-      {groups.map((g) => (
-        <section key={g} className="space-y-4">
-          <h2 className="text-[1.3rem]">{g}</h2>
-          {TEXT_FIELDS.filter((f) => f.group === g).map((f) => (
-            <Field key={f.key} label={f.label} hint={f.hint}>
+    <div className="grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
+      <aside className="lg:sticky lg:top-16 lg:self-start">
+        <input className="field" type="search" placeholder="Search all text…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search all site text" data-testid="text-search" />
+        <label className="mt-3 block lg:hidden">
+          <span className="sr-only">Page</span>
+          <select className="field" value={group} onChange={(e) => (setGroup(e.target.value), setQ(""))}>
+            {GROUPS.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </label>
+        <nav aria-label="Pages" className="mt-3 hidden max-h-[70vh] overflow-y-auto pr-1 lg:block">
+          <ul className="space-y-0.5 text-sm">
+            {GROUPS.map((g) => {
+              const n = editedIn(g);
+              return (
+                <li key={g}>
+                  <button
+                    type="button"
+                    onClick={() => (setGroup(g), setQ(""))}
+                    aria-current={!query && g === group ? "true" : undefined}
+                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left ${!query && g === group ? "bg-ink text-gallery" : "hover:bg-sand/50"}`}
+                  >
+                    <span>{g}</span>
+                    {n > 0 && <span className={`rounded-full px-1.5 text-[0.7rem] font-bold ${!query && g === group ? "bg-gallery text-ink" : "bg-clay-deep text-gallery"}`}>{n}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </aside>
+
+      <div className="min-w-0 space-y-5">
+        <div>
+          <h2 className="text-[1.5rem]">{query ? `Results for “${q.trim()}”` : group}</h2>
+          <p className="mt-1 text-sm text-muted">
+            Edit any box and save. <strong>Reset</strong> puts the original wording back. In the homepage headline, the last word is set in italic clay. Category names and descriptions are edited under <em>Categories</em>; prices and package wording under <em>Pricing</em>; questions under <em>FAQs</em>.
+          </p>
+        </div>
+        {shown.length === 0 && <p className="text-muted">Nothing matches that search.</p>}
+        {shown.map((f) => {
+          const edited = overrides[f.key] !== undefined;
+          return (
+            <div key={f.key} className="rounded-xl border border-line bg-parchment p-4" data-testid={`text-row-${f.key}`}>
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <label htmlFor={`tx-${f.key}`} className="text-sm font-semibold">
+                  {query && <span className="font-normal text-muted">{f.group} · </span>}
+                  {f.label}
+                  {edited && <span className="ml-2 rounded-full bg-clay-deep px-1.5 py-0.5 text-[0.65rem] font-bold uppercase text-gallery">Edited</span>}
+                </label>
+                {edited && (
+                  <button type="button" className="shrink-0 text-xs font-semibold underline" onClick={() => setValues((v) => ({ ...v, [f.key]: DEFAULTS[f.key] }))}>
+                    Reset
+                  </button>
+                )}
+              </div>
               {f.multiline ? (
-                <textarea className="field" rows={f.key.endsWith("story") ? 8 : 3} value={t[f.key] ?? ""} placeholder={f.default} onChange={(e) => setT({ ...t, [f.key]: e.target.value })} data-testid={`text-${f.key}`} />
+                <textarea
+                  id={`tx-${f.key}`}
+                  className="field"
+                  rows={Math.min(18, Math.max(3, Math.ceil((values[f.key] ?? "").length / 80) + (values[f.key] ?? "").split("\n").length))}
+                  value={values[f.key] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                  data-testid={`text-${f.key}`}
+                />
               ) : (
-                <input className="field" value={t[f.key] ?? ""} placeholder={f.default} onChange={(e) => setT({ ...t, [f.key]: e.target.value })} data-testid={`text-${f.key}`} />
+                <input id={`tx-${f.key}`} className="field" value={values[f.key] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))} data-testid={`text-${f.key}`} />
               )}
-            </Field>
-          ))}
-        </section>
-      ))}
-      {bar}
+              {f.hint && <p className="mt-1 text-xs text-muted">{f.hint}</p>}
+            </div>
+          );
+        })}
+        {bar}
+      </div>
     </div>
   );
 }

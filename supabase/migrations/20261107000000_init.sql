@@ -1,4 +1,4 @@
--- Red Clay & Light — initial schema
+-- Southstill — initial schema
 -- Run with the Supabase CLI (`supabase db push`) or paste into the Supabase SQL editor.
 -- Safe to re-run: objects are created only if missing.
 

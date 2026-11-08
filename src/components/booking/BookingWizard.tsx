@@ -86,6 +86,7 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
   const startedAt = useRef(0);
   const started = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const hydrated = useRef(false);
 
   // Restore draft + URL prefill (from service pages, pricing cards, story cards).
@@ -177,8 +178,17 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
     setStep(s);
     emitFlick({ type: "booking-step", step: s });
     requestAnimationFrame(() => {
-      headingRef.current?.focus();
-      headingRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+      // Move focus for screen readers without letting the browser jump the page.
+      headingRef.current?.focus({ preventScroll: true });
+      // Only scroll if the top of the form has gone up under the header; then glide it back into view.
+      const form = formRef.current;
+      if (!form) return;
+      const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+      const top = form.getBoundingClientRect().top;
+      if (top < headerBottom + 8) {
+        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        window.scrollTo({ top: window.scrollY + top - headerBottom - 16, behavior: reduce ? "auto" : "smooth" });
+      }
     });
   };
 
@@ -217,7 +227,7 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
   const catLabel = bookingCategories.find((c) => c.id === d.category)?.label;
 
   return (
-    <form onSubmit={onSubmit} noValidate className="relative" data-flick-avoid aria-labelledby="wizard-step-title">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="relative scroll-mt-24" data-flick-avoid aria-labelledby="wizard-step-title">
       <Honeypot />
       <ol className="mb-8 grid grid-cols-4 gap-2" aria-label="Booking steps">
         {steps.map((label, i) => (

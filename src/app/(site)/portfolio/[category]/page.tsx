@@ -7,6 +7,7 @@ import { PageHero } from "@/components/ui/primitives";
 import { getSiteData } from "@/lib/cms/data";
 import { categoryBySlug, portfolio, visibleCategories } from "@/lib/cms/resolve";
 import { site } from "@/content/site";
+import { textOf } from "@/lib/cms/texts";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 /** Categories are managed in /admin → Categories; new ones render on demand, no deploy needed. */
@@ -51,7 +52,7 @@ async function CategoryPageBody({ params }: Pick<PageProps<"/portfolio/[category
   const { photos, isReal } = portfolio(d, cat.id);
   return (
     <>
-      <PageHero eyebrow="Portfolio" title={cat.label} lede={cat.description || undefined} />
+      <PageHero eyebrow={textOf(d.content.texts, "portfolio.eyebrow")} title={cat.label} lede={cat.description || undefined} />
       <PortfolioView photos={photos} isReal={isReal} categories={visibleCategories(d)} active={cat} />
       <JsonLd
         data={breadcrumbJsonLd([

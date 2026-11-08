@@ -22,6 +22,7 @@ import { ambient, anticLines, contextFor, pickLine, reactions, sectionComments, 
 import { initialMachine, isPaused, transition, type FlickEvent, type FlickState, type Machine } from "./machine";
 import { sessionFlag } from "./prefs";
 import { rectIsFree, setFlickRoot, type Spot } from "./safeSpots";
+import { nextTrick, playTrick, TRICK_LINES } from "./tricks";
 import type { FlickMood, FlickProp } from "./types";
 import { isLowPowerDevice } from "./useMediaFlags";
 
@@ -147,6 +148,8 @@ export class FlickController {
     this.path = window.location.pathname;
 
     // Entrance: rise up into his corner from just below it.
+    this.engine.viewH = window.innerHeight;
+    this.lastW = window.innerWidth;
     const first = this.homeSpot();
     if (this.opts.reducedMotion) this.engine.jumpTo(first);
     else {
@@ -223,7 +226,7 @@ export class FlickController {
     this.later(() => {
       this.moodFor("happy", 2200);
       this.engine.hop(16, 2);
-      this.ui.setIntro(this.placement());
+      this.withRoom(280, (pl) => this.introOpen && this.ui.setIntro(pl));
     }, this.opts.reducedMotion ? 0 : 500);
     this.later(() => this.introOpen && this.endIntro("timeout"), 45_000);
   }
@@ -305,11 +308,24 @@ export class FlickController {
     return this.homeSpot().x > window.innerWidth / 2;
   }
 
-  /** Off the edge of his own side (used while someone types). */
-  private tuckSpot(): Spot {
-    const h = this.homeSpot();
+  /**
+   * While someone types he stays fully visible on his own side, just out of the
+   * way of the field being filled in: his corner if it's clear, otherwise the
+   * nearest clear height on the same side.
+   */
+  private typingSpot(field: HTMLElement): Spot {
+    const home = this.homeSpot();
     const s = this.opts.size;
-    return { x: this.onRightSide() ? window.innerWidth + s * 0.2 : -s * 0.2, y: h.y };
+    const r = field.getBoundingClientRect();
+    const clear = (y: number) => {
+      const pad = 12;
+      const box = { l: home.x - s / 2 - pad, r: home.x + s / 2 + pad, t: y - s / 2 - pad, b: y + s / 2 + pad };
+      return box.r < r.left || box.l > r.right || box.b < r.top || box.t > r.bottom;
+    };
+    if (clear(home.y)) return home;
+    const top = this.headerBottom() + s / 2 + 8;
+    for (let y = window.innerHeight - s / 2 - 10; y >= top; y -= 24) if (clear(y)) return { x: home.x, y };
+    return home;
   }
 
   /** Flick only catches clicks while resting; in flight he's a ghost to the pointer. */
@@ -329,9 +345,45 @@ export class FlickController {
     else this.go(spot, 26, 9);
   }
 
-  private placement(): Placement {
+  /** Height of the fixed site header: popups must never open underneath it. */
+  private headerBottom() {
+    const h = document.querySelector("header");
+    return h ? Math.max(0, h.getBoundingClientRect().bottom) : 0;
+  }
+
+  /** Where a popup of `need` px fits next to him at `p` (above preferred), or null if neither side has room. */
+  private fit(p: Spot, need: number): Placement | null {
+    const s = this.opts.size;
+    const right = p.x > window.innerWidth / 2;
+    const roomAbove = p.y - s / 2 - 8 - this.headerBottom() - 8;
+    const roomBelow = window.innerHeight - (p.y + s / 2 + 8) - 8;
+    if (roomAbove >= need) return { right, below: false };
+    if (roomBelow >= need) return { right, below: true };
+    return null;
+  }
+
+  private placement(need = 300): Placement {
     const p = this.engine.pos;
-    return { right: p.x > window.innerWidth / 2, below: p.y < 300 };
+    return this.fit(p, need) ?? { right: p.x > window.innerWidth / 2, below: p.y < window.innerHeight / 2 };
+  }
+
+  /**
+   * Open a popup only where it can be seen in full: if there isn't room where he
+   * is, he first glides down to the bottom of his own side (the safe zone),
+   * then opens it there.
+   */
+  private withRoom(need: number, open: (pl: Placement) => void) {
+    const here = this.fit(this.engine.pos, need);
+    if (here) return open(here);
+    const s = this.opts.size;
+    const m = this.opts.compact ? 10 : 22;
+    const safe = this.clampSpot(this.engine.pos.x, window.innerHeight - m - s / 2);
+    this.setInteractive(false);
+    this.go(safe, 34, 10);
+    this.later(() => {
+      this.setInteractive(true);
+      open(this.fit(safe, need) ?? { right: safe.x > window.innerWidth / 2, below: false });
+    }, this.opts.reducedMotion ? 0 : 420);
   }
 
   private persistLines() {
@@ -555,7 +607,11 @@ export class FlickController {
     if (hit && Math.random() < 0.3) this.say(hit.lines);
   }
 
-  private isField = (el: EventTarget | null) => el instanceof HTMLElement && (el.matches("input, textarea, select") || el.isContentEditable);
+  /** Only real typing counts: choosing a radio button or ticking a box isn't a reason to step aside. */
+  private isField = (el: EventTarget | null) =>
+    el instanceof HTMLElement &&
+    (el.matches("textarea, select, input:not([type=radio]):not([type=checkbox]):not([type=range]):not([type=button]):not([type=submit]):not([type=reset]):not([type=color]):not([type=file]):not([type=image]):not([type=hidden])") ||
+      el.isContentEditable);
 
   private armHesitation() {
     if (this.hesitate) clearTimeout(this.hesitate);
@@ -569,8 +625,8 @@ export class FlickController {
     this.abortAntic();
     this.dispatch({ type: "pause", reason: "typing" });
     this.clearBubble(true);
-    // Forms are sacred: slide off the edge of his side while someone types.
-    this.go(this.tuckSpot(), 40, 11);
+    // Forms are sacred: stay quiet and visible, clear of the field being typed in.
+    this.go(this.typingSpot(ev.target as HTMLElement), 30, 10);
     if ((ev.target as HTMLElement).closest("form")) this.armHesitation();
   };
 
@@ -606,7 +662,13 @@ export class FlickController {
   };
 
   private resizeT: ReturnType<typeof setTimeout> | undefined;
+  private lastW = typeof window === "undefined" ? 0 : window.innerWidth;
   private onResize = () => {
+    // Phone toolbars showing/hiding while scrolling only change the height: ride along, don't re-place.
+    const widthChanged = window.innerWidth !== this.lastW;
+    this.engine.rebase(window.innerHeight);
+    if (!widthChanged) return;
+    this.lastW = window.innerWidth;
     if (this.resizeT) clearTimeout(this.resizeT);
     this.resizeT = setTimeout(() => {
       this.abortAntic();
@@ -793,7 +855,7 @@ export class FlickController {
       this.clicks = [];
       this.closeMenu();
       this.engine.flash();
-      this.ui.setStrip(this.placement());
+      this.withRoom(220, (pl) => this.ui.setStrip(pl));
       return;
     }
     if (this.introOpen) return;
@@ -802,7 +864,7 @@ export class FlickController {
       this.abortAntic();
       this.menuOpen = true;
       this.clearBubble(true);
-      this.ui.setMenu({ open: true, ...this.placement() });
+      this.withRoom(300, (pl) => this.menuOpen && this.ui.setMenu({ open: true, ...pl }));
     }
   }
 
@@ -818,15 +880,49 @@ export class FlickController {
     this.ui.setMenu(null);
   }
 
-  /** "Do a trick" from his menu: an antic if something's within reach, else a happy float. */
+  private trickRunning = false;
+
+  /** "Do a trick": one of five tricks, in rotation so each ask shows a new one. Plays in place (fine on phones). */
   doTrick() {
     this.closeMenu();
-    if (!this.canMove()) {
-      this.engine.hop(14);
-      this.moodFor("happy", 1000);
+    if (this.trickRunning) return;
+    this.abortAntic();
+    this.clearBubble(true);
+    const id = nextTrick();
+    if (this.opts.reducedMotion) {
+      this.engine.hop(10);
+      this.moodFor("happy", 1200);
+      this.say(TRICK_LINES[id], { force: true, announce: true });
       return;
     }
-    this.dispatch({ type: "request", state: this.antics.available() ? "antic" : "wander" });
+    const host = this.dom.squash.firstElementChild as HTMLElement | null;
+    if (!host) return;
+    this.trickRunning = true;
+    this.setInteractive(false);
+    this.dispatch({ type: "pause", reason: "trick" });
+    // Backflips and juggling need a little headroom: step down first if he's tucked under the header.
+    const need = this.opts.size * 0.9;
+    const p = this.engine.pos;
+    const start = p.y - this.opts.size / 2 - this.headerBottom() < need ? this.clampSpot(p.x, this.headerBottom() + need + this.opts.size / 2) : null;
+    if (start) this.go(start, 34, 10);
+    this.later(
+      () =>
+        void playTrick(id, {
+          body: this.dom.body,
+          host,
+          size: this.opts.size,
+          setMood: (m) => this.ui.setMood(m),
+          blink: (d) => this.engine.blink(d),
+          flash: () => this.engine.flash(),
+        }).then(() => {
+          this.trickRunning = false;
+          this.setInteractive(true);
+          this.dispatch({ type: "resume", reason: "trick" });
+          this.moodFor("happy", 1600);
+          this.say(TRICK_LINES[id], { force: true, announce: true });
+        }),
+      start ? 420 : 0,
+    );
   }
 
   dismiss() {

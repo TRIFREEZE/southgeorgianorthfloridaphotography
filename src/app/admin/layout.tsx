@@ -10,7 +10,7 @@ import { getRepo } from "@/lib/cms/repo";
 import { logoutAction } from "./actions";
 
 export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s · Admin · Red Clay & Light" },
+  title: { default: "Admin", template: "%s · Admin · Southstill" },
   robots: { index: false, follow: false, nocache: true },
 };
 

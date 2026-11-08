@@ -9,9 +9,9 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, SectionHeading } from "@/components/ui/primitives";
 import { TrackView } from "@/components/ui/TrackView";
-import { getSiteData } from "@/lib/cms/data";
+import { getSiteData, getT } from "@/lib/cms/data";
 import { categoryById, portfolio } from "@/lib/cms/resolve";
-import { textOf } from "@/lib/cms/texts";
+import { editedService } from "@/lib/cms/texts";
 import { breadcrumbJsonLd, pageMetadata, serviceJsonLd } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -20,8 +20,9 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/services/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const s = serviceBySlug(slug);
-  if (!s) return {};
+  const base = serviceBySlug(slug);
+  if (!base) return {};
+  const s = editedService((await getT()).texts, base.slug)!;
   return pageMetadata({ title: s.seoTitle, description: s.seoDescription, path: `/services/${s.slug}` });
 }
 
@@ -43,10 +44,12 @@ export default function ServicePage({ params }: PageProps<"/services/[slug]">) {
 
 async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "params">) {
   const { slug } = await params;
-  const s = serviceBySlug(slug);
-  if (!s) notFound();
+  const base = serviceBySlug(slug);
+  if (!base) notFound();
   const d = await getSiteData();
+  const t = await getT();
   const { pricing, texts } = d.content;
+  const s = editedService(texts, base.slug)!;
   const { photos } = portfolio(d, s.category);
   const cat = categoryById(d, s.category);
   const workHref = cat?.visible ? `/portfolio/${cat.slug}` : "/portfolio";
@@ -59,16 +62,16 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
         <Container className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-7">
             <p className="eyebrow mb-5">{s.name}</p>
-            <h1 className="text-display-lg">{textOf(texts, `services.${s.slug}.headline`)}</h1>
+            <h1 className="text-display-lg">{s.headline}</h1>
           </div>
           <div className="lg:col-span-5 lg:pt-10">
-            <p className="text-lede text-ink-soft">{textOf(texts, `services.${s.slug}.intro`)}</p>
+            <p className="text-lede text-ink-soft">{s.intro}</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <ButtonLink href={`/book?category=${s.bookingCategory}`}>
                 {s.cta} <Arrow />
               </ButtonLink>
               <ButtonLink href={workHref} variant="secondary">
-                See the work
+                {t("service.seeWork")}
               </ButtonLink>
             </div>
           </div>
@@ -87,7 +90,7 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
         <Container className="grid gap-12 lg:grid-cols-2">
           <div>
             <h2 id="ideal-title" className="text-display-sm">
-              Great for
+              {t("service.greatFor")}
             </h2>
             <ul className="mt-6 space-y-3 text-lede text-ink-soft">
               {s.idealFor.map((x) => (
@@ -99,7 +102,7 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
             </ul>
           </div>
           <div>
-            <h2 className="text-display-sm">Time &amp; pace</h2>
+            <h2 className="text-display-sm">{t("service.pace")}</h2>
             <p className="mt-6 text-ink-soft">{s.timing}</p>
           </div>
         </Container>
@@ -107,10 +110,10 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
 
       <section className="bg-gallery py-16 sm:py-24" aria-labelledby="how-title">
         <Container>
-          <SectionHeading id="how-title" eyebrow="How it works" title="Simple, from first note to finished photos." />
+          <SectionHeading id="how-title" eyebrow={t("service.howEyebrow")} title={t("service.howTitle")} />
           <ol className="mt-12 grid gap-8 md:grid-cols-3">
             {s.howItWorks.map((h, i) => (
-              <li key={h.title} className="border-t border-line pt-6" data-reveal style={{ ["--reveal-delay" as string]: `${i * 90}ms` }}>
+              <li key={i} className="border-t border-line pt-6" data-reveal style={{ ["--reveal-delay" as string]: `${i * 90}ms` }}>
                 <p className="font-display text-clay">0{i + 1}</p>
                 <h3 className="mt-2 text-[1.5rem]">{h.title}</h3>
                 <p className="mt-2 text-muted">{h.body}</p>
@@ -125,11 +128,11 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
           {quote ? (
             <div className="grid gap-10 lg:grid-cols-12">
               <div className="lg:col-span-5">
-                <SectionHeading id="price-title" eyebrow="Pricing" title="Custom quoted, clearly." lede={quote.intro} />
+                <SectionHeading id="price-title" eyebrow={t("service.pricingEyebrow")} title={t("service.quoteTitle")} lede={quote.intro} />
                 {quote.exampleEstimate && <p className="mt-4 font-semibold">{quote.exampleEstimate}</p>}
               </div>
               <div className="lg:col-span-6 lg:col-start-7">
-                <p className="font-semibold">Your quote is based on:</p>
+                <p className="font-semibold">{t("service.quoteBasis")}</p>
                 <ul className="mt-4 space-y-3 text-ink-soft">
                   {quote.factors.map((f) => (
                     <li key={f} className="flex gap-3 border-b border-line pb-3">
@@ -147,9 +150,9 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
             <>
               <SectionHeading
                 id="price-title"
-                eyebrow="Pricing"
+                eyebrow={t("service.pricingEyebrow")}
                 title={pricing.noStopwatch.headline}
-                lede={`Choose how many finished photos you'd like. Extra photos are ${formatPrice(pricing.extraPhoto.priceCents)} each.`}
+                lede={t("service.packagesLede", { extraPrice: formatPrice(pricing.extraPhoto.priceCents) })}
               />
               <div className="mt-10 grid gap-4 md:grid-cols-3">
                 {pricing.packages.map((p) => (
@@ -165,7 +168,7 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
         <Container className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <h2 id="svc-faq-title" className="text-display-sm">
-              Questions about {s.navLabel}
+              {t("service.faqTitle", { service: s.navLabel })}
             </h2>
           </div>
           <div className="lg:col-span-8">

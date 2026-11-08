@@ -86,42 +86,60 @@ test.describe("Flick", () => {
     await expect(guide).toContainText("rather not guess");
   });
 
-  test("does tricks with the page and leaves everything exactly as it was", async ({ page, isMobile }) => {
-    test.skip(isMobile, "desktop interaction test");
+  test("does a different trick each time and leaves nothing behind", async ({ page }) => {
     await skipIntro(page);
     await page.goto("/");
-    await page.mouse.wheel(0, 900);
-    await page.waitForTimeout(1600);
     const flick = flickButton(page);
     await expect(flick).toBeInViewport({ ratio: 0.9, timeout: 12_000 });
-    await flick.focus();
-    await page.keyboard.press("Enter");
-    await page.getByRole("button", { name: "Do a trick" }).click();
-    // While performing, Flick never catches clicks meant for the page.
-    await page.waitForTimeout(1200);
-    expect(await flick.evaluate((b) => getComputedStyle(b).pointerEvents)).toBe("none");
-    await page.waitForTimeout(8000);
-    const leftovers = await page.evaluate(() => {
-      const layer = document.querySelector("[data-flick-root] > div:first-child")!;
-      const anims = document.getAnimations().filter((a) => a instanceof CSSAnimation === false && (a.effect as KeyframeEffect | null)?.target && !(a.effect as KeyframeEffect).target!.closest("[data-flick-root]"));
-      return { overlays: layer.querySelectorAll("div").length, pageAnims: anims.length };
-    });
-    expect(leftovers).toEqual({ overlays: 0, pageAnims: 0 });
+    const body = page.locator("[data-flick-root] > div").nth(1);
+    const before = await body.evaluate((el) => el.querySelectorAll(":scope > span").length);
+    const seen: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      await expect(flick).toHaveCSS("pointer-events", "auto", { timeout: 6000 });
+      await flick.focus();
+      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "Do a trick" }).click();
+      seen.push((await page.evaluate(() => sessionStorage.getItem("rcl:flick:trick"))) ?? "");
+      // While performing, Flick never catches clicks meant for the page.
+      await page.waitForTimeout(400);
+      expect(await flick.evaluate((b) => getComputedStyle(b).pointerEvents)).toBe("none");
+      await page.waitForTimeout(3600);
+    }
+    expect(seen[0]).not.toBe(seen[1]);
+    await expect.poll(() => body.evaluate((el) => el.querySelectorAll(":scope > span").length), { timeout: 4000 }).toBe(before);
+    const pageAnims = await page.evaluate(() => document.getAnimations().filter((a) => !(a instanceof CSSAnimation) && (a.effect as KeyframeEffect | null)?.target && !(a.effect as KeyframeEffect).target!.closest("[data-flick-root]")).length);
+    expect(pageAnims).toBe(0);
   });
 
-  test("tucks away while the visitor types", async ({ page, isMobile }) => {
+  test("stays fully visible but clear of the field while the visitor types", async ({ page, isMobile }) => {
     test.skip(isMobile, "desktop");
     await skipIntro(page);
     await page.goto("/contact");
     const flick = flickButton(page);
     await expect(flick).toBeVisible({ timeout: 12_000 });
-    await page.locator("#contact-name").click();
+    const field = page.locator("#contact-name");
+    await field.click();
     await page.waitForTimeout(1500);
-    const visibleWidth = await flick.evaluate((b) => {
-      const r = b.getBoundingClientRect();
-      return Math.max(0, Math.min(r.right, innerWidth) - Math.max(r.left, 0));
-    });
-    expect(visibleWidth).toBeLessThan(60);
+    const [f, b] = await Promise.all([field.boundingBox(), flick.boundingBox()]);
+    // fully on screen
+    expect(b!.x).toBeGreaterThanOrEqual(0);
+    expect(b!.x + b!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+    expect(b!.y + b!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1);
+    // not on top of the field being typed in
+    const overlap = !(b!.x + b!.width < f!.x || b!.x > f!.x + f!.width || b!.y + b!.height < f!.y || b!.y > f!.y + f!.height);
+    expect(overlap).toBe(false);
+  });
+
+  test("choosing options in the booking wizard doesn't send him away", async ({ page }) => {
+    await skipIntro(page);
+    await page.goto("/book");
+    const flick = flickButton(page);
+    await expect(flick).toBeVisible({ timeout: 12_000 });
+    await page.locator("fieldset input[type=radio]").first().check({ force: true });
+    await page.waitForTimeout(1200);
+    const b = await flick.boundingBox();
+    expect(b!.x).toBeGreaterThanOrEqual(0);
+    expect(b!.x + b!.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
   });
 
   test("respects prefers-reduced-motion (no echo trail)", async ({ browser }) => {

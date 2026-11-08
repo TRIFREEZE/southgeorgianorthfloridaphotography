@@ -24,11 +24,12 @@ export default async function PricingPage() {
   const { pricing, faqs, texts } = (await getSiteData()).content;
   const wedding = pricing.custom["weddings-events"];
   const business = pricing.custom["business-branding"];
+  const t = (k: string) => textOf(texts, k);
   return (
     <>
       <TrackView event="view_pricing" />
       <PageHero
-        eyebrow="Pricing"
+        eyebrow={t("pricing.eyebrow")}
         title={pricing.noStopwatch.headline}
         lede={textOf(texts, "pricing.lede")}
       />
@@ -44,9 +45,9 @@ export default async function PricingPage() {
             ))}
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <Info title="Extra photos" body={`${formatPrice(pricing.extraPhoto.priceCents)} each. ${pricing.extraPhoto.note}`} />
-            <Info title="Travel" body={`${pricing.travel.copy}${pricing.travel.includedRadiusMiles ? ` Included within ${pricing.travel.includedRadiusMiles} miles of our base.` : ""}`} />
-            <Info title="Delivery" body={textOf(texts, "delivery.turnaround")} />
+            <Info title={t("pricing.extraTitle")} body={`${formatPrice(pricing.extraPhoto.priceCents)} each. ${pricing.extraPhoto.note}`} />
+            <Info title={t("pricing.travelTitle")} body={`${pricing.travel.copy}${pricing.travel.includedRadiusMiles ? ` Included within ${pricing.travel.includedRadiusMiles} miles of our base.` : ""}`} />
+            <Info title={t("pricing.deliveryTitle")} body={t("delivery.turnaround")} />
           </div>
           <p className="mt-6 text-sm text-muted">{pricing.legalNote}</p>
         </Container>
@@ -55,9 +56,9 @@ export default async function PricingPage() {
       <section className="py-20 sm:py-24" aria-labelledby="nostop-title">
         <Container className="grid gap-10 rounded-[1.5rem] bg-ink p-8 text-gallery on-dark sm:p-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <p className="eyebrow mb-4">About &ldquo;no stopwatch&rdquo;</p>
+            <p className="eyebrow mb-4">{t("pricing.unhurried.eyebrow")}</p>
             <h2 id="nostop-title" className="text-display-sm">
-              What unhurried actually means.
+              {t("pricing.unhurried.title")}
             </h2>
           </div>
           <div className="space-y-4 text-sand lg:col-span-7">
@@ -71,18 +72,15 @@ export default async function PricingPage() {
       <section aria-labelledby="custom-title" className="pb-20">
         <Container>
           <h2 id="custom-title" className="text-display-md">
-            Weddings, events &amp; businesses
+            {t("pricing.custom.title")}
           </h2>
-          <p className="mt-4 max-w-2xl text-lede text-muted">
-            These are custom quoted, in writing, before you commit to anything. We&apos;ll never promise unlimited coverage or squeeze a
-            wedding into a portrait price.
-          </p>
+          <p className="mt-4 max-w-2xl text-lede text-muted">{t("pricing.custom.lede")}</p>
           <div className="mt-10 grid gap-5 md:grid-cols-2">
             {[
-              { title: "Weddings & events", data: wedding, href: "/book?category=weddings-events", cta: "Ask about my date" },
-              { title: "Business & branding", data: business, href: "/book?category=business-branding", cta: "Start planning" },
+              { title: t("pricing.custom.weddingTitle"), data: wedding, href: "/book?category=weddings-events", cta: t("pricing.custom.weddingCta") },
+              { title: t("pricing.custom.businessTitle"), data: business, href: "/book?category=business-branding", cta: t("pricing.custom.businessCta") },
             ].map((c) => (
-              <article key={c.title} className="flex flex-col rounded-[var(--radius-card)] border border-line bg-gallery p-7" data-reveal>
+              <article key={c.href} className="flex flex-col rounded-[var(--radius-card)] border border-line bg-gallery p-7" data-reveal>
                 <p className="eyebrow">{c.data.label}</p>
                 <h3 className="mt-3 text-[1.8rem]">{c.title}</h3>
                 <p className="mt-3 text-muted">{c.data.intro}</p>
@@ -115,10 +113,13 @@ export default async function PricingPage() {
         <Container className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <h2 id="pricing-faq" className="text-display-sm">
-              Pricing questions
+              {t("pricing.faqTitle")}
             </h2>
             <p className="mt-4 text-muted">
-              Still unsure? <Link className="font-semibold text-clay-deep underline" href="/book">We&apos;ll help you choose.</Link>
+              {t("pricing.help")}{" "}
+              <Link className="font-semibold text-clay-deep underline" href="/book">
+                {t("pricing.helpLink")}
+              </Link>
             </p>
           </div>
           <div className="lg:col-span-8">

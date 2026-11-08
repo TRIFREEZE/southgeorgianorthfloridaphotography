@@ -73,6 +73,8 @@ export const layoutSchema = z.object({
   categoryCovers: z.record(z.string(), z.string().nullable()).default({}),
   serviceCovers: z.record(z.string(), z.string().nullable()).default({}),
   journalCovers: z.record(z.string(), z.string().nullable()).default({}),
+  /** Up to 3 extra photos on the About page (empty slots are simply not shown). */
+  aboutPhotos: z.array(z.string().nullable()).max(3).default([]),
 });
 export type Layout = z.infer<typeof layoutSchema>;
 
@@ -151,7 +153,7 @@ export const testimonialsSchema = z.array(testimonialSchema).max(60);
 export type Testimonial = z.infer<typeof testimonialSchema>;
 
 /* ------------------------------------------------------------------ texts */
-export const textsSchema = z.record(z.string(), str(4000));
+export const textsSchema = z.record(z.string().max(120), str(20000));
 export type Texts = Record<string, string>;
 
 /* ------------------------------------------------------------------ all content */

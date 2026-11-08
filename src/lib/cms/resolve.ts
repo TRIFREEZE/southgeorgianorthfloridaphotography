@@ -46,6 +46,11 @@ export function founderPhoto(d: SiteData): Photo {
   return photoById(d, d.content.layout.founder) ?? samplePhotos.find((p) => p.id === "sample-founder")!;
 }
 
+/** Extra About-page photos the owner chose (never samples). */
+export function aboutPhotos(d: SiteData): Photo[] {
+  return d.content.layout.aboutPhotos.map((id) => photoById(d, id)).filter((p): p is Photo => Boolean(p));
+}
+
 /** Homepage mosaic: the hand-picked order first, topped up with featured photos. */
 export function mosaicPhotos(d: SiteData, limit = 7): Photo[] {
   const hero = heroPhoto(d);

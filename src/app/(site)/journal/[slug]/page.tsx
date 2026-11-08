@@ -7,7 +7,8 @@ import { site } from "@/content/site";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { PhotoFill } from "@/components/media/Photo";
 import { Arrow, ButtonLink, Container } from "@/components/ui/primitives";
-import { getSiteData } from "@/lib/cms/data";
+import { getSiteData, getT } from "@/lib/cms/data";
+import { editedPost } from "@/lib/cms/texts";
 import { journalCover } from "@/lib/cms/resolve";
 import { absoluteUrl, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
@@ -17,8 +18,9 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/journal/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const post = postBySlug(slug);
-  if (!post) return {};
+  const found = postBySlug(slug);
+  if (!found) return {};
+  const post = editedPost((await getT()).texts, found);
   const base = pageMetadata({ title: post.title, description: post.description, path: `/journal/${post.slug}` });
   return { ...base, openGraph: { ...base.openGraph, type: "article", publishedTime: post.date } };
 }
@@ -66,10 +68,15 @@ export default function PostPage({ params }: PageProps<"/journal/[slug]">) {
 
 async function PostPageBody({ params }: Pick<PageProps<"/journal/[slug]">, "params">) {
   const { slug } = await params;
-  const post = postBySlug(slug);
-  if (!post) notFound();
+  const found = postBySlug(slug);
+  if (!found) notFound();
+  const t = await getT();
+  const post = editedPost(t.texts, found);
   const cover = journalCover(await getSiteData(), post.slug);
-  const more = publishedPosts().filter((p) => p.slug !== post.slug).slice(0, 2);
+  const more = publishedPosts()
+    .filter((p) => p.slug !== post.slug)
+    .slice(0, 2)
+    .map((p) => editedPost(t.texts, p));
   const date = new Date(`${post.date}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 
   return (

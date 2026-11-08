@@ -26,8 +26,8 @@ const manrope = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL(publicEnv.siteUrl),
   title: {
-    default: "South Georgia & North Florida Photographer | Red Clay & Light",
-    template: "%s | Red Clay & Light",
+    default: "South Georgia & North Florida Photographer | Southstill",
+    template: "%s | Southstill",
   },
   description: site.description,
   applicationName: site.shortName,

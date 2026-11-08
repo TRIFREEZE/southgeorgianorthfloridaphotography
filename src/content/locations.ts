@@ -29,7 +29,7 @@ const draft = (slug: string, town: string, state: "GA" | "FL"): LocationPage => 
   town,
   state,
   published: false,
-  seoTitle: `${town}, ${state} Photographer | Red Clay & Light`,
+  seoTitle: `${town}, ${state} Photographer | Southstill`,
   seoDescription: `Unhurried portrait, pet, horse, wedding and business photography in and around ${town}, ${state === "GA" ? "Georgia" : "Florida"}.`,
   intro: "",
   favoriteSettings: [],

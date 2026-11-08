@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { publishedPosts } from "@/content/journal";
-import { site } from "@/content/site";
 import { Hero } from "@/components/home/Hero";
 import {
   AreasServed,
@@ -13,24 +12,26 @@ import {
   Reviews,
   TrustBar,
   UnhurriedPromise,
-  UtilityLine,
 } from "@/components/home/sections";
 import { QuickInquiry } from "@/components/booking/QuickInquiry";
 import { Gallery } from "@/components/media/Gallery";
 import { BuildYourStory } from "@/components/story/BuildYourStory";
 import { Arrow, ButtonLink, Container, SectionHeading } from "@/components/ui/primitives";
-import { getSiteData } from "@/lib/cms/data";
+import { getSiteData, getT } from "@/lib/cms/data";
 import { categoryHref } from "@/lib/cms/links";
 import { categoryCover, founderPhoto, heroPhoto, journalCover, mosaicPhotos, portfolio, visibleCategories } from "@/lib/cms/resolve";
-import { textOf } from "@/lib/cms/texts";
+import { editedStory, storyLabels, textOf } from "@/lib/cms/texts";
 import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = pageMetadata({
-  title: "South Georgia & North Florida Photographer | Red Clay & Light",
-  absoluteTitle: true,
-  description: site.description,
-  path: "/",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return pageMetadata({
+    title: "South Georgia & North Florida Photographer | Southstill",
+    absoluteTitle: true,
+    description: t("site.description"),
+    path: "/",
+  });
+}
 
 export default async function HomePage() {
   const d = await getSiteData();
@@ -41,16 +42,15 @@ export default async function HomePage() {
 
   return (
     <>
-      <UtilityLine text={t("home.utility")} />
       <Hero photo={heroPhoto(d)} texts={texts} pricing={pricing} />
       <TrustBar />
 
       <section className="py-20 sm:py-28" aria-labelledby="work-title">
         <Container>
           <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-            <SectionHeading id="work-title" eyebrow="Selected work" title={t("home.work.title")} />
+            <SectionHeading id="work-title" eyebrow={t("home.work.eyebrow")} title={t("home.work.title")} />
             <ButtonLink href="/portfolio" variant="ghost" className="shrink-0">
-              See the full portfolio <Arrow />
+              {t("home.work.cta")} <Arrow />
             </ButtonLink>
           </div>
           <Gallery photos={mosaicPhotos(d)} layout="mosaic" label="Selected photographs" />
@@ -65,7 +65,7 @@ export default async function HomePage() {
 
       <section className="py-20 sm:py-24" aria-labelledby="bys-title">
         <Container>
-          <BuildYourStory photos={portfolio(d).photos} pricing={pricing} title={t("home.bys.title")} headingId="bys-title" />
+          <BuildYourStory photos={portfolio(d).photos} pricing={pricing} title={t("home.bys.title")} headingId="bys-title" content={editedStory(texts)} labels={storyLabels(texts)} />
         </Container>
       </section>
 
@@ -78,14 +78,14 @@ export default async function HomePage() {
         <Container>
           <div className="grid gap-10 rounded-[1.6rem] border border-line bg-gallery p-6 sm:p-10 lg:grid-cols-12 lg:p-14">
             <div className="lg:col-span-5">
-              <p className="eyebrow mb-4">Start here</p>
+              <p className="eyebrow mb-4">{t("home.final.eyebrow")}</p>
               <h2 id="final-cta-title" className="text-display-md">
                 {t("home.final.title")}
               </h2>
               <p className="mt-5 text-ink-soft">{t("home.final.body")}</p>
               <div className="mt-6">
                 <ButtonLink href="/book" variant="secondary">
-                  Find my session <Arrow />
+                  {t("home.final.cta")} <Arrow />
                 </ButtonLink>
               </div>
             </div>

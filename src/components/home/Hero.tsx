@@ -33,7 +33,7 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
               {t("home.hero.cta2")}
             </ButtonLink>
           </div>
-          {pricing.status === "confirmed" && <p className="mt-5 text-sm text-muted">Portrait sessions from {formatPrice(starting)}.</p>}
+          {pricing.status === "confirmed" && <p className="mt-5 text-sm text-muted">{textOf(texts, "home.hero.price", { price: formatPrice(starting) })}</p>}
         </div>
 
         <div className="md:col-span-5 lg:col-span-5">
@@ -43,7 +43,7 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
             </div>
             <figcaption className="mt-3 flex items-center justify-between gap-4 text-xs text-muted">
               <span>{photo.isSample ? "Hero photograph: replace it in Admin → Site photos" : photo.title}</span>
-              <span className="font-display italic">Real moments. Beautifully kept.</span>
+              <span className="font-display italic">{t("site.secondaryLine")}</span>
             </figcaption>
           </figure>
         </div>

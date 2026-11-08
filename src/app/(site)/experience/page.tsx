@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { experienceSteps, processHeadline } from "@/content/experience";
 import { getSiteData } from "@/lib/cms/data";
-import { textOf } from "@/lib/cms/texts";
+import { editedExperience, textOf } from "@/lib/cms/texts";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
 import { pageMetadata } from "@/lib/seo";
@@ -9,22 +8,18 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata: Metadata = pageMetadata({
   title: "Our Approach: Unhurried Photography Sessions",
   description:
-    "How a Red Clay & Light session works, from first note to private gallery: planning the light and location, relaxed direction, weather plans and delivery.",
+    "How a Southstill session works, from first note to private gallery: planning the light and location, relaxed direction, weather plans and delivery.",
   path: "/experience",
 });
-
-const prep = [
-  { title: "Before", items: ["A quick call or messages to plan the idea", "Location and time chosen around the best light", "A simple wardrobe and prep guide", "A weather backup plan"] },
-  { title: "During", items: ["Prompts and gentle direction, never stiff posing", "Breaks for little ones, animals and humans", "Safety first around horses, livestock and traffic", "No countdown for standard portraits"] },
-  { title: "After", items: ["Carefully edited, natural-looking photos", "A private online gallery to download and share", "Personal-use print release for portraits", "Option to add extra photos from your gallery"] },
-];
 
 export default async function ExperiencePage() {
   const { content } = await getSiteData();
   const { pricing, faqs, texts } = content;
+  const t = (k: string) => textOf(texts, k);
+  const { steps: experienceSteps, prep } = editedExperience(texts);
   return (
     <>
-      <PageHero eyebrow="Our approach" title={processHeadline} lede="Good photographs come from people feeling at ease. Everything about how we work is built around giving you the time and calm to get there." />
+      <PageHero eyebrow={t("experience.eyebrow")} title={t("experience.title")} lede={t("experience.lede")} />
 
       <section aria-labelledby="steps-title" className="pb-20">
         <Container>
@@ -46,9 +41,9 @@ export default async function ExperiencePage() {
       <section aria-labelledby="time-title" className="bg-ink py-20 text-gallery on-dark sm:py-24">
         <Container className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <p className="eyebrow mb-4">On time</p>
+            <p className="eyebrow mb-4">{t("experience.time.eyebrow")}</p>
             <h2 id="time-title" className="text-display-md">
-              We have time.
+              {t("experience.time.title")}
             </h2>
           </div>
           <div className="space-y-4 text-sand lg:col-span-7">
@@ -61,11 +56,11 @@ export default async function ExperiencePage() {
       <section aria-labelledby="prep-title" className="py-20 sm:py-24">
         <Container>
           <h2 id="prep-title" className="text-display-md">
-            What to expect
+            {t("experience.prep.title")}
           </h2>
           <div className="mt-10 grid gap-8 md:grid-cols-3">
             {prep.map((p) => (
-              <div key={p.title} className="border-t border-ink pt-6" data-reveal>
+              <div key={p.title + p.items.length} className="border-t border-ink pt-6" data-reveal>
                 <h3 className="text-[1.6rem]">{p.title}</h3>
                 <ul className="mt-4 space-y-2.5 text-ink-soft">
                   {p.items.map((x) => (
@@ -86,10 +81,10 @@ export default async function ExperiencePage() {
         <Container className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <h2 id="exp-faq" className="text-display-sm">
-              Common worries, answered
+              {t("experience.faqTitle")}
             </h2>
             <ButtonLink href="/book" className="mt-8">
-              Start planning <Arrow />
+              {t("experience.cta")} <Arrow />
             </ButtonLink>
           </div>
           <div className="lg:col-span-8">

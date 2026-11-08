@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { Faq } from "@/lib/cms/schema";
-import { getSiteData } from "@/lib/cms/data";
+import { getSiteData, getT } from "@/lib/cms/data";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
@@ -12,20 +12,15 @@ export const metadata: Metadata = pageMetadata({
   path: "/faq",
 });
 
-const groups: { topic: Faq["topic"]; title: string }[] = [
-  { topic: "session", title: "Sessions" },
-  { topic: "pricing", title: "Pricing & travel" },
-  { topic: "animals", title: "Pets & horses" },
-  { topic: "events", title: "Weddings & events" },
-  { topic: "delivery", title: "Your photos" },
-  { topic: "rights", title: "Rights & printing" },
-];
+const TOPICS: Faq["topic"][] = ["session", "pricing", "animals", "events", "delivery", "rights"];
 
 export default async function FaqPage() {
   const faqs = (await getSiteData()).content.faqs.filter((f) => f.faqPage);
+  const t = await getT();
+  const groups = TOPICS.map((topic) => ({ topic, title: t(`faq.topic.${topic}`) }));
   return (
     <>
-      <PageHero eyebrow="FAQ" title="Good questions, honest answers." />
+      <PageHero eyebrow={t("faq.eyebrow")} title={t("faq.title")} />
       <Container className="space-y-14">
         {groups.map((g) => {
           const items = faqs.filter((f) => f.topic === g.topic);
@@ -42,9 +37,9 @@ export default async function FaqPage() {
           );
         })}
         <div className="text-center">
-          <p className="text-muted">Didn&apos;t see your question?</p>
+          <p className="text-muted">{t("faq.more")}</p>
           <ButtonLink href="/contact" className="mt-4">
-            Ask us directly <Arrow />
+            {t("faq.moreCta")} <Arrow />
           </ButtonLink>
         </div>
       </Container>

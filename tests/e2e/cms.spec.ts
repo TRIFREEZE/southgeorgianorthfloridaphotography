@@ -137,7 +137,9 @@ test("30 photos upload in one drop, well within a couple of minutes", async ({ p
   expect(seconds).toBeLessThan(120);
   // Tidy up so later tests start from a known state: select all 30 and delete (never published = removed now).
   await page.getByRole("tab", { name: /^Pets/ }).click();
+  await expect(page.getByTestId("library-tile")).toHaveCount(30);
   for (const box of await page.getByTestId("library-tile").getByRole("checkbox").all()) await box.check();
+  await expect(page.getByTestId("bulk-bar")).toContainText("30 selected");
   await page.getByTestId("bulk-bar").getByRole("button", { name: "Delete" }).click();
   await page.getByLabel(/Type “DELETE”/).fill("DELETE");
   await page.getByTestId("confirm-ok").click();
@@ -187,6 +189,12 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   await page.goto("/admin/content");
   await page.getByTestId("tab-texts").click();
   await page.getByTestId("text-home.hero.headline").fill("Unhurried photos of the people you love");
+  // Any text on the site is reachable by search, e.g. a service page's name.
+  await page.getByTestId("text-search").fill("Pets & Horses");
+  await page.getByTestId("text-services.pets-horses.name").fill("Horses, Dogs & Barn Cats");
+  await page.getByTestId("text-search").fill("");
+  await page.getByRole("button", { name: "About page" }).click();
+  await page.getByTestId("text-about.valuesTitle").fill("What I care about");
   await page.getByTestId("save-texts").click();
   await expect(page.getByText("Saved as a draft").last()).toBeVisible();
   await page.getByTestId("tab-pricing").click();
@@ -198,6 +206,13 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   const visitor = await browser.newPage();
   await visitor.goto("/");
   await expect(visitor.locator("#hero-title")).toContainText("Unhurried photos of the people you");
+  await expect(visitor.locator("main")).not.toContainText("Natural-light portraits, pets, weddings, businesses");
+  await visitor.goto("/services");
+  await expect(visitor.getByRole("heading", { name: "Horses, Dogs & Barn Cats" })).toBeVisible();
+  await visitor.goto("/services/pets-horses");
+  await expect(visitor.locator("p.eyebrow").first()).toHaveText("Horses, Dogs & Barn Cats");
+  await visitor.goto("/about");
+  await expect(visitor.getByRole("heading", { name: "What I care about" })).toBeVisible();
   await visitor.goto("/portfolio");
   const filters = visitor.getByRole("navigation", { name: "Portfolio categories" });
   await expect(filters.getByRole("link", { name: "Portraits & Families" })).toHaveAttribute("href", "/portfolio/people");
@@ -205,6 +220,21 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   expect((await visitor.request.get("/portfolio/maternity")).status()).toBe(200);
   await visitor.goto("/pricing");
   await expect(visitor.getByText("· 12 edited photos").first()).toBeVisible();
+  await visitor.close();
+});
+
+test("About page: extra photo strip from Site photos", async ({ page, browser }) => {
+  await login(page);
+  await page.goto("/admin/site-photos");
+  const slot = page.locator('[data-slot="about:0"]');
+  await expect(slot.getByText("Empty", { exact: true })).toBeVisible();
+  await slot.getByTestId("slot-input").setInputFiles(await photo("porch-light.jpg", "#d4a28c", 1600, 2000));
+  await expect(slot.getByText("Chosen", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await publish(page);
+  const visitor = await browser.newPage();
+  await visitor.goto("/about");
+  const strip = visitor.locator("section", { has: visitor.locator("#about-photos-title") });
+  await expect(strip.getByRole("img", { name: "Porch light" })).toBeVisible();
   await visitor.close();
 });
 

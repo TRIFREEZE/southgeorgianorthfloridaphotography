@@ -27,7 +27,7 @@ Time needed: about 45 minutes, most of it waiting for DNS.
 
 1. Create an account at [resend.com](https://resend.com) → Domains → add your domain → add the DNS records it shows (SPF/DKIM) at your DNS provider → wait for *Verified*.
 2. API Keys → create a key with *Sending access* → `RESEND_API_KEY`.
-3. Set `EMAIL_FROM` to an address on that verified domain, e.g. `Red Clay & Light <hello@yourdomain.com>`, and `OWNER_NOTIFICATION_EMAIL` to the inbox that should receive new inquiries.
+3. Set `EMAIL_FROM` to an address on that verified domain, e.g. `Southstill <hello@yourdomain.com>`, and `OWNER_NOTIFICATION_EMAIL` to the inbox that should receive new inquiries.
 
 Without Resend the site still works: inquiries are stored and visible in `/admin`, but nobody gets emailed. `/admin` flags this.
 
@@ -49,7 +49,7 @@ Honeypot, a minimum fill time and database-backed rate limiting are always on. F
 
    | Variable | Required | Notes |
    |---|---|---|
-   | `NEXT_PUBLIC_SITE_URL` | yes | Your final domain, e.g. `https://www.redclayandlight.com` (use the `.vercel.app` URL until your domain is connected) |
+   | `NEXT_PUBLIC_SITE_URL` | yes | Your final domain, e.g. `https://www.southstill.com` (use the `.vercel.app` URL until your domain is connected) |
    | `NEXT_PUBLIC_SUPABASE_URL` | yes | |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | publishable/anon key |
    | `SUPABASE_SECRET_KEY` | yes | secret/service_role key, **Production + Preview only, never "Development" on shared machines** |

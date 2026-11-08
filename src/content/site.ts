@@ -5,14 +5,13 @@
  * can change without touching code (see .env.example).
  */
 export const site = {
-  name: "Red Clay & Light Photography",
-  shortName: "Red Clay & Light",
+  name: "Southstill",
+  shortName: "Southstill",
   primaryLine: "Your moments. Our time. No rush.",
   secondaryLine: "Real moments. Beautifully kept.",
   seoHeadline: "South Georgia & North Florida Photography, Without the Rush.",
   description:
     "Unhurried portraits, families, pets, horses, weddings and business photography throughout South Georgia and North Florida. Explore galleries and straightforward pricing.",
-  utilityLine: "South Georgia & North Florida · Natural-light portraits, pets, weddings, businesses",
   region: "South Georgia & North Florida",
 
   /**

@@ -21,10 +21,22 @@ export function storyShareQuery(story: ComposedStory) {
 }
 
 /** The composed, shareable session story card. Only uses the owner's published portfolio images. */
-export function StoryCard({ story, photos, pricing, actions }: { story: ComposedStory; photos: Photo[]; pricing: Pricing; actions?: React.ReactNode }) {
+export function StoryCard({
+  story,
+  photos,
+  pricing,
+  actions,
+  labels = { eyebrow: "Your session story", cta: "Plan this session" },
+}: {
+  story: ComposedStory;
+  photos: Photo[];
+  pricing: Pricing;
+  actions?: React.ReactNode;
+  labels?: { eyebrow: string; cta: string };
+}) {
   const town = site.serviceArea.towns.find((t) => t.slug === story.town);
   const pkg = story.subject.pkg ? pricing.packages.find((p) => p.id === story.subject.pkg) : null;
-  const title = `${story.feeling.label.replace(" & easy", "")} ${story.subject.id === "wedding" ? "celebration" : story.subject.id === "business" ? "brand session" : `${story.subject.id} portraits`}`;
+  const title = `${story.feeling.label.replace(" & easy", "")} ${story.subject.noun}`;
   const mood = photos.slice(0, 4);
 
   return (
@@ -37,7 +49,7 @@ export function StoryCard({ story, photos, pricing, actions }: { story: Composed
         ))}
       </div>
       <div className="p-6 sm:p-8">
-        <p className="eyebrow">Your session story</p>
+        <p className="eyebrow">{labels.eyebrow}</p>
         <h3 id="story-card-title" className="mt-3 text-[2rem] capitalize leading-tight">
           {title}
           {town ? ` near ${town.name}` : ""}
@@ -70,7 +82,7 @@ export function StoryCard({ story, photos, pricing, actions }: { story: Composed
         </dl>
         <div className="mt-7 flex flex-wrap items-center gap-3">
           <Link href={storyBookingHref(story)} className="inline-flex min-h-12 items-center rounded-full bg-ink px-6 font-semibold text-gallery hover:bg-clay-deep">
-            Plan this session
+            {labels.cta}
           </Link>
           {actions}
         </div>

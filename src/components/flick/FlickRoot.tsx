@@ -113,9 +113,9 @@ export default function FlickRoot({ filmStrip, guide, preview = false }: { filmS
 
   return (
     <>
-      <div ref={rootRef} className="pointer-events-none fixed inset-0 z-30" style={{ visibility: shown ? "visible" : "hidden" }} data-flick-root>
+      <div ref={rootRef} className="pointer-events-none fixed inset-0 z-[45]" style={{ visibility: shown ? "visible" : "hidden" }} data-flick-root>
         <div ref={trailRef} className="absolute inset-0 overflow-hidden" aria-hidden />
-        <div ref={bodyRef} className="absolute left-0 top-0 will-change-transform" style={{ width: size, height: size }}>
+        <div ref={bodyRef} className="absolute bottom-0 left-0 will-change-transform" style={{ width: size, height: size }}>
           {/* soft hover shadow, breathing with the float */}
           <span
             aria-hidden
