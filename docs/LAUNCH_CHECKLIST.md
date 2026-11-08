@@ -16,7 +16,7 @@
 | Portfolio uploads + optimization | **Needs credentials** | Supabase Storage buckets from the migration |
 | Analytics + Speed Insights | **Needs a toggle** | Enable both in the Vercel dashboard (Pro) |
 | Daily cleanup cron | **Needs credentials** | `CRON_SECRET`; scheduled by `vercel.json` |
-| Flick (intro, chatter, antics) + Ask Flick + Build Your Story | **Working now** | Fully client-side; Ask Flick uses site content only |
+| Flick (intro, idle life, tasteful antics) + Ask Flick + Build Your Story | **Working now** | Fully client-side; Ask Flick uses site content only |
 | SEO: metadata, sitemap, robots, JSON-LD, OG image | **Working now** | Set `NEXT_PUBLIC_SITE_URL` to your domain |
 | Portfolio photos, hero, founder portrait | **Needs owner data** | Labeled samples show until you publish real photos |
 | Prices, travel radius, turnaround, deposit | **Needs owner data** | Draft values from the brief |
@@ -46,7 +46,7 @@
 - [x] `npm run typecheck`: strict TypeScript, 0 errors
 - [x] `npm test`: 32 unit tests
 - [x] `npm run build`: production build, all public pages prerendered
-- [x] `npm run test:e2e`: 27 E2E tests on desktop + mobile (plus an overflow sweep at 320/360/375/390/414/768/1024px), including axe WCAG 2.2 AA (no serious/critical issues on key pages), full wizard submission, no-JS form post, honeypot/CSRF checks, lightbox keyboard + deep link, and Flick behavior (first-visit intro, size/visibility in the corner, menu, hide/restore, tricks leave the page untouched, typing tuck, reduced motion)
+- [x] `npm run test:e2e`: 29 E2E tests on desktop + mobile (plus an overflow sweep at 320/360/375/390/414/768/1024px), including axe WCAG 2.2 AA (no serious/critical issues on key pages), full wizard submission, no-JS form post, honeypot/CSRF checks, lightbox keyboard + deep link, and Flick behavior (first-visit intro, size/visibility in the corner, stays on his side (still on phones), menu, hide/restore, tricks leave the page untouched, typing tuck, reduced motion)
 
 - [x] Lighthouse (mobile, local production build, sample images): Performance 99, Accessibility 100, SEO 100, Best Practices 96 (the only deduction is Vercel Analytics scripts that exist only on Vercel). LCP 0.9s, CLS 0.
 

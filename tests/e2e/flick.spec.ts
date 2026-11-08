@@ -31,6 +31,26 @@ test.describe("Flick", () => {
     expect(box.y + box.height).toBeGreaterThan(vp.height * 0.7);
   });
 
+  test("stays in his corner: only up and down his own side on desktop, fully still on phones", async ({ page, isMobile }) => {
+    await skipIntro(page);
+    await page.goto("/");
+    const flick = flickButton(page);
+    await expect(flick).toBeInViewport({ ratio: 0.95, timeout: 12_000 });
+    await page.waitForTimeout(1500);
+    const vp = page.viewportSize()!;
+    const samples: { x: number; y: number }[] = [];
+    for (let i = 0; i < 28; i++) {
+      const b = (await flick.boundingBox())!;
+      samples.push({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
+      await page.waitForTimeout(500);
+    }
+    const xs = samples.map((s) => s.x);
+    const ys = samples.map((s) => s.y);
+    expect(Math.min(...xs)).toBeGreaterThan(vp.width * 0.75);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(isMobile ? 6 : 30);
+    if (isMobile) expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(24); // idle float only
+  });
+
   test("menu: hide and bring back from the footer", async ({ page, isMobile }) => {
     test.skip(isMobile, "desktop interaction test");
     await skipIntro(page);

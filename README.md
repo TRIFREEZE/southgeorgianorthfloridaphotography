@@ -8,7 +8,7 @@ Built for **Vercel Pro** with GitHub continuous deployment and **Supabase** for 
 
 - **Live estimate booking wizard** and a quick inquiry form, validated server-side, spam-protected, stored in Postgres, emailed to the owner, confirmed to the client.
 - **Owner admin** (`/admin`): leads pipeline (stages, notes, CSV export, delete) and portfolio photo uploads (auto-rotate, EXIF/GPS stripping, AVIF/WebP delivery).
-- **Flick**: ECHO's ring, eyes, spring physics and echo trail, rebuilt in SVG for the web. He introduces himself, chats, and keeps busy tidying and "fixing" the page (hammer mishaps included), while still tucking away while visitors type, never catching clicks mid-flight, and respecting reduced motion.
+- **Flick**: ECHO's ring, eyes, spring physics and echo trail, rebuilt in SVG for the web. He introduces himself, lives in his corner with idle animations and occasional chatter, and now and then polishes (or very carefully breaks, then fixes) something beside him. He tucks away while visitors type, never catches clicks mid-flight, and respects reduced motion.
 - **Honest by design**: labeled sample placeholders until real photos are published, no fake reviews or ratings, city pages that stay unpublished until they have real local content, and every price coming from one config file.
 
 ---

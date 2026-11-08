@@ -22,7 +22,7 @@ components/flick/
   FlickLoader.tsx   lazy-mounts Flick after load + idle (never competes with LCP/INP)
   FlickRoot.tsx     React shell: renders character, bubble, menu, film strip, guide
   controller.ts     the brain: machine + engine + signals + scheduling + speech + intro
-  antics.ts         page performances: tidy, straighten, margin fix, hammer disaster, polish, snap
+  antics.ts         tasteful page performances beside his side: polish, break-and-fix
   machine.ts        pure finite state machine (unit-tested)
   engine.ts         spring physics, transform-only DOM writes, echo trail, blink, hop, clip
   safeSpots.ts      where Flick may sit (samples what's under a spot)
@@ -46,8 +46,8 @@ Each state has a **priority**, a **maximum duration** and a **cooldown** (`machi
 
 | Signal | Reaction |
 |---|---|
-| Cursor near (desktop) | eyes track; within 150px, *notice*: surprised blink, curious lean |
-| Hover a photo | eyes look at it; after ~1.2s, maybe *inspect*: moves beside (never over) it |
+| Cursor near (desktop) | eyes track; within 150px, *notice*: surprised blink |
+| Hover a photo | eyes look at it |
 | Click a photo | *react*: camera flash, happy eyes, hop, maybe "oh, this one's good." |
 | Save a favorite | compliment (once per session guaranteed) |
 | Pick a package / story chip | approving hop |
@@ -57,24 +57,24 @@ Each state has a **priority**, a **maximum duration** and a **cooldown** (`machi
 | Menu / lightbox / dialog open | pause |
 | 45s idle | *sleep* (sleepy eyes, "z"), wakes on activity ("i wasn't sleeping. i was exposing slowly.") |
 | Scroll | eyes glance in the scroll direction; re-finds a free spot when scrolling stops |
-| Every 6–12s at rest | maybe *wander* to another free margin spot, *peek* from behind a photo edge (visual clip only), *hide* off-screen and peek back, or clean the lens |
-| Drag (desktop mouse) | spring-follows the cursor with feet out; dropped on the nearest free spot |
+| Every 10–18s at rest | float up/down his side (desktop), clean his lens, glance around, or hop |
+| Drag (desktop mouse) | spring-follows the cursor with feet out; wherever he's dropped becomes his corner |
 | Triple-click | film strip of real portfolio thumbnails |
 
-### The star of the page
+### Personality
 
-- **First visit:** Flick swoops in and introduces himself in a card: who he is, *tap me anytime to ask a question*, *drag me around* (desktop), and *too chatty? tap me → Quiet please, or hide me from the footer*. Buttons: **Ask me something**, **Got it**, **Quiet please**. Shown once per browser (`localStorage rcl:flick:introduced`); replay it from his menu ("Introduce yourself again"). Returning visitors get a "welcome back".
+- **First visit:** Flick rises into his corner and introduces himself in a card: who he is, *tap me anytime to ask a question*, *drag me around* (desktop), and *too chatty? tap me → Quiet please, or hide me from the footer*. Buttons: **Ask me something**, **Got it**, **Quiet please**. Shown once per browser (`localStorage rcl:flick:introduced`); replay it from his menu ("Introduce yourself again"). Returning visitors get a "welcome back".
 - **Size:** 124px on desktop, 96px on phones (`FLICK_SIZE` in `FlickRoot.tsx`).
-- **Home:** always the bottom-right corner, hovering with a gentle float and a breathing shadow, on desktop *and* mobile.
-- **Chatty:** something to say about every page on arrival, ambient lines every ~12–20s of active browsing, comments when section headings scroll into view (pricing, FAQ, the photographer…), photo hovers, booking buttons, fast scrolling and reaching the bottom of the page.
-- **Antics** (`antics.ts`), Flick's main hobby, every ~6–9s while idle (7–11s on phones):
-  - **Tidy:** flies to a card or photo, wipes it with a cloth, sparkles, shine sweep. "missed a spot? no. i never miss a spot."
-  - **Straighten:** a heading or card goes slightly crooked; he notices, shoves it level.
-  - **Margin fix:** a paragraph drifts off its margin; he pushes it back into alignment. "that margin's off by a pixel. or six."
-  - **Hammer disaster:** a "tiny adjustment" with a hammer → crack lines, the card tilts, chips fly; he panics, zips back and forth ("don't look. don't look."), comes back with a wrench, the crack fades, the card springs back. "…fixed. nobody saw that."
-  - **Polish:** buffs a booking/portfolio button until it gleams.
-  - **Snap:** lines up a photo and takes a picture (a flash over the photo).
-  - Plus wanders, peeking from behind photo edges, hide-and-seek off the screen edge, and cleaning his own lens. "Do a trick" in his menu triggers an antic on demand.
+- **He stays in his corner.** Bottom-right by default, hovering with a gentle float and a breathing shadow. He never crosses the screen on his own:
+  - **Desktop:** now and then he floats up or down *his own side* of the page, then drifts home.
+  - **Phones:** he stays put in the corner: float, blink, look around, clean his lens, sleep.
+  - **Dragging** (desktop mouse) moves his corner to wherever you drop him; he then lives on that side.
+- **Chats now and then:** a line roughly every 40–70s of active browsing (at least 18s apart), plus reactions to what you do (clicking or saving photos, finishing a booking, a form error). Section commentary and hover remarks are occasional.
+- **Antics** (`antics.ts`): rare (every ~1–2 minutes), desktop only, and only with things right beside his side of the page. He floats up or down to reach them:
+  - **Polish:** buffs a nearby card, photo or button with his cloth: a soft shine sweep and a few sparkles.
+  - **Break:** a careful tap with a hammer → a small hairline crack and a barely-there tilt, a quiet "oops.", out comes the wrench, crack fades, the card eases back. "fixed. nobody saw that."
+  - "Do a trick" in his menu triggers one on demand (or a float if nothing's within reach).
+- **Speech bubbles:** small, soft rose with a tail (deliberately unlike any button), spring in, words arrive one by one, float gently, then shrink away. Never clickable.
 
 ### Guardrails (still on)
 
@@ -101,7 +101,7 @@ If you later add an LLM, do it server-side behind a route handler with retrieval
 ## Tuning
 
 - Speech frequency: `QUIET_MS`, `MIN_LINE_GAP` and the `nextAmbient` range in `controller.ts`
-- Antic frequency and mix: `nextBehavior` and the heartbeat's weighted choice in `controller.ts`; antic timelines in `antics.ts`
+- Antic frequency: `nextAntic` in `controller.ts`; idle mix: `nextBehavior` and the heartbeat's weighted choice; antic timelines in `antics.ts`
 - Personality: `lines.ts`
 - Behavior mix: the heartbeat's weighted choice in `controller.ts`
 - Durations, cooldowns, priorities: `machine.ts` (covered by `tests/unit/machine.test.ts`)

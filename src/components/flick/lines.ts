@@ -35,7 +35,7 @@ export type LineEvent =
   | "scroll-bottom"
   | "fast-scroll";
 
-export type AnticLine = "tidy-start" | "tidy-done" | "crooked" | "straightened" | "margin" | "margin-fixed" | "hammer-start" | "hammer-oops" | "hammer-panic" | "hammer-fixed" | "shine" | "snap";
+export type AnticLine = "tidy-start" | "tidy-done" | "shine" | "hammer-start" | "hammer-oops" | "hammer-fixed";
 
 export const ambient: Record<LineContext, string[]> = {
   general: [
@@ -123,18 +123,12 @@ export const reactions: Record<LineEvent, string[]> = {
 };
 
 export const anticLines: Record<AnticLine, string[]> = {
-  "tidy-start": ["hold on. dust.", "ugh, smudge.", "one sec, tidying.", "this needs a polish."],
-  "tidy-done": ["spotless.", "much better.", "keeping it tidy.", "missed a spot? no. i never miss a spot."],
-  crooked: ["hm. that's crooked.", "who tilted this?", "that's not level."],
-  straightened: ["there. level.", "perfectly straight. you're welcome.", "much better."],
-  margin: ["that margin's off by a pixel. or six.", "wait. that's not aligned.", "hm. scooch."],
-  "margin-fixed": ["aligned.", "pixel perfect.", "the grid thanks me."],
-  "hammer-start": ["just a little adjustment…", "i'll tap this into place.", "needs a tiny nudge."],
-  "hammer-oops": ["oh no.", "oh no no no.", "that was NOT supposed to happen."],
-  "hammer-panic": ["don't look. don't look.", "i can fix this. i can fix this.", "nobody saw that. right?"],
-  "hammer-fixed": ["…fixed. nobody saw that.", "good as new. better, even.", "and we never speak of this."],
-  shine: ["shiny.", "polished.", "ooh, sparkly."],
-  snap: ["*snap.* for the archive.", "got it. beautiful.", "say cheese. kidding. i never say cheese."],
+  "tidy-start": ["one sec. smudge.", "hold on, dust."],
+  "tidy-done": ["spotless.", "much better."],
+  shine: ["shiny.", "polished."],
+  "hammer-start": ["just a tiny adjustment…", "a little tap should do it."],
+  "hammer-oops": ["oops.", "…oh."],
+  "hammer-fixed": ["fixed. nobody saw that.", "good as new."],
 };
 
 /** Commentary when a section heading scrolls into view (matched by keywords). */

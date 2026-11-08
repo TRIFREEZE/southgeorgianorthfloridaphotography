@@ -141,17 +141,7 @@ export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }
             </div>
           </div>
 
-          {bubble && !menu?.open && !intro && (
-            <div
-              key={bubble.key}
-              className={`pointer-events-none absolute w-max max-w-[16rem] rounded-2xl bg-ink px-4 py-2.5 text-[0.95rem] font-medium leading-snug text-gallery shadow-xl ${bubble.side === "right" ? "right-3" : "left-3"} ${bubble.below ? "top-[calc(100%+4px)]" : "bottom-[calc(100%-6px)]"}`}
-              style={{ animation: reducedMotion ? "none" : "flick-bubble 260ms var(--ease-out-soft) both" }}
-              role={bubble.announce ? "status" : undefined}
-              aria-hidden={bubble.announce ? undefined : true}
-            >
-              {bubble.text}
-            </div>
-          )}
+          {bubble && !menu?.open && !intro && <SpeechBubble bubble={bubble} reducedMotion={reducedMotion} />}
 
           {intro && (
             <section
@@ -240,5 +230,42 @@ function MenuButton({ onClick, children }: { onClick: () => void; children: Reac
     <button type="button" onClick={onClick} className="block min-h-11 w-full rounded-xl px-3 py-2 text-left font-medium hover:bg-parchment focus-visible:bg-parchment">
       {children}
     </button>
+  );
+}
+
+/**
+ * Flick's speech bubble: soft rose (never mistaken for a button), small, with a
+ * tail pointing at him. Pops in with a spring, words arrive one by one, floats
+ * gently, and shrinks away when done. Purely decorative to the pointer.
+ */
+function SpeechBubble({ bubble, reducedMotion }: { bubble: Bubble; reducedMotion: boolean }) {
+  const right = bubble.side === "right";
+  const words = bubble.text.split(" ");
+  const enter = "flick-bubble-pop 460ms cubic-bezier(.34,1.56,.64,1) both, flick-bubble-float 3s ease-in-out 460ms infinite";
+  return (
+    <div
+      key={bubble.key}
+      className={`pointer-events-none absolute w-max max-w-[11.5rem] rounded-[14px] border border-clay-light/60 bg-[#F6E9E3] px-3 py-1.5 text-[0.8rem] font-medium leading-snug text-ink shadow-[0_10px_24px_-14px_rgba(37,39,35,0.55)] sm:max-w-[13rem] ${right ? "right-5" : "left-5"} ${bubble.below ? "top-[calc(100%+2px)]" : "bottom-[calc(100%-4px)]"}`}
+      style={{
+        transformOrigin: `${bubble.below ? "top" : "bottom"} ${right ? "right" : "left"}`,
+        animation: reducedMotion ? "none" : bubble.leaving ? "flick-bubble-out 220ms ease-in forwards" : enter,
+      }}
+      role={bubble.announce ? "status" : undefined}
+      aria-hidden={bubble.announce ? undefined : true}
+    >
+      <span className="sr-only">{bubble.text}</span>
+      <span aria-hidden>
+        {words.map((w, i) => (
+          <span key={i} className="inline-block" style={{ animation: reducedMotion ? "none" : `flick-word 280ms ease-out ${140 + i * 55}ms both` }}>
+            {w}
+            {i < words.length - 1 ? "\u00a0" : ""}
+          </span>
+        ))}
+      </span>
+      <span
+        aria-hidden
+        className={`absolute h-2.5 w-2.5 rotate-45 border-clay-light/60 bg-[#F6E9E3] ${right ? "right-6" : "left-6"} ${bubble.below ? "-top-[6px] border-l border-t" : "-bottom-[6px] border-b border-r"}`}
+      />
+    </div>
   );
 }
