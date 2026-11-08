@@ -339,7 +339,7 @@ const PRICE_FIELDS: PriceField[] = [
   },
 ];
 
-type Row = { kind: "text"; key: string; group: string; label: string; hint?: string; multiline?: boolean } | { kind: "price"; key: string; group: string; label: string; hint?: string; multiline?: boolean; field: PriceField };
+type Row = { kind: "text"; key: string; group: string; label: string; hint?: string; multiline?: boolean; count?: boolean } | { kind: "price"; key: string; group: string; label: string; hint?: string; multiline?: boolean; field: PriceField };
 
 /** Every editable row for a page, in page order, with pricing wording slotted in beside its neighbours. */
 function rowsFor(group: string): Row[] {
@@ -347,7 +347,7 @@ function rowsFor(group: string): Row[] {
   const price = PRICE_FIELDS.flatMap((pf) => pf.places.filter((pl) => pl.group === group).map((pl) => ({ pf, after: pl.after })));
   const priceRow = (pf: PriceField): Row => ({ kind: "price", key: `pricing:${pf.id}`, group, label: pf.label, multiline: pf.multiline, field: pf, hint: `Shared with the Pricing tab${pf.list ? ". One per line." : "."}` });
   for (const f of TEXT_FIELDS.filter((x) => x.group === group)) {
-    out.push({ kind: "text", key: f.key, group, label: f.label, hint: f.hint, multiline: f.multiline });
+    out.push({ kind: "text", key: f.key, group, label: f.label, hint: f.hint, multiline: f.multiline, count: f.kind === "count" });
     for (const x of price.filter((x) => x.after === f.key)) out.push(priceRow(x.pf));
   }
   for (const x of price.filter((x) => !x.after || !TEXT_FIELDS.some((f) => f.key === x.after && f.group === group))) out.push(priceRow(x.pf));
@@ -452,7 +452,7 @@ function TextsEditor({ initial, pricing }: { initial: Texts; pricing: Pricing })
         <div>
           <h2 className="text-[1.5rem]">{query ? `Results for “${q.trim()}”` : group}</h2>
           <p className="mt-1 text-sm text-muted">
-            Edit any box and save. <strong>Reset</strong> puts back the wording you started with. In the homepage headline, the last word is set in italic clay. Category names and descriptions are edited under <em>Categories</em>; prices and photo counts under <em>Pricing</em>; questions under <em>FAQs</em>.
+            Edit any box and save. <strong>Reset</strong> puts back the wording you started with. In the homepage headline you choose how many words at the end are colored, italic or bold. Category names and descriptions are edited under <em>Categories</em>; prices and photo counts under <em>Pricing</em>; questions under <em>FAQs</em>.
           </p>
         </div>
         {shown.length === 0 && <p className="text-muted">Nothing matches that search.</p>}
@@ -479,6 +479,19 @@ function TextsEditor({ initial, pricing }: { initial: Texts; pricing: Pricing })
                   rows={Math.min(18, Math.max(3, Math.ceil((values[r.key] ?? "").length / 80) + (values[r.key] ?? "").split("\n").length))}
                   value={values[r.key] ?? ""}
                   onChange={(e) => setValues((v) => ({ ...v, [r.key]: e.target.value }))}
+                  data-testid={`text-${r.key}`}
+                />
+              ) : r.kind === "text" && r.count ? (
+                <input
+                  id={`tx-${r.group}-${r.key}`}
+                  type="number"
+                  min={0}
+                  max={20}
+                  step={1}
+                  inputMode="numeric"
+                  className="field w-28"
+                  value={values[r.key] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [r.key]: e.target.value === "" ? "" : String(Math.max(0, Math.min(20, Math.floor(Number(e.target.value)) || 0))) }))}
                   data-testid={`text-${r.key}`}
                 />
               ) : (

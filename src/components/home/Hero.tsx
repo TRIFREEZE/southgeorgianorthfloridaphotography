@@ -18,6 +18,13 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
     .filter(Boolean);
   const rotating = pool.length > 1 ? [lastWord, ...pool.filter((w) => w.toLowerCase() !== lastWord.toLowerCase())] : [];
   const starting = pricedPackages(pricing.packages)[0]?.priceCents;
+  // How many words at the end get each style (chosen in Page text). Words are counted from the end.
+  const count = (k: string) => Math.max(0, Math.min(words.length, Math.floor(Number(t(k))) || 0));
+  const [colored, italic, bold] = [count("home.hero.colorWords"), count("home.hero.italicWords"), count("home.hero.boldWords")];
+  const styleFor = (i: number) => {
+    const fromEnd = words.length - i;
+    return [fromEnd <= colored && "text-clay", fromEnd <= italic && "italic", fromEnd <= bold && "font-semibold"].filter(Boolean).join(" ");
+  };
   return (
     <section className="relative overflow-hidden" aria-labelledby="hero-title">
       {/* The text block is centred on the photo itself (its caption hangs below and isn't counted). */}
@@ -27,7 +34,7 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
             <span className="eyebrow block max-w-md leading-relaxed">{t("home.hero.eyebrow")}</span>
             <span className="headline-reveal mt-5 block font-display text-display-xl leading-[0.98] tracking-[-0.025em]">
               {words.map((w, i) => (
-                <span key={i} style={{ ["--i" as string]: i }} className={i === words.length - 1 && words.length > 1 ? "italic text-clay" : ""}>
+                <span key={i} style={{ ["--i" as string]: i }} className={styleFor(i)}>
                   {i === words.length - 1 && rotating.length > 1 ? <RotatingWord words={rotating} suffix={suffix} /> : w}
                   {i < words.length - 1 ? " " : ""}
                 </span>

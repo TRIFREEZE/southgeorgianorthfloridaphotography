@@ -201,6 +201,10 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   await page.goto("/admin/content");
   await page.getByTestId("tab-texts").click();
   await page.getByTestId("text-home.hero.headline").fill("Unhurried photos of the people you love");
+  // Choose how many words at the end are colored, italic and bold.
+  await page.getByTestId("text-home.hero.colorWords").fill("3");
+  await page.getByTestId("text-home.hero.italicWords").fill("2");
+  await page.getByTestId("text-home.hero.boldWords").fill("1");
   // Wording stored with pricing (the "no stopwatch" promise) is editable right here too.
   await page.getByTestId("text-pricing:noStopwatch.body").fill("We stay until the photos are right. Promise.");
   await page.getByRole("button", { name: "About page" }).click();
@@ -218,6 +222,10 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   const visitor = await browser.newPage();
   await visitor.goto("/");
   await expect(visitor.locator("#hero-title")).toContainText("Unhurried photos of the people you");
+  const hero = visitor.locator("#hero-title .headline-reveal > span");
+  await expect(hero.locator("xpath=self::*[contains(@class,'text-clay')]")).toHaveCount(3);
+  await expect(hero.locator("xpath=self::*[contains(@class,'italic')]")).toHaveCount(2);
+  await expect(hero.locator("xpath=self::*[contains(@class,'font-semibold')]")).toHaveCount(1);
   await expect(visitor.locator("main")).not.toContainText("Natural-light portraits, pets, weddings, businesses");
   await expect(visitor.locator("section", { has: visitor.locator("#promise-title") })).toContainText("We stay until the photos are right. Promise.");
   await visitor.goto("/services");

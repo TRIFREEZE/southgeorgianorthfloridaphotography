@@ -21,13 +21,15 @@ export interface TextField {
   multiline?: boolean;
   hint?: string;
   default: string;
+  /** "count": a small whole number, edited with a number box. */
+  kind?: "count";
 }
 
 const ONE_PER_LINE = "One per line.";
 const PARAS = "Separate paragraphs with a blank line.";
 
-function f(group: string, key: string, label: string, def: string, opts: { multiline?: boolean; hint?: string } = {}): TextField {
-  return { group, key, label, default: def, multiline: opts.multiline ?? def.length > 90, hint: opts.hint };
+function f(group: string, key: string, label: string, def: string, opts: { multiline?: boolean; hint?: string; kind?: "count" } = {}): TextField {
+  return { group, key, label, default: def, multiline: opts.multiline ?? def.length > 90, hint: opts.hint, kind: opts.kind };
 }
 
 /* ------------------------------------------------------------------ structured content → fields */
@@ -133,7 +135,10 @@ export const TEXT_FIELDS: TextField[] = [
 
   // Homepage
   f(HOME, "home.hero.eyebrow", "Hero: small heading (SEO line)", site.seoHeadline),
-  f(HOME, "home.hero.headline", "Hero: big headline", "The good moments deserve more than a timer.", { hint: "The last word is styled in clay italic." }),
+  f(HOME, "home.hero.headline", "Hero: big headline", "The good moments deserve more than a timer.", { hint: "Choose below how many words at the end are colored, italic or bold." }),
+  f(HOME, "home.hero.colorWords", "Hero: how many words at the end are colored (clay)", "1", { kind: "count", hint: "Counted from the end of the headline. 0 turns it off." }),
+  f(HOME, "home.hero.italicWords", "Hero: how many words at the end are italic", "1", { kind: "count", hint: "Counted from the end of the headline. 0 turns it off." }),
+  f(HOME, "home.hero.boldWords", "Hero: how many words at the end are bold", "0", { kind: "count", hint: "Counted from the end of the headline. 0 turns it off." }),
   f(HOME, "home.hero.rotate", "Hero: words that take turns as the last word (one per line)", "timer", {
     multiline: true,
     hint: "The headline's last word cycles through these, in order. Put the word from your headline first. Leave just one word to turn cycling off.",
