@@ -189,6 +189,8 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   await page.goto("/admin/content");
   await page.getByTestId("tab-texts").click();
   await page.getByTestId("text-home.hero.headline").fill("Unhurried photos of the people you love");
+  // Wording stored with pricing (the "no stopwatch" promise) is editable right here too.
+  await page.getByTestId("text-pricing:noStopwatch.body").fill("We stay until the photos are right. Promise.");
   // Any text on the site is reachable by search, e.g. a service page's name.
   await page.getByTestId("text-search").fill("Pets & Horses");
   await page.getByTestId("text-services.pets-horses.name").fill("Horses, Dogs & Barn Cats");
@@ -209,6 +211,7 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   await visitor.goto("/");
   await expect(visitor.locator("#hero-title")).toContainText("Unhurried photos of the people you");
   await expect(visitor.locator("main")).not.toContainText("Natural-light portraits, pets, weddings, businesses");
+  await expect(visitor.locator("section", { has: visitor.locator("#promise-title") })).toContainText("We stay until the photos are right. Promise.");
   await visitor.goto("/services");
   await expect(visitor.getByRole("heading", { name: "Horses, Dogs & Barn Cats" })).toBeVisible();
   await visitor.goto("/services/pets-horses");

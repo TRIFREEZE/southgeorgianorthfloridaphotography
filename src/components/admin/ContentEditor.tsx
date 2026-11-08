@@ -28,7 +28,7 @@ export function ContentEditor({ pricing, texts, faqs, testimonials, services }: 
       </div>
       <div className="mt-8" role="tabpanel">
         {tab === "pricing" && <PricingEditor key={JSON.stringify(pricing)} initial={pricing} />}
-        {tab === "texts" && <TextsEditor key={JSON.stringify(texts)} initial={texts} />}
+        {tab === "texts" && <TextsEditor key={JSON.stringify([texts, pricing])} initial={texts} pricing={pricing} />}
         {tab === "faqs" && <FaqEditor key={JSON.stringify(faqs)} initial={faqs} services={services} />}
         {tab === "testimonials" && <TestimonialEditor key={JSON.stringify(testimonials)} initial={testimonials} />}
       </div>
@@ -230,6 +230,134 @@ function PricingEditor({ initial }: { initial: Pricing }) {
 const GROUPS = [...new Set(TEXT_FIELDS.map((f) => f.group))];
 const DEFAULTS = Object.fromEntries(TEXT_FIELDS.map((f) => [f.key, f.default]));
 
+/**
+ * Wording that belongs to your pricing (the "no stopwatch" promise, travel,
+ * deposit, small print, custom quotes). It's stored once, with your pricing,
+ * and shown here on every page where it appears, so it can be edited from
+ * either tab. `after` places it next to the text around it on that page.
+ */
+type CustomKey = "weddings-events" | "business-branding";
+interface PriceField {
+  id: string;
+  label: string;
+  places: { group: string; after?: string }[];
+  multiline?: boolean;
+  list?: boolean;
+  get: (p: Pricing) => string;
+  set: (p: Pricing, v: string) => Pricing;
+}
+const lines = (v: string) => v.split("\n").map((x) => x.trim()).filter(Boolean);
+const customFields = (k: CustomKey, name: string): PriceField[] => [
+  {
+    id: `custom.${k}.intro`,
+    label: `${name}: custom-quote intro`,
+    places: [{ group: "Pricing page" }, { group: k === "weddings-events" ? "Service: Weddings & Events" : "Service: Business & Branding" }],
+    multiline: true,
+    get: (p) => p.custom[k].intro,
+    set: (p, v) => ({ ...p, custom: { ...p.custom, [k]: { ...p.custom[k], intro: v } } }),
+  },
+  {
+    id: `custom.${k}.factors`,
+    label: `${name}: what the quote depends on (one per line)`,
+    places: [{ group: "Pricing page" }, { group: k === "weddings-events" ? "Service: Weddings & Events" : "Service: Business & Branding" }],
+    multiline: true,
+    list: true,
+    get: (p) => p.custom[k].factors.join("\n"),
+    set: (p, v) => ({ ...p, custom: { ...p.custom, [k]: { ...p.custom[k], factors: lines(v) } } }),
+  },
+  {
+    id: `custom.${k}.example`,
+    label: `${name}: example estimate (optional)`,
+    places: [{ group: "Pricing page" }],
+    get: (p) => p.custom[k].exampleEstimate ?? "",
+    set: (p, v) => ({ ...p, custom: { ...p.custom, [k]: { ...p.custom[k], exampleEstimate: v.trim() ? v : null } } }),
+  },
+];
+const PRICE_FIELDS: PriceField[] = [
+  {
+    id: "noStopwatch.headline",
+    label: "Pricing headline (homepage pricing section, pricing page, service pages)",
+    places: [{ group: "Homepage", after: "home.pricing.eyebrow" }, { group: "Pricing page", after: "pricing.eyebrow" }, { group: "Every service page (shared wording)", after: "service.pricingEyebrow" }],
+    get: (p) => p.noStopwatch.headline,
+    set: (p, v) => ({ ...p, noStopwatch: { ...p.noStopwatch, headline: v } }),
+  },
+  {
+    id: "noStopwatch.body",
+    label: "“No stopwatch” promise: paragraph (homepage, pricing page, Our approach)",
+    places: [{ group: "Homepage", after: "home.promise.accent" }, { group: "Pricing page", after: "pricing.unhurried.title" }, { group: "Our approach page", after: "experience.time.title" }],
+    multiline: true,
+    get: (p) => p.noStopwatch.body,
+    set: (p, v) => ({ ...p, noStopwatch: { ...p.noStopwatch, body: v } }),
+  },
+  {
+    id: "noStopwatch.boundaries",
+    label: "“No stopwatch” promise: the fine print (homepage, pricing page, Our approach)",
+    places: [{ group: "Homepage", after: "home.promise.accent" }, { group: "Pricing page", after: "pricing.unhurried.title" }, { group: "Our approach page", after: "experience.time.title" }],
+    multiline: true,
+    get: (p) => p.noStopwatch.boundaries,
+    set: (p, v) => ({ ...p, noStopwatch: { ...p.noStopwatch, boundaries: v } }),
+  },
+  {
+    id: "revisionPolicy",
+    label: "Editing & revisions (pricing page dark panel)",
+    places: [{ group: "Pricing page", after: "pricing.unhurried.title" }],
+    multiline: true,
+    get: (p) => p.revisionPolicy,
+    set: (p, v) => ({ ...p, revisionPolicy: v }),
+  },
+  {
+    id: "extraPhoto.note",
+    label: "Extra photos box: note after the price",
+    places: [{ group: "Pricing page", after: "pricing.extraTitle" }],
+    get: (p) => p.extraPhoto.note,
+    set: (p, v) => ({ ...p, extraPhoto: { ...p.extraPhoto, note: v } }),
+  },
+  {
+    id: "travel.copy",
+    label: "Travel paragraph (homepage, pricing page, service area page)",
+    places: [{ group: "Homepage", after: "home.areas.nearby" }, { group: "Pricing page", after: "pricing.travelTitle" }, { group: "Service area page", after: "locations.travelTitle" }],
+    multiline: true,
+    get: (p) => p.travel.copy,
+    set: (p, v) => ({ ...p, travel: { ...p.travel, copy: v } }),
+  },
+  {
+    id: "legalNote",
+    label: "Small print under the packages",
+    places: [{ group: "Pricing page", after: "pricing.deliveryTitle" }],
+    multiline: true,
+    get: (p) => p.legalNote,
+    set: (p, v) => ({ ...p, legalNote: v }),
+  },
+  {
+    id: "deposit.copy",
+    label: "Deposit line (shown when a deposit is turned on)",
+    places: [{ group: "Pricing page", after: "pricing.custom.businessCta" }],
+    get: (p) => p.deposit.copy,
+    set: (p, v) => ({ ...p, deposit: { ...p.deposit, copy: v } }),
+  },
+  ...customFields("weddings-events", "Weddings & events"),
+  ...customFields("business-branding", "Business & branding"),
+];
+
+type Row = { kind: "text"; key: string; group: string; label: string; hint?: string; multiline?: boolean } | { kind: "price"; key: string; group: string; label: string; hint?: string; multiline?: boolean; field: PriceField };
+
+/** Every editable row for a page, in page order, with pricing wording slotted in beside its neighbours. */
+function rowsFor(group: string): Row[] {
+  const out: Row[] = [];
+  const price = PRICE_FIELDS.flatMap((pf) => pf.places.filter((pl) => pl.group === group).map((pl) => ({ pf, after: pl.after })));
+  const priceRow = (pf: PriceField): Row => ({ kind: "price", key: `pricing:${pf.id}`, group, label: pf.label, multiline: pf.multiline, field: pf, hint: `Shared with the Pricing tab${pf.list ? ". One per line." : "."}` });
+  for (const f of TEXT_FIELDS.filter((x) => x.group === group)) {
+    out.push({ kind: "text", key: f.key, group, label: f.label, hint: f.hint, multiline: f.multiline });
+    for (const x of price.filter((x) => x.after === f.key)) out.push(priceRow(x.pf));
+  }
+  for (const x of price.filter((x) => !x.after || !TEXT_FIELDS.some((f) => f.key === x.after && f.group === group))) out.push(priceRow(x.pf));
+  return out;
+}
+const ALL_ROWS: Row[] = (() => {
+  const seen = new Set<string>();
+  return GROUPS.flatMap(rowsFor).filter((r) => (seen.has(r.key) ? false : (seen.add(r.key), true)));
+})();
+
 /** Only store what differs from the original wording; an empty box means "use the original". */
 function overridesOf(values: Record<string, string>) {
   const out: Record<string, string> = {};
@@ -240,18 +368,49 @@ function overridesOf(values: Record<string, string>) {
   return out;
 }
 
-function TextsEditor({ initial }: { initial: Texts }) {
-  const start = Object.fromEntries(TEXT_FIELDS.map((f) => [f.key, initial[f.key]?.trim() ? initial[f.key] : f.default]));
-  const [values, setValues] = useState<Record<string, string>>(start);
+function pricingFrom(base: Pricing, values: Record<string, string>) {
+  return PRICE_FIELDS.reduce((p, pf) => {
+    const v = values[`pricing:${pf.id}`];
+    return v === undefined || v === pf.get(base) ? p : pf.set(p, v);
+  }, base);
+}
+
+function TextsEditor({ initial, pricing }: { initial: Texts; pricing: Pricing }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [busy, start] = useTransition();
+  const startValues = {
+    ...Object.fromEntries(TEXT_FIELDS.map((f) => [f.key, initial[f.key]?.trim() ? initial[f.key] : f.default])),
+    ...Object.fromEntries(PRICE_FIELDS.map((pf) => [`pricing:${pf.id}`, pf.get(pricing)])),
+  };
+  const [values, setValues] = useState<Record<string, string>>(startValues);
   const [group, setGroup] = useState(GROUPS.includes("Homepage") ? "Homepage" : GROUPS[0]);
   const [q, setQ] = useState("");
   const overrides = overridesOf(values);
-  const { bar } = useSave("texts", overrides, overridesOf(start));
+  const nextPricing = pricingFrom(pricing, values);
+  const textsDirty = JSON.stringify(overrides) !== JSON.stringify(overridesOf(startValues));
+  const pricingDirty = JSON.stringify(nextPricing) !== JSON.stringify(pricing);
+  const dirty = textsDirty || pricingDirty;
+  const isEdited = (r: Row) => (r.kind === "text" ? overrides[r.key] !== undefined : values[r.key] !== r.field.get(pricing));
+  const original = (r: Row) => (r.kind === "text" ? DEFAULTS[r.key] : r.field.get(pricing));
+
   const query = q.trim().toLowerCase();
-  const shown = query
-    ? TEXT_FIELDS.filter((f) => `${f.group} ${f.label} ${values[f.key]}`.toLowerCase().includes(query))
-    : TEXT_FIELDS.filter((f) => f.group === group);
-  const editedIn = (g: string) => TEXT_FIELDS.filter((f) => f.group === g && overrides[f.key] !== undefined).length;
+  const shown = query ? ALL_ROWS.filter((r) => `${r.group} ${r.label} ${values[r.key]}`.toLowerCase().includes(query)) : rowsFor(group);
+  const editedIn = (g: string) => rowsFor(g).filter((r) => r.kind === "text" && overrides[r.key] !== undefined).length;
+
+  const save = () =>
+    start(async () => {
+      if (pricingDirty) {
+        const r = await saveContentAction("pricing", nextPricing);
+        if (!r.ok) return toast(r.error, "error");
+      }
+      if (textsDirty) {
+        const r = await saveContentAction("texts", overrides);
+        if (!r.ok) return toast(r.error, "error");
+      }
+      toast("Saved as a draft. Preview, then Publish.");
+      router.refresh();
+    });
 
   return (
     <div className="grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -293,43 +452,48 @@ function TextsEditor({ initial }: { initial: Texts }) {
         <div>
           <h2 className="text-[1.5rem]">{query ? `Results for “${q.trim()}”` : group}</h2>
           <p className="mt-1 text-sm text-muted">
-            Edit any box and save. <strong>Reset</strong> puts the original wording back. In the homepage headline, the last word is set in italic clay. Category names and descriptions are edited under <em>Categories</em>; prices and package wording under <em>Pricing</em>; questions under <em>FAQs</em>.
+            Edit any box and save. <strong>Reset</strong> puts back the wording you started with. In the homepage headline, the last word is set in italic clay. Category names and descriptions are edited under <em>Categories</em>; prices and photo counts under <em>Pricing</em>; questions under <em>FAQs</em>.
           </p>
         </div>
         {shown.length === 0 && <p className="text-muted">Nothing matches that search.</p>}
-        {shown.map((f) => {
-          const edited = overrides[f.key] !== undefined;
+        {shown.map((r) => {
+          const edited = isEdited(r);
           return (
-            <div key={f.key} className="rounded-xl border border-line bg-parchment p-4" data-testid={`text-row-${f.key}`}>
+            <div key={`${r.group}-${r.key}`} className="rounded-xl border border-line bg-parchment p-4" data-testid={`text-row-${r.key}`}>
               <div className="mb-1.5 flex items-center justify-between gap-3">
-                <label htmlFor={`tx-${f.key}`} className="text-sm font-semibold">
-                  {query && <span className="font-normal text-muted">{f.group} · </span>}
-                  {f.label}
+                <label htmlFor={`tx-${r.group}-${r.key}`} className="text-sm font-semibold">
+                  {query && <span className="font-normal text-muted">{r.group} · </span>}
+                  {r.label}
                   {edited && <span className="ml-2 rounded-full bg-clay-deep px-1.5 py-0.5 text-[0.65rem] font-bold uppercase text-gallery">Edited</span>}
                 </label>
                 {edited && (
-                  <button type="button" className="shrink-0 text-xs font-semibold underline" onClick={() => setValues((v) => ({ ...v, [f.key]: DEFAULTS[f.key] }))}>
+                  <button type="button" className="shrink-0 text-xs font-semibold underline" onClick={() => setValues((v) => ({ ...v, [r.key]: original(r) }))}>
                     Reset
                   </button>
                 )}
               </div>
-              {f.multiline ? (
+              {r.multiline ? (
                 <textarea
-                  id={`tx-${f.key}`}
+                  id={`tx-${r.group}-${r.key}`}
                   className="field"
-                  rows={Math.min(18, Math.max(3, Math.ceil((values[f.key] ?? "").length / 80) + (values[f.key] ?? "").split("\n").length))}
-                  value={values[f.key] ?? ""}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                  data-testid={`text-${f.key}`}
+                  rows={Math.min(18, Math.max(3, Math.ceil((values[r.key] ?? "").length / 80) + (values[r.key] ?? "").split("\n").length))}
+                  value={values[r.key] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [r.key]: e.target.value }))}
+                  data-testid={`text-${r.key}`}
                 />
               ) : (
-                <input id={`tx-${f.key}`} className="field" value={values[f.key] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))} data-testid={`text-${f.key}`} />
+                <input id={`tx-${r.group}-${r.key}`} className="field" value={values[r.key] ?? ""} onChange={(e) => setValues((v) => ({ ...v, [r.key]: e.target.value }))} data-testid={`text-${r.key}`} />
               )}
-              {f.hint && <p className="mt-1 text-xs text-muted">{f.hint}</p>}
+              {r.hint && <p className="mt-1 text-xs text-muted">{r.hint}</p>}
             </div>
           );
         })}
-        {bar}
+        <div className="sticky bottom-3 z-20 mt-8 flex items-center gap-3 rounded-xl border border-line bg-parchment/95 p-3 shadow-md backdrop-blur">
+          <Btn onClick={save} disabled={!dirty || busy} data-testid="save-texts">
+            {busy ? "Saving…" : "Save draft"}
+          </Btn>
+          <span className="text-sm text-muted">{dirty ? "You have unsaved edits." : "No unsaved edits."}</span>
+        </div>
       </div>
     </div>
   );
