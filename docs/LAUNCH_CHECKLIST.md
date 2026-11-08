@@ -33,7 +33,7 @@
 - [ ] Confirm business/trademark name, domain and the exact Google Business Profile name
 - [ ] Confirm your service hub (general area) and that you're eligible for a service-area Business Profile; never publish a home address
 - [ ] Publish 12–24 original photos across the categories, with alt text and permissions, and replace every **Sample** card in `/admin` → Site photos
-- [ ] Set your photographer portrait; rewrite the About text in the dashboard in your own words, then set `about.ts` → `confirmed: true`
+- [ ] Set both founders' portraits (Site photos → About page); write both founders' names and stories in the dashboard in your own words, then set `about.ts` → `confirmed: true`
 - [ ] Confirm prices, photo counts, travel radius, deposit/refund, weather/reschedule terms, turnaround, licensing and sales tax (with local professional advice)
 - [ ] Set real public email/phone/social links (env vars)
 - [ ] Verify the Resend sending domain; send yourself a test inquiry

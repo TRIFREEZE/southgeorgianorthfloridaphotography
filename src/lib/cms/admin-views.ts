@@ -24,7 +24,8 @@ export async function siteSlots(repo: CmsRepo): Promise<SlotView[]> {
       categoryId: null,
       href: "/#work",
     })),
-    { key: "founder", group: "About page", label: "Your portrait", hint: "Top of the About page and “Meet the photographer” on the homepage.", ratio: "4 / 5", current: founderPhoto(d), explicitId: l.founder, categoryId: null, href: "/about" },
+    { key: "founder", group: "About page", label: "Founder 1 portrait", hint: "About page and “Meet the founders” on the homepage. Name and story are in Page text → About page.", ratio: "4 / 5", current: founderPhoto(d, 1), explicitId: l.founder, categoryId: null, href: "/about" },
+    { key: "founder2", group: "About page", label: "Founder 2 portrait", hint: "About page and “Meet the founders” on the homepage. Name and story are in Page text → About page.", ratio: "4 / 5", current: founderPhoto(d, 2), explicitId: l.founder2, categoryId: null, href: "/about" },
     ...[0, 1, 2].map((i) => {
       const id = l.aboutPhotos[i] ?? null;
       return {

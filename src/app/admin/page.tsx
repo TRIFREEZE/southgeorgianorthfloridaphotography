@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { about } from "@/content/about";
+import { about, FOUNDER2_PLACEHOLDER } from "@/content/about";
 import { publishedLocations } from "@/content/locations";
 import { site } from "@/content/site";
 import { formatBytes } from "@/lib/format-bytes";
@@ -31,7 +31,7 @@ async function Overview() {
   const [counts, recent, d, usage] = await Promise.all([statusCounts(), listLeads(), getSiteData(), repo ? repo.storageUsage().catch(() => [] as UsageRow[]) : Promise.resolve([] as UsageRow[])]);
   const { pricing, texts, testimonials } = d.content;
   const realPhotos = d.photos.filter((p) => p.category).length;
-  const founder = Boolean(founderPhoto(d).src);
+  const founder = Boolean(founderPhoto(d, 1).src && founderPhoto(d, 2).src);
   const quotaGb = Number(process.env.STORAGE_QUOTA_GB) || 100;
   const used = usage.reduce((n, u) => n + u.bytes, 0);
   const pct = Math.min(100, (used / (quotaGb * 1e9)) * 100);
@@ -45,9 +45,10 @@ async function Overview() {
     { label: "IP hash salt", ok: Boolean(env.ipHashSalt), required: true, hint: "IP_HASH_SALT (random string)" },
     { label: "Prices confirmed", ok: pricing.status === "confirmed", required: true, hint: "Pricing & text → Pricing → “These prices are final”, then Publish" },
     { label: "Service area confirmed", ok: site.serviceArea.confirmed, required: true, hint: "src/content/site.ts → serviceArea.confirmed" },
-    { label: "About story is yours", ok: about.confirmed || Boolean(texts["about.story"]?.trim()), required: true, hint: "Pricing & text → Page text → About → Your story" },
+    { label: "About page is yours", ok: about.confirmed || Boolean(texts["about.story"]?.trim() && texts["about.story2"]?.trim() && texts["about.story2"].trim() !== FOUNDER2_PLACEHOLDER), required: true, hint: "Pricing & text → All site text → About page: both founders' stories" },
+    { label: "Both founders named", ok: Boolean(texts["about.name"]?.trim() && texts["about.name2"]?.trim()), required: false, hint: "Pricing & text → All site text → About page → Founder 1 / 2 · Name" },
     { label: "12+ real portfolio photos published", ok: realPhotos >= 12, required: true, hint: `${realPhotos} live. Upload in Photo library.` },
-    { label: "Photographer portrait", ok: founder, required: true, hint: "Site photos → Photographer portrait" },
+    { label: "Founder portraits", ok: founder, required: true, hint: "Site photos → About page → Founder 1 and Founder 2 portraits" },
     { label: "Turnaround time confirmed", ok: Boolean(site.turnaroundCopy || texts["delivery.turnaround"]?.trim()), required: false, hint: "Pricing & text → Page text → Delivery turnaround" },
     { label: "Travel radius published", ok: pricing.travel.includedRadiusMiles != null, required: false, hint: "Pricing & text → Pricing → Travel" },
     { label: "Bot check (Turnstile)", ok: Boolean(env.turnstileSecret && publicEnv.turnstileSiteKey), required: false, hint: "Optional extra spam protection" },

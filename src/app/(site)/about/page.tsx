@@ -10,8 +10,8 @@ import { pageMetadata } from "@/lib/seo";
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return pageMetadata({
-    title: "About the Photographer",
-    description: `${t("about.lead")} Meet the creator behind ${site.shortName}: unhurried, natural-light photography across South Georgia and North Florida.`,
+    title: "About the Founders",
+    description: `${t("about.lead")} Meet the founders behind ${site.shortName}: unhurried, natural-light photography across South Georgia and North Florida.`,
     path: "/about",
   });
 }
@@ -20,42 +20,45 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AboutPage() {
   const d = await getSiteData();
   const t = await getT();
-  const portrait = founderPhoto(d);
   const extra = aboutPhotos(d);
   const values = editedAboutValues(t.texts);
-  const name = t("about.name");
-  const role = t("about.role");
+  const founders = ([1, 2] as const).map((n) => {
+    const sfx = n === 1 ? "" : "2";
+    return { n, photo: founderPhoto(d, n), name: t(`about.name${sfx}`), role: t(`about.role${sfx}`), story: t.paras(`about.story${sfx}`) };
+  });
   return (
     <>
-      <section className="pt-14 pb-16 sm:pt-20 lg:pt-28">
-        <Container className="grid gap-12 md:grid-cols-12 md:items-end">
-          <div className="md:col-span-7">
-            <p className="eyebrow mb-5">
-              {t("about.eyebrow")}
-              {name ? ` · ${name}` : ""}
-            </p>
+      <section className="pt-14 pb-14 sm:pt-20 lg:pt-28">
+        <Container>
+          <div className="max-w-4xl">
+            <p className="eyebrow mb-5">{t("about.eyebrow")}</p>
             <h1 className="text-display-lg">{t("about.lead")}</h1>
-            <p className="mt-6 max-w-xl text-lede text-muted">{t("about.short")}</p>
-          </div>
-          <div className="md:col-span-5">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand">
-              <PhotoFill photo={portrait} priority sizes="(min-width: 768px) 40vw, 100vw" />
-            </div>
-            <p className="mt-3 text-sm text-muted">{name ? `${name}, ${role.toLowerCase()}` : role}</p>
+            <p className="mt-6 max-w-2xl text-lede text-muted">{t("about.short")}</p>
           </div>
         </Container>
       </section>
 
-      <section className="pb-20" aria-labelledby="story-title">
-        <Container className="grid gap-10 lg:grid-cols-12">
-          <h2 id="story-title" className="text-display-sm lg:col-span-4">
-            {t("about.storyTitle")}
+      <section className="pb-20" aria-labelledby="founders-title">
+        <Container>
+          <h2 id="founders-title" className="text-display-sm">
+            {t("about.foundersTitle")}
           </h2>
-          <div className="prose-rcl text-lede lg:col-span-7 lg:col-start-6">
-            {t.paras("about.story").map((para, i) => (
-              <p key={i}>{para}</p>
+          <ul className="mt-10 grid gap-14 md:grid-cols-2 md:gap-10 lg:gap-16">
+            {founders.map((f, i) => (
+              <li key={f.n} className={i === 1 ? "md:mt-16" : ""} data-testid={`founder-${f.n}`}>
+                <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand" data-reveal="crop">
+                  <PhotoFill photo={f.photo} priority={i === 0} sizes="(min-width: 768px) 45vw, 100vw" />
+                </div>
+                <p className="eyebrow mt-6">{f.role}</p>
+                <h3 className="mt-2 text-[2.1rem] leading-tight">{f.name || f.role}</h3>
+                <div className="prose-rcl mt-4 text-[1.05rem] text-ink-soft">
+                  {f.story.map((para, j) => (
+                    <p key={j}>{para}</p>
+                  ))}
+                </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </Container>
       </section>
 
@@ -65,7 +68,7 @@ export default async function AboutPage() {
             <h2 id="about-photos-title" className="text-display-sm">
               {t("about.photosTitle")}
             </h2>
-            <ul className={`mt-8 grid gap-4 ${extra.length === 1 ? "sm:grid-cols-1 sm:max-w-md" : extra.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+            <ul className={`mt-8 grid gap-4 ${extra.length === 1 ? "sm:max-w-md sm:grid-cols-1" : extra.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
               {extra.map((p) => (
                 <li key={p.id} className="relative aspect-[4/5] overflow-hidden rounded-[1.2rem] bg-sand" data-reveal="crop">
                   <PhotoFill photo={p} sizes="(min-width: 640px) 33vw, 100vw" />

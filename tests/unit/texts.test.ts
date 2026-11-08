@@ -7,13 +7,13 @@ describe("editable text", () => {
   it("has unique keys and a default for every field", () => {
     const keys = TEXT_FIELDS.map((f) => f.key);
     expect(new Set(keys).size).toBe(keys.length);
-    for (const f of TEXT_FIELDS) if (f.key !== "about.name") expect(f.default.length, f.key).toBeGreaterThan(0);
+    for (const f of TEXT_FIELDS) if (!["about.name", "about.name2"].includes(f.key)) expect(f.default.length, f.key).toBeGreaterThan(0);
     expect(TEXT_FIELDS.length).toBeGreaterThan(250);
   });
 
   it("falls back to the original copy and fills placeholders", () => {
-    expect(textOf({}, "about.storyTitle")).toBe("The short version of a longer story");
-    expect(textOf({ "about.storyTitle": "  " }, "about.storyTitle")).toBe("The short version of a longer story");
+    expect(textOf({}, "about.foundersTitle")).toBe("Meet the founders");
+    expect(textOf({ "about.foundersTitle": "  " }, "about.foundersTitle")).toBe("Meet the founders");
     expect(textOf({}, "home.hero.price", { price: "$150" })).toBe("Portrait sessions from $150.");
     const t = makeT({ "about.story": "One.\n\nTwo." });
     expect(t.paras("about.story")).toEqual(["One.", "Two."]);

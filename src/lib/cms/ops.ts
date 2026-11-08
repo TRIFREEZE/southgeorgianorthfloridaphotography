@@ -266,9 +266,9 @@ export async function saveCategories(repo: CmsRepo, list: Category[]) {
 
 /* ------------------------------------------------------------------ placements ("Site photos") */
 
-export type SlotKey = "hero" | "founder" | `category:${string}` | `service:${string}` | `journal:${string}` | `mosaic:${number}` | `about:${number}`;
+export type SlotKey = "hero" | "founder" | "founder2" | `category:${string}` | `service:${string}` | `journal:${string}` | `mosaic:${number}` | `about:${number}`;
 
-const slotSchema = z.string().regex(/^(hero|founder|(category|service|journal):[a-z0-9-]{1,60}|mosaic:[0-6]|about:[0-2])$/);
+const slotSchema = z.string().regex(/^(hero|founder2?|(category|service|journal):[a-z0-9-]{1,60}|mosaic:[0-6]|about:[0-2])$/);
 
 export function applySlot(layout: Layout, slot: string, photoId: string | null): Layout {
   slotSchema.parse(slot);
@@ -276,6 +276,7 @@ export function applySlot(layout: Layout, slot: string, photoId: string | null):
   const [kind, key] = slot.split(":");
   if (kind === "hero") next.hero = photoId;
   else if (kind === "founder") next.founder = photoId;
+  else if (kind === "founder2") next.founder2 = photoId;
   else if (kind === "category") next.categoryCovers[key] = photoId;
   else if (kind === "service") next.serviceCovers[key] = photoId;
   else if (kind === "journal") next.journalCovers[key] = photoId;
@@ -346,6 +347,7 @@ async function scrubLayout(repo: CmsRepo, ids: string[]) {
     return {
       hero: layout.hero && ids.includes(layout.hero) ? null : layout.hero,
       founder: layout.founder && ids.includes(layout.founder) ? null : layout.founder,
+      founder2: layout.founder2 && ids.includes(layout.founder2) ? null : layout.founder2,
       mosaic: layout.mosaic.filter((x) => !ids.includes(x)),
       aboutPhotos: layout.aboutPhotos.map((x) => (x && ids.includes(x) ? null : x)),
       categoryCovers: strip(layout.categoryCovers),
@@ -447,7 +449,8 @@ export function usageLabels(id: string, c: SiteContent, state: PhotoState) {
   const out: string[] = [];
   const l = c.layout;
   if (l.hero === id) out.push("Homepage hero");
-  if (l.founder === id) out.push("About portrait");
+  if (l.founder === id) out.push("Founder 1 portrait");
+  if (l.founder2 === id) out.push("Founder 2 portrait");
   const mi = l.mosaic.indexOf(id);
   if (mi >= 0) out.push(`Homepage selected work #${mi + 1}`);
   for (const [k, v] of Object.entries(l.categoryCovers)) if (v === id) out.push(`${c.categories.find((x) => x.id === k)?.label ?? k} cover`);

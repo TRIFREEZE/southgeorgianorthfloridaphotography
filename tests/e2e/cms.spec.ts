@@ -195,6 +195,8 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   await page.getByTestId("text-search").fill("");
   await page.getByRole("button", { name: "About page" }).click();
   await page.getByTestId("text-about.valuesTitle").fill("What I care about");
+  await page.getByTestId("text-about.name2").fill("Founder Two Test");
+  await page.getByTestId("text-about.story2").fill("First paragraph about the second founder.\n\nSecond paragraph.");
   await page.getByTestId("save-texts").click();
   await expect(page.getByText("Saved as a draft").last()).toBeVisible();
   await page.getByTestId("tab-pricing").click();
@@ -213,6 +215,11 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   await expect(visitor.locator("p.eyebrow").first()).toHaveText("Horses, Dogs & Barn Cats");
   await visitor.goto("/about");
   await expect(visitor.getByRole("heading", { name: "What I care about" })).toBeVisible();
+  const second = visitor.getByTestId("founder-2");
+  await expect(second.getByRole("heading", { name: "Founder Two Test" })).toBeVisible();
+  await expect(second.locator("p")).toContainText(["First paragraph about the second founder.", "Second paragraph."]);
+  await visitor.goto("/");
+  await expect(visitor.locator("section", { has: visitor.locator("#meet-title") })).toContainText("Founder Two Test");
   await visitor.goto("/portfolio");
   const filters = visitor.getByRole("navigation", { name: "Portfolio categories" });
   await expect(filters.getByRole("link", { name: "Portraits & Families" })).toHaveAttribute("href", "/portfolio/people");

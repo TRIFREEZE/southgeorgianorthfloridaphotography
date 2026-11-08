@@ -24,6 +24,7 @@ const seeds: Seed[] = [
   ["sample-team-1", "brands", "Team photos", "Team portrait placeholder", 3, 2, 13],
   ["sample-product-1", "brands", "Products", "Product placeholder", 1, 1, 14],
   ["sample-founder", null, "Founder", "Your portrait goes here", 4, 5, 15],
+  ["sample-founder-2", null, "Founder", "Second founder's portrait goes here", 4, 5, 2],
 ];
 
 export const samplePhotos: Photo[] = seeds.map(([id, category, subcategory, title, w, h, tone], i) => ({

@@ -7,7 +7,7 @@ import {
   ExperienceTimeline,
   FaqPreview,
   FeaturedStories,
-  MeetPhotographer,
+  MeetFounders,
   PricingPreview,
   Reviews,
   TrustBar,
@@ -61,7 +61,13 @@ export default async function HomePage() {
       <ChooseYourStory items={storyItems} texts={texts} />
       <PricingPreview pricing={pricing} texts={texts} />
       <ExperienceTimeline title={t("home.timeline.title")} />
-      <MeetPhotographer portrait={founderPhoto(d)} texts={texts} />
+      <MeetFounders
+        founders={[
+          { photo: founderPhoto(d, 1), name: t("about.name"), role: t("about.role") },
+          { photo: founderPhoto(d, 2), name: t("about.name2"), role: t("about.role2") },
+        ]}
+        texts={texts}
+      />
 
       <section className="py-20 sm:py-24" aria-labelledby="bys-title">
         <Container>

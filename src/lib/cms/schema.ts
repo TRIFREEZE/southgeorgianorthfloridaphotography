@@ -69,6 +69,8 @@ export type PhotoPatch = z.infer<typeof photoPatchSchema>;
 export const layoutSchema = z.object({
   hero: z.string().nullable().default(null),
   founder: z.string().nullable().default(null),
+  /** The second founder's portrait (About page + homepage). */
+  founder2: z.string().nullable().default(null),
   mosaic: z.array(z.string()).max(7).default([]),
   categoryCovers: z.record(z.string(), z.string().nullable()).default({}),
   serviceCovers: z.record(z.string(), z.string().nullable()).default({}),

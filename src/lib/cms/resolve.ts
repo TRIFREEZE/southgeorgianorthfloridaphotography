@@ -42,8 +42,10 @@ export function heroPhoto(d: SiteData): Photo {
   );
 }
 
-export function founderPhoto(d: SiteData): Photo {
-  return photoById(d, d.content.layout.founder) ?? samplePhotos.find((p) => p.id === "sample-founder")!;
+/** Founder portraits: 1 = the first founder, 2 = the second. Labeled samples until chosen. */
+export function founderPhoto(d: SiteData, which: 1 | 2 = 1): Photo {
+  const id = which === 1 ? d.content.layout.founder : d.content.layout.founder2;
+  return photoById(d, id) ?? samplePhotos.find((p) => p.id === (which === 1 ? "sample-founder" : "sample-founder-2"))!;
 }
 
 /** Extra About-page photos the owner chose (never samples). */

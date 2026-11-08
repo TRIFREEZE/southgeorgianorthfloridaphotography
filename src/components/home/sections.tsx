@@ -149,16 +149,29 @@ export async function ExperienceTimeline({ title }: { title: string }) {
   );
 }
 
-export function MeetPhotographer({ portrait, texts }: { portrait: Photo; texts: Texts }) {
+export interface Founder {
+  photo: Photo;
+  name: string;
+  role: string;
+}
+
+/** "Meet the founders": both portraits, side by side, with names. */
+export function MeetFounders({ founders, texts }: { founders: Founder[]; texts: Texts }) {
   return (
     <section className="bg-rose/40 py-20 sm:py-28" aria-labelledby="meet-title">
-      <Container className="grid items-center gap-10 md:grid-cols-12">
-        <div className="md:col-span-5" data-reveal="crop">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[1.3rem] bg-sand">
-            <PhotoFill photo={portrait} sizes="(min-width: 768px) 40vw, 100vw" />
-          </div>
-        </div>
-        <div className="md:col-span-6 md:col-start-7" data-reveal>
+      <Container className="grid items-center gap-12 md:grid-cols-12">
+        <ul className="grid grid-cols-2 gap-4 md:col-span-6 lg:gap-5" data-reveal="crop">
+          {founders.map((f, i) => (
+            <li key={i} className={i === 1 ? "mt-10 sm:mt-14" : ""}>
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.3rem] bg-sand">
+                <PhotoFill photo={f.photo} sizes="(min-width: 768px) 25vw, 50vw" />
+              </div>
+              <p className="mt-3 font-display text-[1.2rem] leading-tight sm:text-[1.35rem]">{f.name || f.role}</p>
+              {f.name && <p className="text-sm text-muted">{f.role}</p>}
+            </li>
+          ))}
+        </ul>
+        <div className="md:col-span-5 md:col-start-8" data-reveal>
           <p className="eyebrow mb-4">{textOf(texts, "home.meet.eyebrow")}</p>
           <h2 id="meet-title" className="text-display-md">
             {textOf(texts, "about.lead")}
