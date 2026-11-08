@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { bookingCategories, type BookingCategory } from "@/content/services";
+import { OTHER_BOOKING, type BookingOption } from "@/lib/cms/sessions";
 import { useFavorites } from "@/lib/favorites";
 import { Button } from "@/components/ui/primitives";
 import { captureAttribution } from "./attribution";
@@ -20,9 +20,12 @@ export function QuickInquiry({
   idPrefix = "qi",
   submitLabel = "Send my inquiry",
   compact = false,
+  options = [OTHER_BOOKING],
 }: {
   kind?: "quick" | "contact";
-  defaultCategory?: BookingCategory;
+  defaultCategory?: string;
+  /** Session types from the owner's categories (server: `bookingOptions(content)`). */
+  options?: Pick<BookingOption, "bookingId" | "label">[];
   idPrefix?: string;
   submitLabel?: string;
   compact?: boolean;
@@ -86,9 +89,9 @@ export function QuickInquiry({
         <TextField id={id("email")} name="email" type="email" label="Email" autoComplete="email" inputMode="email" required error={errors.email} />
       </div>
       <div className={`grid gap-5 ${compact ? "" : "sm:grid-cols-2"}`}>
-        <SelectField id={id("category")} name="category" label="What are we photographing?" defaultValue={defaultCategory ?? "people"} error={errors.category}>
-          {bookingCategories.map((c) => (
-            <option key={c.id} value={c.id}>
+        <SelectField id={id("category")} name="category" label="What are we photographing?" defaultValue={defaultCategory ?? options[0]?.bookingId ?? "other"} error={errors.category}>
+          {options.map((c) => (
+            <option key={c.bookingId} value={c.bookingId}>
               {c.label}
             </option>
           ))}

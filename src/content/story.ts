@@ -67,18 +67,20 @@ export const defaultStory = {
 };
 export type StoryContent = typeof defaultStory;
 
-export function composeStory(input: { subject?: string | null; feeling?: string | null; town?: string | null; season?: string | null }, content: StoryContent = defaultStory) {
+type StoryShape = { subjects: readonly { id: string; tip: string }[]; feelings: readonly { id: string; tip: string }[]; seasons: readonly { id: string; label: string }[] };
+
+export function composeStory<C extends StoryShape>(input: { subject?: string | null; feeling?: string | null; town?: string | null; season?: string | null }, content: C) {
   const subject = content.subjects.find((s) => s.id === input.subject) ?? null;
   const feeling = content.feelings.find((f) => f.id === input.feeling) ?? null;
   const season = content.seasons.find((s) => s.id === input.season) ?? null;
   if (!subject || !feeling) return null;
   return {
-    subject,
-    feeling,
-    season,
+    subject: subject as C["subjects"][number],
+    feeling: feeling as C["feelings"][number],
+    season: season as C["seasons"][number] | null,
     town: input.town ?? null,
     tip: `${subject.tip} ${feeling.tip}`,
   };
 }
 
-export type ComposedStory = NonNullable<ReturnType<typeof composeStory>>;
+export type ComposedStory = NonNullable<ReturnType<typeof composeStory<import("@/lib/cms/sessions").StoryContent>>>;

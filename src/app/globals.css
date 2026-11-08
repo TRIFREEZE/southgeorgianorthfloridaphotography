@@ -154,8 +154,8 @@
     left: 0.2em;
     top: 0.72em;
     width: 0.45em;
-    height: 1px;
-    background: var(--color-clay);
+    height: 0;
+    border-top: 1px solid var(--color-clay);
   }
   .prose-rcl a {
     color: var(--color-clay-deep);
@@ -182,6 +182,29 @@
   }
   .field[aria-invalid="true"] {
     border-color: #a3392b;
+  }
+  /* Every dropdown gets the same chevron, inset the same distance from the edge. */
+  select.field {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 2.75rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 8l5 5 5-5' fill='none' stroke='%23252723' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.95rem center;
+    background-size: 1.05rem;
+    text-overflow: ellipsis;
+  }
+  select.field::-ms-expand {
+    display: none;
+  }
+
+  /* Short list dashes. A border (not a 1px-tall box) is snapped to whole device pixels, so every dash is the same weight. */
+  .dash {
+    display: block;
+    flex-shrink: 0;
+    width: 0.75rem;
+    height: 0;
+    border-top: 1px solid var(--color-clay);
   }
 
   .grain {
@@ -502,5 +525,98 @@
     opacity: 1;
     transform: none;
     clip-path: none;
+  }
+}
+
+/* Hero: rotating last word */
+@keyframes rotate-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.32em);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* ------------------------------------------------------------------ Ask Flick chat */
+.flick-msg {
+  animation: flick-msg-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes flick-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+.flick-typing i {
+  display: block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-clay);
+  animation: flick-dot 1s ease-in-out infinite;
+}
+.flick-typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.flick-typing i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes flick-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+.flick-guide-idle {
+  animation: flick-guide-bob 3.2s ease-in-out infinite;
+}
+.flick-guide-thinking {
+  animation: flick-guide-think 0.9s ease-in-out infinite;
+}
+@keyframes flick-guide-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes flick-guide-think {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg) translateY(-1px);
+  }
+}
+.flick-guide[open] {
+  animation: flick-guide-open 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes flick-guide-open {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flick-msg,
+  .flick-guide[open],
+  .flick-guide-idle,
+  .flick-guide-thinking,
+  .flick-typing i {
+    animation: none;
   }
 }

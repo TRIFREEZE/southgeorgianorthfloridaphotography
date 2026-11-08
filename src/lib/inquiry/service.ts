@@ -1,9 +1,9 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { bookingCategories } from "@/content/services";
-import { formatPrice } from "@/content/pricing";
+import { packagePhotos, packagePrice } from "@/content/pricing";
 import { getSiteData } from "@/lib/cms/data";
 import type { Pricing } from "@/lib/cms/schema";
+import { bookingOptions, type BookingOption } from "@/lib/cms/sessions";
 import { site } from "@/content/site";
 import { publicEnv } from "@/lib/env";
 import { serverEnv } from "@/lib/server-env";
@@ -88,8 +88,13 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
     console.error("[inquiry] duplicate check failed; continuing", err instanceof Error ? err.message : err);
   }
 
-  const { pricing } = (await getSiteData()).content;
-  const est = estimate({ category: data.category, packageId: data.packageId, extraPhotos: data.extraPhotos, addOns: data.addOns }, pricing);
+  const { content } = await getSiteData();
+  const { pricing } = content;
+  const options = bookingOptions(content, { includeHidden: true });
+  // Unknown session types (e.g. a category deleted mid-visit) are kept as "Something else".
+  if (!options.some((o) => o.bookingId === data.category)) data.category = "other";
+  if (data.packageId && !pricing.packages.some((p) => p.id === data.packageId)) data.packageId = undefined;
+  const est = estimate({ category: data.category, packageId: data.packageId, extraPhotos: data.extraPhotos, addOns: data.addOns }, pricing, options);
   const row: InquiryRow = {
     ref: newRef(),
     kind: data.kind,
@@ -131,7 +136,16 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
 
   let saved: { id: string; ref: string };
   try {
-    saved = await store.insert(row);
+    try {
+      saved = await store.insert(row);
+    } catch (err) {
+      // Before the 20261109 database update, inquiries only accept the original session types.
+      // Never lose an inquiry over that: store it as "other" and keep the real choice in the message.
+      if (!isCheckViolation(err)) throw err;
+      console.warn("[inquiry] database is missing the flexible-categories update (supabase/migrations/20261109000000_flexible.sql); storing as 'other'");
+      const note = `[Session: ${labelOf(options, data.category)}${data.packageId ? ` · package ${data.packageId}` : ""}]`;
+      saved = await store.insert({ ...row, category: LEGACY_CATEGORIES.has(row.category) ? row.category : "other", package_id: row.package_id && LEGACY_PACKAGES.has(row.package_id) ? row.package_id : null, message: [note, row.message].filter(Boolean).join("\n\n") });
+    }
   } catch (err) {
     console.error("[inquiry] INSERT FAILED", err instanceof Error ? err.message : err);
     return {
@@ -141,16 +155,23 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
     };
   }
 
-  const [owner, client] = await Promise.all([notifyOwner(data, saved.ref, est.label, pricing), confirmClient(data, saved.ref)]);
+  const [owner, client] = await Promise.all([notifyOwner(data, saved.ref, est.label, pricing, options), confirmClient(data, saved.ref)]);
   await store.updateNotification(saved.id, owner, client);
   if (owner !== "sent") console.warn(`[inquiry] ${saved.ref} saved; owner notification ${owner}`);
 
   return { ok: true, ref: saved.ref };
 }
 
-const categoryLabel = (id: string) => bookingCategories.find((c) => c.id === id)?.label ?? id;
+const LEGACY_CATEGORIES = new Set(["people", "animals", "weddings-events", "business-branding", "other"]);
+const LEGACY_PACKAGES = new Set(["little", "full", "whole"]);
+const isCheckViolation = (err: unknown) => {
+  const e = err as { code?: string; message?: string } | null;
+  return e?.code === "23514" || /check constraint/i.test(e?.message ?? "");
+};
+const labelOf = (options: BookingOption[], id: string) => options.find((c) => c.bookingId === id)?.label ?? id;
 
-async function notifyOwner(d: Inquiry, ref: string, estimateLabel: string, pricing: Pricing) {
+async function notifyOwner(d: Inquiry, ref: string, estimateLabel: string, pricing: Pricing, options: BookingOption[]) {
+  const categoryLabel = (id: string) => labelOf(options, id);
   const to = serverEnv().ownerNotificationEmail;
   if (!to) return "skipped";
   const pkg = pricing.packages.find((x) => x.id === d.packageId);
@@ -161,7 +182,7 @@ async function notifyOwner(d: Inquiry, ref: string, estimateLabel: string, prici
     kv("Email", d.email),
     kv("Phone", d.phone),
     kv("OK to text", d.smsOptIn && d.phone ? "Yes" : "No"),
-    kv("Package", pkg ? `${pkg.name} (${pkg.photos} photos, ${formatPrice(pkg.priceCents)})` : undefined),
+    kv("Package", pkg ? `${pkg.name} (${packagePhotos(pkg)} photos, ${packagePrice(pkg)})` : undefined),
     kv("Estimate", estimateLabel),
     kv("Extra photos", d.extraPhotos ? String(d.extraPhotos) : undefined),
     kv("Add-ons", d.addOns?.length ? d.addOns.join(", ") : undefined),

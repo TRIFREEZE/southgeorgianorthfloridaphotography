@@ -2,15 +2,19 @@ import { describe, expect, it } from "vitest";
 import { faqs } from "@/content/faqs";
 import { publishedLocations } from "@/content/locations";
 import { defaultContent } from "@/lib/cms/defaults";
+import { resolvedStory } from "@/lib/cms/sessions";
+import { guideData } from "@/components/flick/guide-data";
 
-const pricing = defaultContent().pricing;
+const content = defaultContent();
+const pricing = content.pricing;
+const story = resolvedStory(content);
 import { reviews } from "@/content/reviews";
 import { samplePhotos } from "@/content/sample-photos";
 import { composeStory } from "@/content/story";
 import { buildGuide, searchGuide as search } from "@/components/flick/guide";
 
-const guide = buildGuide({ pricing, faqs });
-const searchGuide = (q: string) => search(guide, q);
+const guide = buildGuide(guideData(content));
+const searchGuide = (q: string) => search(guide, q).best;
 import { pickLine, contextFor } from "@/components/flick/lines";
 
 describe("truthful content guards", () => {
@@ -39,13 +43,14 @@ describe("truthful content guards", () => {
 
 describe("Build Your Story", () => {
   it("recommends custom quotes for weddings and businesses", () => {
-    expect(composeStory({ subject: "wedding", feeling: "candid" })!.subject.pkg).toBeNull();
-    expect(composeStory({ subject: "business", feeling: "editorial" })!.subject.pkg).toBeNull();
-    expect(composeStory({ subject: "family", feeling: "golden" })!.subject.pkg).toBe("full");
+    expect(composeStory({ subject: "wedding", feeling: "candid" }, story)!.subject.pkg).toBeNull();
+    expect(composeStory({ subject: "business", feeling: "editorial" }, story)!.subject.pkg).toBeNull();
+    expect(composeStory({ subject: "family", feeling: "golden" }, story)!.subject.pkg).toBe("full");
+    expect(composeStory({ subject: "horse", feeling: "golden" }, story)!.subject.booking).toBe("animals");
   });
   it("requires subject and feeling", () => {
-    expect(composeStory({ subject: "family" })).toBeNull();
-    expect(composeStory({ subject: "nope", feeling: "candid" })).toBeNull();
+    expect(composeStory({ subject: "family" }, story)).toBeNull();
+    expect(composeStory({ subject: "nope", feeling: "candid" }, story)).toBeNull();
   });
 });
 
@@ -53,15 +58,23 @@ describe("Ask Flick guide", () => {
   it("answers pricing questions from config", () => {
     const a = searchGuide("how much does it cost?")!;
     expect(a.id).toBe("cost");
-    for (const p of pricing.packages) expect(a.answer).toContain(String(p.photos));
+    for (const p of pricing.packages) expect(a.answer).toContain(p.photos == null ? p.name : String(p.photos));
   });
   it("finds horses, weddings and service area", () => {
     expect(searchGuide("can i bring my horse")?.id).toBe("horse");
-    expect(searchGuide("do you shoot weddings")?.id).toBe("weddings");
+    expect(searchGuide("do you shoot weddings")?.id).toBe("session-weddings-events");
+    expect(searchGuide("weding photos?")?.id).toBe("session-weddings-events");
+    expect(searchGuide("my two dogs")?.id).toBe("session-animals");
     expect(searchGuide("do you travel to Valdosta")?.id).toBe("where");
   });
   it("admits when it doesn't know instead of guessing", () => {
     expect(searchGuide("zzzz qqqq")).toBeNull();
+  });
+  it("answers about categories the owner adds", () => {
+    const c = { ...content, categories: [...content.categories, { id: "cars", slug: "cars", label: "Cars, trucks & bikes", description: "Classic cars and motorcycles.", visible: true, service: { pricingMode: "quote" as const } }] };
+    const g = buildGuide(guideData(c));
+    expect(search(g, "do you photograph motorcycles?").best?.id).toBe("session-cars");
+    expect(search(g, "my truck").best?.id).toBe("session-cars");
   });
 });
 

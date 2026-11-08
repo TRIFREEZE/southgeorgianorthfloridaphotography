@@ -97,7 +97,7 @@ async function PostPageBody({ params }: Pick<PageProps<"/journal/[slug]">, "para
         </header>
         {cover && (
           <div className="relative mt-10 aspect-[16/9] overflow-hidden rounded-[1.4rem] bg-sand">
-            <PhotoFill photo={cover} priority sizes="(min-width: 1280px) 1200px, 100vw" />
+            <PhotoFill photo={cover} priority quality={85} sizes="(min-width: 1280px) 1200px, 100vw" />
           </div>
         )}
         <div className="prose-rcl mt-12 text-[1.08rem]">{post.body.map(render)}</div>

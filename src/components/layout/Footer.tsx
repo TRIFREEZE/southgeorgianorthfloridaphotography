@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { site } from "@/content/site";
-import { getT } from "@/lib/cms/data";
-import { editedServices } from "@/lib/cms/texts";
+import { getSiteData, getT } from "@/lib/cms/data";
+import { servicePages } from "@/lib/cms/sessions";
 import { publicEnv, socialLinks } from "@/lib/env";
 import { LogoMark, Wordmark } from "@/components/ui/Logo";
 import { Container } from "@/components/ui/primitives";
@@ -11,7 +11,7 @@ import { Year } from "./Year";
 
 export async function Footer() {
   const t = await getT();
-  const services = editedServices(t.texts);
+  const services = servicePages((await getSiteData()).content);
   const towns = site.serviceArea.towns.map((t) => `${t.name}, ${t.state}`);
   return (
     <footer className="on-dark relative mt-24 overflow-hidden bg-ink text-sand">

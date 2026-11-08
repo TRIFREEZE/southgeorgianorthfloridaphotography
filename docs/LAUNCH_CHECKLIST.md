@@ -34,6 +34,7 @@
 - [ ] Confirm your service hub (general area) and that you're eligible for a service-area Business Profile; never publish a home address
 - [ ] Publish 12–24 original photos across the categories, with alt text and permissions, and replace every **Sample** card in `/admin` → Site photos
 - [ ] Set both founders' portraits (Site photos → About page); write both founders' names and stories in the dashboard in your own words, then set `about.ts` → `confirmed: true`
+- [ ] Run `supabase/migrations/20261109000000_flexible.sql` in Supabase → SQL Editor (needed for new categories, the Custom package and Build your story)
 - [ ] Confirm prices, photo counts, travel radius, deposit/refund, weather/reschedule terms, turnaround, licensing and sales tax (with local professional advice)
 - [ ] Set real public email/phone/social links (env vars)
 - [ ] Verify the Resend sending domain; send yourself a test inquiry
@@ -45,9 +46,9 @@
 
 - [x] `npm run lint`: 0 problems
 - [x] `npm run typecheck`: strict TypeScript, 0 errors
-- [x] `npm test`: 45 unit tests, including the whole CMS workflow against the file backend (upload → draft → crop → place → publish → replace → delete → discard, categories, pricing validation, gallery passwords)
+- [x] `npm test`: 64 unit tests, including the whole CMS workflow against the file backend (upload → draft → crop → place → publish → replace → delete → discard, categories as full session types, photos in several categories, pricing validation and the Custom-package upgrade, the story builder, gallery passwords) and Ask Flick matching
 - [x] `npm run build`: production build, all public pages prerendered
-- [x] `npm run test:e2e`: 37 E2E tests on desktop + mobile against a production build (plus an overflow sweep at 320/360/375/390/414/768/1024px), including axe WCAG 2.2 AA, full wizard submission, no-JS form post, honeypot checks, lightbox keyboard + deep link, Flick behavior, and the **content manager end to end**: owner login, replacing the hero by dropping a file on its spot, preview (Draft Mode) vs. what visitors see, publish without redeploy, bulk upload into a category, independent desktop/mobile crops verified in the browser at both widths, 30 photos in one drop, replace keeps text, safe delete (live until publish), category rename/add, page text + pricing edits going live, a private client gallery (wrong/right password, signed downloads, forged links refused) and admin-only access
+- [x] `npm run test:e2e`: 40 E2E tests on desktop + mobile against a production build (plus an overflow sweep at 320/360/375/390/414/768/1024px), including axe WCAG 2.2 AA, full wizard submission, no-JS form post, honeypot checks, lightbox keyboard + deep link, Flick behavior, and the **content manager end to end**: owner login, replacing the hero by dropping a file on its spot, preview (Draft Mode) vs. what visitors see, publish without redeploy, bulk upload into a category, independent desktop/mobile crops verified in the browser at both widths, 30 photos in one drop, replace keeps text, safe delete (live until publish), category rename/add, a brand-new custom-quote category showing up on Services, its own page, Pricing and the session finder, page text + pricing edits going live, a private client gallery (wrong/right password, signed downloads, forged links refused) and admin-only access
 
 - [x] Lighthouse (mobile, local production build, sample images): Performance 99, Accessibility 100, SEO 100, Best Practices 96 (the only deduction is Vercel Analytics scripts that exist only on Vercel). LCP 0.9s, CLS 0.
 

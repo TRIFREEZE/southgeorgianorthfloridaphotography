@@ -15,7 +15,7 @@ export function LibraryPicker({ open, onClose, onPick, photos, categories, title
       photos.filter(
         (p) =>
           !p.pendingDelete &&
-          (cat === "all" || (cat === "none" ? !p.state.categoryId : p.state.categoryId === cat)) &&
+          (cat === "all" || (cat === "none" ? !p.state.categoryId : p.state.categoryId === cat || (p.state.alsoIn ?? []).includes(cat))) &&
           (!q || `${p.state.title} ${p.state.alt} ${p.state.filename}`.toLowerCase().includes(q.toLowerCase())),
       ),
     [photos, cat, q],

@@ -1,3 +1,4 @@
+import { publishedPosts } from "@/content/journal";
 import { samplePhotos } from "@/content/sample-photos";
 import type { Photo } from "@/lib/photo-types";
 import type { Category, SiteContent } from "./schema";
@@ -14,6 +15,11 @@ export interface SiteData {
   preview: boolean;
 }
 
+/** Every category a photo is in (main one first). */
+export const photoCategories = (p: Pick<Photo, "category" | "categories">) => p.categories ?? (p.category ? [p.category] : []);
+const inCategory = (p: Photo, id: string) => photoCategories(p).includes(id);
+const inAny = (p: Photo, ids: Set<string>) => photoCategories(p).some((c) => ids.has(c));
+
 const byOrder = (a: Photo, b: Photo) => (a.sortOrder ?? 1000) - (b.sortOrder ?? 1000) || a.id.localeCompare(b.id);
 
 export const visibleCategories = (d: SiteData): Category[] => d.content.categories.filter((c) => c.visible);
@@ -25,9 +31,9 @@ const photoById = (d: SiteData, id: string | null | undefined) => (id ? (d.photo
 /** Portfolio photos: real ones when any exist for the scope, else labeled samples. */
 export function portfolio(d: SiteData, categoryId?: string): { photos: Photo[]; isReal: boolean } {
   const visible = new Set(visibleCategories(d).map((c) => c.id));
-  const real = d.photos.filter((p) => p.category && visible.has(p.category) && (!categoryId || p.category === categoryId)).sort(byOrder);
+  const real = d.photos.filter((p) => inAny(p, visible) && (!categoryId || inCategory(p, categoryId))).sort(byOrder);
   if (real.length) return { photos: real, isReal: true };
-  const anyReal = d.photos.some((p) => p.category && visible.has(p.category));
+  const anyReal = d.photos.some((p) => inAny(p, visible));
   if (!categoryId && anyReal) return { photos: [], isReal: true };
   const samples = samplePhotos.filter((p) => p.category && (categoryId ? p.category === categoryId : visible.has(p.category)));
   return { photos: samples, isReal: false };
@@ -76,11 +82,34 @@ export function serviceCover(d: SiteData, serviceSlug: string, categoryId: strin
   return photoById(d, d.content.layout.serviceCovers[serviceSlug]) ?? categoryCover(d, categoryId);
 }
 
+/**
+ * A journal post's cover: the photo chosen in Site photos, else a real (never sample)
+ * photo from the post's category, so the journal shows sharp photographs instead of
+ * soft art plates once the portfolio has work in it. Posts in the same category get
+ * different photos where possible.
+ */
 export function journalCover(d: SiteData, postSlug: string): Photo | null {
-  return photoById(d, d.content.layout.journalCovers[postSlug]);
+  const explicit = photoById(d, d.content.layout.journalCovers[postSlug]);
+  if (explicit) return explicit;
+  const post = publishedPosts().find((p) => p.slug === postSlug);
+  if (!post) return null;
+  const { photos, isReal } = portfolio(d, post.coverCategory);
+  const pool = isReal ? photos.filter((p) => !p.isSample) : [];
+  if (!pool.length) return null;
+  const chosen = new Set(Object.values(d.content.layout.journalCovers).filter(Boolean));
+  const free = pool.filter((p) => !chosen.has(p.id));
+  const list = free.length ? free : pool;
+  const sameCat = publishedPosts().filter((p) => p.coverCategory === post.coverCategory && !d.content.layout.journalCovers[p.slug]);
+  const n = Math.max(0, sameCat.findIndex((p) => p.slug === postSlug));
+  const ordered = [...list.filter((p) => p.featured), ...list.filter((p) => !p.featured)];
+  return ordered[n % ordered.length];
 }
 
-/** Lightweight list for Build Your Story / film strip. */
-export function storyPool(d: SiteData) {
-  return portfolio(d).photos;
+/** Photos for Build Your Story: the portfolio plus any hand-picked for a story choice. */
+export function storyPool(d: SiteData, story?: { subjects: { photoIds: string[] }[]; feelings: { photoIds: string[] }[] }) {
+  const base = portfolio(d).photos;
+  if (!story) return base;
+  const ids = new Set([...story.subjects, ...story.feelings].flatMap((x) => x.photoIds));
+  const have = new Set(base.map((p) => p.id));
+  return [...base, ...d.photos.filter((p) => ids.has(p.id) && !have.has(p.id))];
 }

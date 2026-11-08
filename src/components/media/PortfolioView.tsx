@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { getT } from "@/lib/cms/data";
+import { getSiteData, getT } from "@/lib/cms/data";
 import type { Category } from "@/lib/cms/schema";
-import { bookingCategoryFor, serviceFor } from "@/lib/cms/links";
+import { bookingIdFor, sessionForCategory } from "@/lib/cms/sessions";
 import type { Photo } from "@/lib/photo-types";
 import { Arrow, ButtonLink, Container } from "@/components/ui/primitives";
 import { Gallery } from "./Gallery";
@@ -32,7 +32,9 @@ export function PortfolioFilters({ categories, active, allLabel = "All work" }: 
 }
 
 export async function PortfolioView({ photos, isReal, categories, active }: { photos: Photo[]; isReal: boolean; categories: Category[]; active?: Category }) {
-  const svc = active ? serviceFor(active.id) : null;
+  const { content } = await getSiteData();
+  const session = active ? sessionForCategory(content, active.id) : null;
+  const svc = session?.hasPage ? session : null;
   const t = await getT();
   return (
     <Container className="pb-10">
@@ -61,7 +63,7 @@ export async function PortfolioView({ photos, isReal, categories, active }: { ph
                 {t("portfolio.cta.about")}
               </ButtonLink>
             )}
-            <ButtonLink href={`/book?category=${bookingCategoryFor(active.id)}`}>
+            <ButtonLink href={`/book?category=${bookingIdFor(content, active.id)}`}>
               {t("portfolio.cta.book")} <Arrow />
             </ButtonLink>
           </div>

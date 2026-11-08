@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { Faq, Pricing } from "@/lib/cms/schema";
 import { site } from "@/content/site";
-import type { Service } from "@/content/services";
+import type { SessionType } from "@/lib/cms/sessions";
 import { isProductionDeployment, publicEnv, socialLinks } from "@/lib/env";
 
 export const absoluteUrl = (path = "/") => `${publicEnv.siteUrl}${path.startsWith("/") ? path : `/${path}`}`;
@@ -88,7 +88,7 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
   };
 }
 
-export function serviceJsonLd(service: Service, pricing: Pricing) {
+export function serviceJsonLd(service: Pick<SessionType, "name" | "seoDescription" | "slug" | "pricingMode" | "packageIds">, pricing: Pricing) {
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Service",
@@ -100,13 +100,13 @@ export function serviceJsonLd(service: Service, pricing: Pricing) {
     areaServed: site.serviceArea.regionsServed,
   };
   if (service.pricingMode === "package") {
-    data.offers = pricing.packages.map((p) => ({
-      "@type": "Offer",
-      name: p.name,
-      price: (p.priceCents / 100).toFixed(2),
-      priceCurrency: "USD",
-      description: `${p.photos} finished edited photos`,
-    }));
+    data.offers = pricing.packages
+      .filter((p) => service.packageIds.includes(p.id))
+      .flatMap((p) =>
+        p.priceCents == null
+          ? []
+          : [{ "@type": "Offer", name: p.name, price: (p.priceCents / 100).toFixed(2), priceCurrency: "USD", description: p.photos ? `${p.photos} finished edited photos` : p.summary }],
+      );
   }
   return data;
 }

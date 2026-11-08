@@ -79,8 +79,12 @@ test.describe("Flick", () => {
     const guide = page.getByRole("dialog", { name: "Ask Flick" });
     await expect(guide).toBeVisible();
     await guide.getByRole("button", { name: "What does it cost?" }).click();
-    await expect(guide).toContainText("$149");
-    await guide.getByRole("button", { name: "Ask something else" }).click();
+    await expect(guide.getByTestId("flick-log")).toContainText("$149");
+    await expect(guide.getByTestId("flick-log")).toContainText("Custom");
+    // Typos and plurals still land on the right answer.
+    await guide.getByLabel("Ask a question").fill("do you do weding photos?");
+    await guide.getByRole("button", { name: "Ask", exact: true }).click();
+    await expect(guide.getByTestId("flick-log")).toContainText("Tell me about weddings & events");
     await guide.getByLabel("Ask a question").fill("what is the airspeed of a swallow");
     await guide.getByRole("button", { name: "Ask", exact: true }).click();
     await expect(guide).toContainText("rather not guess");
@@ -100,9 +104,9 @@ test.describe("Flick", () => {
       await page.keyboard.press("Enter");
       await page.getByRole("button", { name: "Do a trick" }).click();
       seen.push((await page.evaluate(() => sessionStorage.getItem("rcl:flick:trick"))) ?? "");
-      // While performing, Flick never catches clicks meant for the page.
+      // He stays clickable even while performing (people kept missing him), but a click mid-trick doesn't open the menu.
       await page.waitForTimeout(400);
-      expect(await flick.evaluate((b) => getComputedStyle(b).pointerEvents)).toBe("none");
+      expect(await flick.evaluate((b) => getComputedStyle(b).pointerEvents)).toBe("auto");
       await page.waitForTimeout(3600);
     }
     expect(seen[0]).not.toBe(seen[1]);

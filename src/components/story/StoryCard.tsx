@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatPrice } from "@/content/pricing";
+import { packagePhotos, packagePrice } from "@/content/pricing";
 import type { Pricing } from "@/lib/cms/schema";
 import { site } from "@/content/site";
 import type { ComposedStory } from "@/content/story";
@@ -36,7 +36,7 @@ export function StoryCard({
 }) {
   const town = site.serviceArea.towns.find((t) => t.slug === story.town);
   const pkg = story.subject.pkg ? pricing.packages.find((p) => p.id === story.subject.pkg) : null;
-  const title = `${story.feeling.label.replace(" & easy", "")} ${story.subject.noun}`;
+  const title = `${story.feeling.label.replace(" & easy", "")} ${story.subject.noun || story.subject.label}`;
   const mood = photos.slice(0, 4);
 
   return (
@@ -64,7 +64,7 @@ export function StoryCard({
             <dd className="mt-1">
               {pkg ? (
                 <>
-                  {pkg.name}: {pkg.photos} edited photos, <strong>{formatPrice(pkg.priceCents)}</strong>
+                  {pkg.name}: {pkg.photos == null ? packagePhotos(pkg) : `${pkg.photos} edited photos`}, <strong>{packagePrice(pkg)}</strong>
                 </>
               ) : (
                 <>Custom quote, based on coverage and scope</>

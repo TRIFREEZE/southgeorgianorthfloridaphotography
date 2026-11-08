@@ -7,6 +7,8 @@ export interface Photo {
   height: number;
   blurDataUrl?: string | null;
   category: string | null;
+  /** Every category the photo appears in (its main one first). Defaults to `[category]`. */
+  categories?: string[];
   subcategory?: string | null;
   title: string;
   alt: string;

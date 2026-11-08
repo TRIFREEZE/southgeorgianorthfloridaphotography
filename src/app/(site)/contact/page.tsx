@@ -4,7 +4,8 @@ import { QuickInquiry } from "@/components/booking/QuickInquiry";
 import { ContactLink } from "@/components/layout/ContactLink";
 import { Container, PageHero } from "@/components/ui/primitives";
 import { publicEnv, socialLinks } from "@/lib/env";
-import { getT } from "@/lib/cms/data";
+import { getSiteData, getT } from "@/lib/cms/data";
+import { bookingOptions } from "@/lib/cms/sessions";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -20,7 +21,7 @@ export default async function ContactPage() {
       <PageHero eyebrow={t("contact.eyebrow")} title={t("contact.title")} lede={t("contact.lede")} />
       <Container className="grid gap-12 pb-8 lg:grid-cols-12">
         <div className="lg:col-span-7">
-          <QuickInquiry kind="contact" idPrefix="contact" submitLabel={t("contact.submit")} />
+          <QuickInquiry kind="contact" idPrefix="contact" submitLabel={t("contact.submit")} options={bookingOptions((await getSiteData()).content)} />
         </div>
         <aside className="space-y-8 lg:col-span-4 lg:col-start-9">
           {(publicEnv.contactEmail || publicEnv.contactPhone) && (

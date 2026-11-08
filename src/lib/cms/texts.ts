@@ -134,6 +134,10 @@ export const TEXT_FIELDS: TextField[] = [
   // Homepage
   f(HOME, "home.hero.eyebrow", "Hero: small heading (SEO line)", site.seoHeadline),
   f(HOME, "home.hero.headline", "Hero: big headline", "The good moments deserve more than a timer.", { hint: "The last word is styled in clay italic." }),
+  f(HOME, "home.hero.rotate", "Hero: words that take turns as the last word (one per line)", "timer", {
+    multiline: true,
+    hint: "The headline's last word cycles through these, in order. Put the word from your headline first. Leave just one word to turn cycling off.",
+  }),
   f(
     HOME,
     "home.hero.lede",
@@ -216,7 +220,7 @@ export const TEXT_FIELDS: TextField[] = [
 
   // Services list
   f(SVC, "services.eyebrow", "Small heading", "Sessions"),
-  f(SVC, "services.title", "Headline", "Four kinds of stories. One unhurried way of working."),
+  f(SVC, "services.title", "Headline", "Different stories. One unhurried way of working."),
   f(SVC, "services.lede", "Paragraph", "Portrait and animal sessions are priced by finished photos. Weddings, events and business work are custom quoted with clear coverage and usage."),
   f(SVC, "services.packageLabel", "Label on photo-count services", "Priced by photo count"),
   f(SVC, "services.quoteLabel", "Label on custom-quote services", "Custom quote"),
@@ -236,11 +240,7 @@ export const TEXT_FIELDS: TextField[] = [
   f(SVC_ALL, "service.packagesLede", "Packages: line", "Choose how many finished photos you'd like. Extra photos are {extraPrice} each.", { hint: "{extraPrice} is filled in from your pricing." }),
   f(SVC_ALL, "service.faqTitle", "Questions: heading", "Questions about {service}", { hint: "{service} becomes the service's menu label." }),
 
-  // Each service
-  ...services.flatMap((s) => [
-    ...fieldsFrom(`services.${s.slug}`, `Service: ${s.name}`, serviceCopy(s)),
-    ...fieldsFrom(`services.${s.slug}.steps`, `Service: ${s.name}`, s.howItWorks, "How it works step"),
-  ]),
+  // Each service's own words are edited with its category (/admin → Categories).
 
   // Pricing page
   f(PRICE, "pricing.eyebrow", "Small heading", "Pricing"),
@@ -250,12 +250,8 @@ export const TEXT_FIELDS: TextField[] = [
   f(PRICE, "pricing.deliveryTitle", "Box: delivery heading", "Delivery"),
   f(PRICE, "pricing.unhurried.eyebrow", "Dark panel: small heading", "About “no stopwatch”"),
   f(PRICE, "pricing.unhurried.title", "Dark panel: heading", "What unhurried actually means."),
-  f(PRICE, "pricing.custom.title", "Custom work: heading", "Weddings, events & businesses"),
+  f(PRICE, "pricing.custom.title", "Custom work: heading", "Custom-quoted sessions"),
   f(PRICE, "pricing.custom.lede", "Custom work: paragraph", "These are custom quoted, in writing, before you commit to anything. We'll never promise unlimited coverage or squeeze a wedding into a portrait price."),
-  f(PRICE, "pricing.custom.weddingTitle", "Weddings card: heading", "Weddings & events"),
-  f(PRICE, "pricing.custom.weddingCta", "Weddings card: button", "Ask about my date"),
-  f(PRICE, "pricing.custom.businessTitle", "Business card: heading", "Business & branding"),
-  f(PRICE, "pricing.custom.businessCta", "Business card: button", "Start planning"),
   f(PRICE, "pricing.faqTitle", "Questions: heading", "Pricing questions"),
   f(PRICE, "pricing.help", "Questions: help line", "Still unsure?"),
   f(PRICE, "pricing.helpLink", "Questions: help link", "We'll help you choose."),
@@ -276,6 +272,8 @@ export const TEXT_FIELDS: TextField[] = [
   f(BOOK, "book.eyebrow", "Small heading", "Book a session"),
   f(BOOK, "book.title", "Headline", "Let's plan something worth keeping."),
   f(BOOK, "book.lede", "Paragraph", "Use the session finder for a live estimate, or just send a quick note. Either way, a real person replies, and nothing is booked or charged until we've agreed on the details."),
+  f(BOOK, "book.other.label", "Session finder: “something else” choice", "Something else"),
+  f(BOOK, "book.other.hint", "Session finder: “something else” hint", "Tell us your idea"),
   f(BOOK, "book.quickPrompt", "Line under the headline", "Already know what you want?"),
   f(BOOK, "book.quickLink", "Line under the headline: link", "Send a quick inquiry"),
   f(BOOK, "book.quick.eyebrow", "Quick inquiry: small heading", "Option B"),
@@ -347,9 +345,7 @@ export const TEXT_FIELDS: TextField[] = [
   f(STORY, "story.hint", "Hint under the button", "Pick a subject and a feeling to continue."),
   f(STORY, "story.cardEyebrow", "Card: small heading", "Your session story"),
   f(STORY, "story.cardCta", "Card: button", "Plan this session"),
-  ...fieldsFrom("story.subjects", STORY, defaultStory.subjects, "Subject"),
-  ...fieldsFrom("story.feelings", STORY, defaultStory.feelings, "Feeling"),
-  ...fieldsFrom("story.seasons", STORY, defaultStory.seasons, "Season"),
+  // The choices themselves are edited in /admin → Build your story.
 
   // Journal posts
   ...journalPosts.flatMap((p) => [
@@ -401,6 +397,7 @@ export function makeT(texts: Record<string, string>): T {
 
 /* ------------------------------------------------------------------ content with edits applied */
 
+/** The original services with older Page-text edits applied (the fallback layer under each category's own settings). */
 export function editedServices(texts: Record<string, string>): Service[] {
   return services.map((s) => {
     const copy = withTexts(serviceCopy(s), `services.${s.slug}`, texts);
@@ -408,7 +405,6 @@ export function editedServices(texts: Record<string, string>): Service[] {
   });
 }
 
-export const editedService = (texts: Record<string, string>, slug: string) => editedServices(texts).find((s) => s.slug === slug);
 
 export const editedExperience = (texts: Record<string, string>) => ({
   steps: withTexts(experienceSteps, "experience.steps", texts),

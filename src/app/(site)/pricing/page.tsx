@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { defaultPricing, formatPrice } from "@/content/pricing";
+import { defaultPricing, formatPrice, pricedPackages } from "@/content/pricing";
+import { bookingOptions, sessionTypes } from "@/lib/cms/sessions";
 import { getSiteData } from "@/lib/cms/data";
 import { textOf } from "@/lib/cms/texts";
-import { PackageCard } from "@/components/home/PackageCard";
+import { PackageCard, packageGrid } from "@/components/home/PackageCard";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
 import { TrackView } from "@/components/ui/TrackView";
@@ -11,19 +12,21 @@ import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { pricing } = (await getSiteData()).content;
-  const low = Math.min(...pricing.packages.map((p) => p.priceCents));
-  const counts = pricing.packages.map((p) => p.photos);
+  const priced = pricedPackages(pricing.packages);
+  const low = priced[0]?.priceCents ?? defaultPricing.packages[0].priceCents;
+  const counts = pricing.packages.map((p) => p.photos).filter((n): n is number => n != null);
   return pageMetadata({
-    title: `Photography Pricing: Portrait Packages from ${Math.min(...counts)} to ${Math.max(...counts)} Photos`,
-    description: `Straightforward photography pricing in South Georgia & North Florida. Portrait packages from ${formatPrice(Number.isFinite(low) ? low : defaultPricing.packages[0].priceCents)} priced by finished photos, plus custom wedding, event and business quotes.`,
+    title: counts.length > 1 ? `Photography Pricing: Packages from ${Math.min(...counts)} to ${Math.max(...counts)} Photos` : "Photography Pricing",
+    description: `Straightforward photography pricing in South Georgia & North Florida. Packages from ${formatPrice(low)} priced by finished photos, plus custom quotes for bigger or different work.`,
     path: "/pricing",
   });
 }
 
 export default async function PricingPage() {
-  const { pricing, faqs, texts } = (await getSiteData()).content;
-  const wedding = pricing.custom["weddings-events"];
-  const business = pricing.custom["business-branding"];
+  const { content } = await getSiteData();
+  const { pricing, faqs, texts } = content;
+  const quoted = sessionTypes(content).filter((s) => s.pricingMode === "quote" && s.booking.show);
+  const packageCategory = bookingOptions(content).find((o) => o.pricingMode === "package")?.bookingId;
   const t = (k: string) => textOf(texts, k);
   return (
     <>
@@ -39,9 +42,9 @@ export default async function PricingPage() {
           <h2 id="packages-title" className="sr-only">
             Portrait packages
           </h2>
-          <div className="grid gap-4 md:grid-cols-3 lg:gap-5">
+          <div className={`grid gap-4 lg:gap-5 ${packageGrid(pricing.packages.length)}`}>
             {pricing.packages.map((p) => (
-              <PackageCard key={p.id} pkg={p} />
+              <PackageCard key={p.id} pkg={p} category={packageCategory} />
             ))}
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -71,36 +74,37 @@ export default async function PricingPage() {
 
       <section aria-labelledby="custom-title" className="pb-20">
         <Container>
-          <h2 id="custom-title" className="text-display-md">
-            {t("pricing.custom.title")}
-          </h2>
-          <p className="mt-4 max-w-2xl text-lede text-muted">{t("pricing.custom.lede")}</p>
-          <div className="mt-10 grid gap-5 md:grid-cols-2">
-            {[
-              { title: t("pricing.custom.weddingTitle"), data: wedding, href: "/book?category=weddings-events", cta: t("pricing.custom.weddingCta") },
-              { title: t("pricing.custom.businessTitle"), data: business, href: "/book?category=business-branding", cta: t("pricing.custom.businessCta") },
-            ].map((c) => (
-              <article key={c.href} className="flex flex-col rounded-[var(--radius-card)] border border-line bg-gallery p-7" data-reveal>
-                <p className="eyebrow">{c.data.label}</p>
-                <h3 className="mt-3 text-[1.8rem]">{c.title}</h3>
-                <p className="mt-3 text-muted">{c.data.intro}</p>
-                {c.data.exampleEstimate && <p className="mt-3 font-semibold">{c.data.exampleEstimate}</p>}
-                <ul className="mt-5 space-y-2 text-[0.95rem] text-ink-soft">
-                  {c.data.factors.map((f) => (
-                    <li key={f} className="flex gap-3">
-                      <span aria-hidden className="mt-[0.65em] h-px w-3 shrink-0 bg-clay" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-auto pt-7">
-                  <ButtonLink href={c.href} variant="secondary">
-                    {c.cta} <Arrow />
-                  </ButtonLink>
-                </div>
-              </article>
-            ))}
-          </div>
+          {quoted.length > 0 && (
+            <>
+              <h2 id="custom-title" className="text-display-md">
+                {t("pricing.custom.title")}
+              </h2>
+              <p className="mt-4 max-w-2xl text-lede text-muted">{t("pricing.custom.lede")}</p>
+              <div className={`mt-10 grid gap-5 ${quoted.length === 1 ? "" : quoted.length === 2 ? "md:grid-cols-2" : "md:grid-cols-2 xl:grid-cols-3"}`} data-testid="custom-quotes">
+                {quoted.map((s) => (
+                  <article key={s.categoryId} className="flex flex-col rounded-[var(--radius-card)] border border-line bg-gallery p-7" data-reveal>
+                    <p className="eyebrow">Custom quote</p>
+                    <h3 className="mt-3 text-[1.8rem]">{s.quote.title}</h3>
+                    <p className="mt-3 text-muted">{s.quote.intro}</p>
+                    {s.quote.exampleEstimate && <p className="mt-3 font-semibold">{s.quote.exampleEstimate}</p>}
+                    <ul className="mt-5 space-y-2 text-[0.95rem] text-ink-soft">
+                      {s.quote.factors.map((f) => (
+                        <li key={f} className="flex gap-3">
+                          <span aria-hidden className="dash mt-[0.7em]" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-auto pt-7">
+                      <ButtonLink href={`/book?category=${s.bookingId}`} variant="secondary">
+                        {s.quote.cta} <Arrow />
+                      </ButtonLink>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
           {pricing.deposit.enabled && pricing.deposit.amountCents && (
             <p className="mt-8 text-muted">
               {pricing.deposit.copy} Retainer: {formatPrice(pricing.deposit.amountCents)}.

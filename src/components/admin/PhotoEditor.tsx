@@ -42,6 +42,7 @@ export function PhotoEditor({
     description: s.description,
     location: s.location,
     categoryId: s.categoryId,
+    alsoIn: s.alsoIn ?? [],
     featured: s.featured,
     published: s.published,
     license: s.license,
@@ -58,6 +59,7 @@ export function PhotoEditor({
     start(async () => {
       const patch: PhotoPatch = {
         ...f,
+        alsoIn: f.categoryId ? f.alsoIn.filter((x) => x !== f.categoryId) : [],
         title: f.title.trim(),
         alt: f.alt.trim(),
       };
@@ -231,6 +233,26 @@ export function PhotoEditor({
               />
             </Field>
           </div>
+          {f.categoryId && categories.length > 1 && (
+            <fieldset data-testid="also-in">
+              <legend className="text-sm font-semibold">Also show in</legend>
+              <p className="text-xs text-muted">The photo appears in each ticked gallery too (and can be picked for those covers and story choices).</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {categories
+                  .filter((c) => c.id !== f.categoryId)
+                  .map((c) => {
+                    const on = f.alsoIn.includes(c.id);
+                    return (
+                      <label key={c.id} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm ${on ? "border-ink bg-ink text-gallery" : "border-ink/20 bg-gallery"}`}>
+                        <input type="checkbox" className="sr-only" checked={on} onChange={(e) => set("alsoIn", e.target.checked ? [...f.alsoIn, c.id] : f.alsoIn.filter((x) => x !== c.id))} data-testid={`also-${c.id}`} />
+                        {on ? "✓ " : "+ "}
+                        {c.label}
+                      </label>
+                    );
+                  })}
+              </div>
+            </fieldset>
+          )}
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             <label className="flex min-h-11 items-center gap-2 font-semibold">
               <input

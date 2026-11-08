@@ -175,10 +175,21 @@ async function mustGet(repo: CmsRepo, id: string): Promise<MediaRecord> {
 }
 
 export async function patchPhotos(repo: CmsRepo, ids: string[], patch: PhotoPatch) {
-  const p = photoPatchSchema.parse(patch);
+  const { addTo, removeFrom, ...p } = photoPatchSchema.parse(patch);
   for (const id of ids) {
     const m = await mustGet(repo, id);
-    const draft = photoStateSchema.parse({ ...m.draft, ...p, focal: { ...m.draft.focal, ...p.focal }, zoom: { ...m.draft.zoom, ...p.zoom } });
+    let primary = p.categoryId !== undefined ? p.categoryId : m.draft.categoryId;
+    let also = p.alsoIn ?? m.draft.alsoIn ?? [];
+    if (addTo) {
+      if (!primary) primary = addTo;
+      else if (!also.includes(addTo)) also = [...also, addTo];
+    }
+    if (removeFrom) {
+      also = also.filter((x) => x !== removeFrom);
+      if (primary === removeFrom) primary = also.shift() ?? null;
+    }
+    also = [...new Set(also)].filter((x) => x !== primary);
+    const draft = photoStateSchema.parse({ ...m.draft, ...p, categoryId: primary, alsoIn: primary ? also : [], focal: { ...m.draft.focal, ...p.focal }, zoom: { ...m.draft.zoom, ...p.zoom } });
     await repo.updateMedia(id, { draft, dirty: true });
   }
 }
@@ -246,14 +257,24 @@ export async function saveCategories(repo: CmsRepo, list: Category[]) {
     ids.add(c.id);
   }
   if (!cats.some((c) => c.visible)) throw new CmsError("Keep at least one category visible.");
+  const pages = new Set<string>();
+  for (const c of cats) {
+    const page = c.service?.slug;
+    if (!page) continue;
+    if (pages.has(page)) throw new CmsError(`Two categories use the service page address “/services/${page}”.`);
+    pages.add(page);
+  }
   const before = (await draftContent(repo)).categories;
   const removed = before.filter((c) => !ids.has(c.id)).map((c) => c.id);
   let moved = 0;
   if (removed.length) {
     for (const m of await repo.listMedia()) {
-      if (m.draft.categoryId && removed.includes(m.draft.categoryId)) {
-        await repo.updateMedia(m.id, { draft: { ...m.draft, categoryId: null }, dirty: true });
-        moved++;
+      const also = (m.draft.alsoIn ?? []).filter((x) => !removed.includes(x));
+      const lostPrimary = Boolean(m.draft.categoryId && removed.includes(m.draft.categoryId));
+      if (lostPrimary || also.length !== (m.draft.alsoIn ?? []).length) {
+        const primary = lostPrimary ? (also.shift() ?? null) : m.draft.categoryId;
+        await repo.updateMedia(m.id, { draft: { ...m.draft, categoryId: primary, alsoIn: primary ? also : [] }, dirty: true });
+        if (lostPrimary && !primary) moved++;
       }
     }
     const layout = (await draftContent(repo)).layout;
@@ -458,8 +479,14 @@ export function usageLabels(id: string, c: SiteContent, state: PhotoState) {
   for (const [k, v] of Object.entries(l.journalCovers)) if (v === id) out.push(`Journal: ${k}`);
   const ai = l.aboutPhotos.indexOf(id);
   if (ai >= 0) out.push(`About page photo #${ai + 1}`);
-  const cat = c.categories.find((x) => x.id === state.categoryId);
-  if (cat && state.published) out.push(`${cat.label} gallery`);
+  if (state.published)
+    for (const cid of [state.categoryId, ...(state.alsoIn ?? [])]) {
+      const cat = c.categories.find((x) => x.id === cid);
+      if (cat) out.push(`${cat.label} gallery`);
+    }
+  if (c.story) {
+    for (const x of [...c.story.subjects, ...c.story.feelings]) if (x.photoIds.includes(id)) out.push(`Build your story: ${x.label}`);
+  }
   return out;
 }
 

@@ -8,7 +8,7 @@ describe("editable text", () => {
     const keys = TEXT_FIELDS.map((f) => f.key);
     expect(new Set(keys).size).toBe(keys.length);
     for (const f of TEXT_FIELDS) if (!["about.name", "about.name2"].includes(f.key)) expect(f.default.length, f.key).toBeGreaterThan(0);
-    expect(TEXT_FIELDS.length).toBeGreaterThan(250);
+    expect(TEXT_FIELDS.length).toBeGreaterThan(200);
   });
 
   it("falls back to the original copy and fills placeholders", () => {
@@ -27,10 +27,9 @@ describe("editable text", () => {
     expect(edited[0].howItWorks[1].title).toBe("Plan it");
     expect(edited[0].slug).toBe(slug);
     expect(edited[1].name).toBe(services[1].name);
-    // every generated service field key exists in the registry
+    // service wording is now edited with each category, so it's no longer in the Page text list
     const keys = new Set(TEXT_FIELDS.map((f) => f.key));
-    expect(keys.has(`services.${slug}.name`)).toBe(true);
-    expect(keys.has(`services.${slug}.steps.3.body`)).toBe(true);
+    expect(keys.has(`services.${slug}.name`)).toBe(false);
   });
 
   it("keeps ids untouched when editing the story builder", () => {

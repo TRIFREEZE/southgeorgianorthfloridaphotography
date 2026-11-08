@@ -19,6 +19,7 @@ const NAV = [
   { href: "/admin/site-photos", label: "Site photos" },
   { href: "/admin/library", label: "Photo library" },
   { href: "/admin/categories", label: "Categories" },
+  { href: "/admin/story", label: "Build your story" },
   { href: "/admin/content", label: "Pricing & text" },
   { href: "/admin/galleries", label: "Client galleries" },
   { href: "/admin/leads", label: "Leads" },

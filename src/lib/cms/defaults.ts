@@ -21,5 +21,6 @@ export function defaultContent(): SiteContent {
       ),
     ]),
     testimonials: testimonialsSchema.parse(reviews.map((r) => ({ id: r.id, quote: r.quote, name: r.name, context: r.context ?? "", date: r.date, consent: true, published: true }))),
+    story: null,
   };
 }

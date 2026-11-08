@@ -20,6 +20,7 @@ export function photoFromState(id: string, s: PhotoState, url: (path: string) =>
     height: s.height,
     blurDataUrl: s.blur,
     category: s.categoryId,
+    categories: s.categoryId ? [s.categoryId, ...s.alsoIn.filter((c) => c !== s.categoryId)] : [],
     title: s.title || s.filename?.replace(/\.[a-z0-9]+$/i, "") || "Photograph",
     alt: s.alt,
     location: s.location || null,

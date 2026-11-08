@@ -6,12 +6,14 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { RevealObserver } from "@/components/ui/RevealObserver";
 import { getSiteData } from "@/lib/cms/data";
 import { mosaicPhotos } from "@/lib/cms/resolve";
+import { guideData } from "@/components/flick/guide-data";
 import { businessJsonLd, websiteJsonLd } from "@/lib/seo";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const d = await getSiteData();
   const strip = mosaicPhotos(d, 6).map((p) => ({ id: p.id, src: p.src, alt: p.alt, tone: p.tone ?? 0, category: p.category, title: p.title, width: p.width, height: p.height }));
-  const guide = { pricing: d.content.pricing, faqs: d.content.faqs.map((f) => ({ id: f.id, q: f.q, a: f.a })) };
+  const guide = guideData(d.content);
+
   return (
     <>
       {d.preview && <PreviewBanner />}

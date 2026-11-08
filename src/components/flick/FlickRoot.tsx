@@ -123,6 +123,8 @@ export default function FlickRoot({ filmStrip, guide, preview = false }: { filmS
             style={{ bottom: -size * 0.04, width: size * 0.36, height: size * 0.07, animation: reducedMotion ? "none" : `flick-hover-shadow ${mood === "sleepy" ? 5.2 : 3.2}s ease-in-out infinite`, transform: "translateX(-50%)" }}
           />
           <div ref={squashRef} className="h-full w-full">
+            {/* Tricks and hops animate this layer; the hover bob lives on the one inside, so they never fight (no snapping). */}
+            <div className="h-full w-full" data-flick-anim>
             <div className="h-full w-full" style={{ animation: hoverAnim }}>
               <button
                 ref={buttonRef}
@@ -139,6 +141,7 @@ export default function FlickRoot({ filmStrip, guide, preview = false }: { filmS
               >
                 <FlickSVG mood={mood} prop={prop} feet={feet} className="h-full w-full" />
               </button>
+            </div>
             </div>
           </div>
 

@@ -13,7 +13,8 @@ const bool = z
   .optional()
   .transform((v) => v === true || v === "on" || v === "true" || v === "1");
 
-export const bookingCategoryEnum = z.enum(["people", "animals", "weddings-events", "business-branding", "other"]);
+/** Booking options come from the owner's categories, so any short id is accepted; the server maps unknown ones to "other". */
+export const bookingCategoryId = z.string().trim().regex(/^[a-z0-9-]{1,70}$/, "Choose what we're photographing.");
 
 /**
  * One schema for every inquiry path (quick form, wizard, contact, story card).
@@ -22,8 +23,12 @@ export const bookingCategoryEnum = z.enum(["people", "animals", "weddings-events
 export const inquirySchema = z
   .object({
     kind: z.enum(["quick", "wizard", "contact", "story"]).default("quick"),
-    category: bookingCategoryEnum.default("other"),
-    packageId: z.enum(["little", "full", "whole"]).optional().or(z.literal("").transform(() => undefined)),
+    category: bookingCategoryId.default("other"),
+    packageId: z
+      .string()
+      .regex(/^[a-z0-9-]{1,40}$/)
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
     extraPhotos: z.coerce.number().int().min(0).max(60).optional().default(0),
     addOns: z.array(z.string().max(40)).max(10).optional().default([]),
     groupDetails: opt(160),

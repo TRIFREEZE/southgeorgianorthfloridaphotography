@@ -20,7 +20,7 @@ export const TRICK_LINES: Record<TrickId, string[]> = {
 export interface TrickContext {
   /** Positioned box that follows Flick (children are placed relative to him). */
   body: HTMLElement;
-  /** The element that can be transformed freely without fighting the motion engine. */
+  /** A wrapper that only tricks animate: it sits outside the CSS hover bob, so neither snaps the other. */
   host: HTMLElement;
   size: number;
   setMood: (m: FlickMood) => void;
@@ -126,37 +126,40 @@ async function cheese(ctx: TrickContext) {
 
 async function juggle(ctx: TrickContext) {
   const s = ctx.size;
-  const ball = Math.max(8, Math.round(s * 0.11));
-  const colors = ["#A46B55", "#E9DCCB", "#252723"];
+  const ball = Math.max(10, Math.round(s * 0.12));
+  // Three colors that read on both the light page and Flick's dark lens (each ball also gets a light rim).
+  const colors = ["#A46B55", "#727F70", "#D9A441"];
   ctx.setMood("curious");
-  const rx = s * 0.34;
+  const rx = s * 0.36;
   const ry = s * 0.62;
   const cx = s / 2 - ball / 2;
-  const cy = s * 0.12;
+  const cy = s * 0.1;
   // One loop of a juggling cascade: a high arc over the top, a quick low pass underneath.
-  const frames: Keyframe[] = [];
-  const steps = 16;
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    let x: number, y: number;
+  const at = (t: number) => {
     if (t <= 0.7) {
       const th = Math.PI - (t / 0.7) * Math.PI;
-      x = cx + Math.cos(th) * rx;
-      y = cy - Math.sin(th) * ry;
-    } else {
-      const u = (t - 0.7) / 0.3;
-      x = cx + rx - u * 2 * rx;
-      y = cy + Math.sin(u * Math.PI) * s * 0.06;
+      return { x: cx + Math.cos(th) * rx, y: cy - Math.sin(th) * ry };
     }
-    frames.push({ transform: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`, offset: t });
-  }
+    const u = (t - 0.7) / 0.3;
+    return { x: cx + rx - u * 2 * rx, y: cy + Math.sin(u * Math.PI) * s * 0.06 };
+  };
+  // Each ball gets its own keyframes, a third of a loop apart, so all three are always in the air.
+  // (Explicit phase offsets instead of iterationStart, which some mobile browsers ignore.)
+  const steps = 24;
+  const framesFor = (phase: number): Keyframe[] =>
+    Array.from({ length: steps + 1 }, (_, i) => {
+      const t = i / steps;
+      const p = at((t + phase) % 1);
+      return { transform: `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`, offset: t };
+    });
   const loop = 760;
-  const balls = colors.map((c) => add(ctx, "", `left:0;top:0;width:${ball}px;height:${ball}px;border-radius:50%;background:${c};box-shadow:0 2px 4px rgba(37,39,35,.25);`));
+  const rim = Math.max(1.5, s / 40);
+  const balls = colors.map((c) => add(ctx, "", `left:0;top:0;width:${ball}px;height:${ball}px;border-radius:50%;background:${c};border:${rim}px solid #FFFCF7;box-shadow:0 2px 5px rgba(37,39,35,.35);z-index:2;`));
   const bob = ctx.host.animate(
     [{ transform: "translateY(0) rotate(0deg)" }, { transform: "translateY(2px) rotate(-3deg)" }, { transform: "translateY(0) rotate(0deg)" }, { transform: "translateY(2px) rotate(3deg)" }, { transform: "translateY(0) rotate(0deg)" }],
     { duration: loop, iterations: 3, easing: "ease-in-out" },
   );
-  const anims = balls.map((b, i) => b.animate(frames, { duration: loop, iterations: 3, iterationStart: i / 3, easing: "linear" }));
+  const anims = balls.map((b, i) => b.animate(framesFor(i / 3), { duration: loop, iterations: 3, easing: "linear", fill: "forwards" }));
   await Promise.all(anims.map((a) => a.finished));
   await bob.finished;
   await Promise.all(balls.map((b) => b.animate([{ opacity: 1, transform: getComputedStyle(b).transform }, { opacity: 0, transform: `translate(${cx}px, ${s * 0.45}px) scale(.4)` }], { duration: 260, fill: "forwards" }).finished));

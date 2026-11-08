@@ -59,7 +59,8 @@ export function Library({
       if (
         filter !== "all" &&
         filter !== "none" &&
-        p.state.categoryId !== filter
+        p.state.categoryId !== filter &&
+        !(p.state.alsoIn ?? []).includes(filter)
       )
         return false;
       if (status === "unpublished" && !(p.isNew || p.changed)) return false;
@@ -168,7 +169,7 @@ export function Library({
         ? true
         : id === "none"
           ? !p.state.categoryId
-          : p.state.categoryId === id,
+          : p.state.categoryId === id || (p.state.alsoIn ?? []).includes(id),
     ).length;
 
   return (
@@ -267,6 +268,35 @@ export function Library({
               ))}
               <option value="__none">No category</option>
             </select>
+            <select
+              className="field !min-h-9 w-52 text-sm"
+              defaultValue=""
+              onChange={(e) => {
+                const v = e.target.value;
+                e.target.value = "";
+                if (!v) return;
+                const [op, id] = v.split(":");
+                bulk(op === "add" ? { addTo: id } : { removeFrom: id }, op === "add" ? "Added to that category too." : "Taken out of that category.");
+              }}
+              aria-label="Also add to, or remove from, a category"
+              data-testid="bulk-also"
+            >
+              <option value="">Also add to / remove from…</option>
+              <optgroup label="Also add to (keeps others)">
+                {categories.map((c) => (
+                  <option key={c.id} value={`add:${c.id}`}>
+                    + {c.label}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Remove from">
+                {categories.map((c) => (
+                  <option key={c.id} value={`remove:${c.id}`}>
+                    − {c.label}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
             <Btn
               size="sm"
               variant="secondary"
@@ -358,7 +388,7 @@ export function Library({
                     selected={selected.has(p.id)}
                     onToggle={() => toggle(p.id)}
                     onOpen={() => setEditing(p.id)}
-                    catLabel={catLabel(p.state.categoryId)}
+                    catLabel={[p.state.categoryId, ...(p.state.alsoIn ?? [])].filter(Boolean).length > 1 ? `${catLabel(p.state.categoryId)} +${(p.state.alsoIn ?? []).length}` : catLabel(p.state.categoryId)}
                   />
                 ))}
               </ul>

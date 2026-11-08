@@ -1,14 +1,23 @@
-import { formatPrice } from "@/content/pricing";
+import { formatPrice, pricedPackages } from "@/content/pricing";
 import type { Pricing } from "@/lib/cms/schema";
 import { textOf } from "@/lib/cms/texts";
 import type { Photo } from "@/lib/photo-types";
 import { PhotoFill } from "@/components/media/Photo";
 import { Arrow, ButtonLink, Container } from "@/components/ui/primitives";
+import { RotatingWord } from "./RotatingWord";
 
 export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<string, string>; pricing: Pricing }) {
   const t = (k: string) => textOf(texts, k);
   const words = t("home.hero.headline").trim().split(/\s+/);
-  const starting = Math.min(...pricing.packages.map((p) => p.priceCents));
+  // The last word can cycle through a list; trailing punctuation stays put.
+  const last = words.at(-1) ?? "";
+  const [, lastWord = last, suffix = ""] = last.match(/^(.*?)([.!?…,;:]*)$/) ?? [];
+  const pool = t("home.hero.rotate")
+    .split("\n")
+    .map((w) => w.trim().replace(/[.!?…,;:]+$/, ""))
+    .filter(Boolean);
+  const rotating = pool.length > 1 ? [lastWord, ...pool.filter((w) => w.toLowerCase() !== lastWord.toLowerCase())] : [];
+  const starting = pricedPackages(pricing.packages)[0]?.priceCents;
   return (
     <section className="relative overflow-hidden" aria-labelledby="hero-title">
       <Container className="grid items-end gap-8 pt-8 pb-14 sm:pt-12 md:grid-cols-12 md:gap-10 lg:pt-16 lg:pb-24">
@@ -18,7 +27,7 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
             <span className="headline-reveal mt-5 block font-display text-display-xl leading-[0.98] tracking-[-0.025em]">
               {words.map((w, i) => (
                 <span key={i} style={{ ["--i" as string]: i }} className={i === words.length - 1 && words.length > 1 ? "italic text-clay" : ""}>
-                  {w}
+                  {i === words.length - 1 && rotating.length > 1 ? <RotatingWord words={rotating} suffix={suffix} /> : w}
                   {i < words.length - 1 ? " " : ""}
                 </span>
               ))}
@@ -33,7 +42,7 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
               {t("home.hero.cta2")}
             </ButtonLink>
           </div>
-          {pricing.status === "confirmed" && <p className="mt-5 text-sm text-muted">{textOf(texts, "home.hero.price", { price: formatPrice(starting) })}</p>}
+          {pricing.status === "confirmed" && starting != null && <p className="mt-5 text-sm text-muted">{textOf(texts, "home.hero.price", { price: formatPrice(starting) })}</p>}
         </div>
 
         <div className="md:col-span-5 lg:col-span-5">

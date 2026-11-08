@@ -183,6 +183,18 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   await first.getByLabel("Name").fill("Portraits & Families");
   await page.getByTestId("new-category").fill("Maternity");
   await page.getByRole("button", { name: "Add" }).click();
+  // A brand-new session type with its own custom-quote setup.
+  await page.getByTestId("new-category").fill("Cars, trucks & bikes");
+  await page.getByRole("button", { name: "Add" }).click();
+  const cars = page.locator('[data-category="cars-trucks-and-bikes"]');
+  await expect(cars.getByTestId("category-setup-panel")).toBeVisible();
+  await cars.getByTestId("svc-mode-quote").check({ force: true });
+  await cars.getByTestId("svc-quote-intro").fill("Every vehicle shoot is quoted for the car, the location and how you'll use the photos.");
+  await cars.getByTestId("svc-headline").fill("Your ride, in its best light.");
+  // Service wording for the built-in categories is edited here too.
+  const animals = page.locator('[data-category="animals"]');
+  await animals.getByTestId("category-setup").click();
+  await animals.getByTestId("svc-name").fill("Horses, Dogs & Barn Cats");
   await page.getByTestId("save-categories").click();
   await expect(page.getByText(/Categories saved/)).toBeVisible();
 
@@ -191,10 +203,6 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   await page.getByTestId("text-home.hero.headline").fill("Unhurried photos of the people you love");
   // Wording stored with pricing (the "no stopwatch" promise) is editable right here too.
   await page.getByTestId("text-pricing:noStopwatch.body").fill("We stay until the photos are right. Promise.");
-  // Any text on the site is reachable by search, e.g. a service page's name.
-  await page.getByTestId("text-search").fill("Pets & Horses");
-  await page.getByTestId("text-services.pets-horses.name").fill("Horses, Dogs & Barn Cats");
-  await page.getByTestId("text-search").fill("");
   await page.getByRole("button", { name: "About page" }).click();
   await page.getByTestId("text-about.valuesTitle").fill("What I care about");
   await page.getByTestId("text-about.name2").fill("Founder Two Test");
@@ -230,6 +238,18 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
   expect((await visitor.request.get("/portfolio/maternity")).status()).toBe(200);
   await visitor.goto("/pricing");
   await expect(visitor.getByText("· 12 edited photos").first()).toBeVisible();
+  await expect(visitor.getByRole("heading", { name: "Custom", exact: true })).toBeVisible();
+  await expect(visitor.getByTestId("custom-quotes")).toContainText("Every vehicle shoot is quoted");
+
+  // The new category is everywhere: services list, its own page, the session finder.
+  await visitor.goto("/services");
+  await expect(visitor.getByRole("heading", { name: "Cars, trucks & bikes" })).toBeVisible();
+  await visitor.goto("/services/cars-trucks-and-bikes");
+  await expect(visitor.getByRole("heading", { level: 1 })).toHaveText("Your ride, in its best light.");
+  await visitor.goto("/book");
+  await visitor.getByText("Cars, trucks & bikes", { exact: true }).first().click();
+  await visitor.getByRole("button", { name: "Continue" }).click();
+  await expect(visitor.getByText("This one gets a custom quote")).toBeVisible();
   await visitor.close();
 });
 

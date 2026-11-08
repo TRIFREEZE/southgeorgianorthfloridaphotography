@@ -18,9 +18,9 @@ import { Gallery } from "@/components/media/Gallery";
 import { BuildYourStory } from "@/components/story/BuildYourStory";
 import { Arrow, ButtonLink, Container, SectionHeading } from "@/components/ui/primitives";
 import { getSiteData, getT } from "@/lib/cms/data";
-import { categoryHref } from "@/lib/cms/links";
-import { categoryCover, founderPhoto, heroPhoto, journalCover, mosaicPhotos, portfolio, visibleCategories } from "@/lib/cms/resolve";
-import { editedStory, storyLabels, textOf } from "@/lib/cms/texts";
+import { bookingOptions, categoryHref, resolvedStory } from "@/lib/cms/sessions";
+import { categoryCover, founderPhoto, heroPhoto, journalCover, mosaicPhotos, storyPool, visibleCategories } from "@/lib/cms/resolve";
+import { storyLabels, textOf } from "@/lib/cms/texts";
 import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -37,7 +37,8 @@ export default async function HomePage() {
   const d = await getSiteData();
   const { texts, pricing, faqs, testimonials } = d.content;
   const t = (k: string) => textOf(texts, k);
-  const storyItems = visibleCategories(d).map((c, i) => ({ category: c, cover: categoryCover(d, c.id), href: categoryHref(c), tone: i * 3 }));
+  const story = resolvedStory(d.content);
+  const storyItems = visibleCategories(d).map((c, i) => ({ category: c, cover: categoryCover(d, c.id), href: categoryHref(d.content, c), tone: i * 3 }));
   const covers = Object.fromEntries(publishedPosts().map((p) => [p.slug, journalCover(d, p.slug)]));
 
   return (
@@ -71,7 +72,7 @@ export default async function HomePage() {
 
       <section className="py-20 sm:py-24" aria-labelledby="bys-title">
         <Container>
-          <BuildYourStory photos={portfolio(d).photos} pricing={pricing} title={t("home.bys.title")} headingId="bys-title" content={editedStory(texts)} labels={storyLabels(texts)} />
+          <BuildYourStory photos={storyPool(d, story)} pricing={pricing} title={t("home.bys.title")} headingId="bys-title" content={story} labels={storyLabels(texts)} />
         </Container>
       </section>
 
@@ -96,7 +97,7 @@ export default async function HomePage() {
               </div>
             </div>
             <div className="lg:col-span-7">
-              <QuickInquiry idPrefix="home" />
+              <QuickInquiry idPrefix="home" options={bookingOptions(d.content)} />
             </div>
           </div>
         </Container>

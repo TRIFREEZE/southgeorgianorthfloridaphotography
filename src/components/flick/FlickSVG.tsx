@@ -136,7 +136,14 @@ export function FlickSVG({
       )}
       {prop === "cloth" && (
         <g className="flick-cloth">
-          <rect x="-7" y="-6" width="12" height="10" rx="2.5" fill="#E6D3CC" stroke="#cfa996" strokeWidth="0.7" transform="rotate(-14)" />
+          {/* a soft white rag: rumpled edges, two folds, a dangling corner and a frayed hem */}
+          <g transform="rotate(-10)">
+            <path d="M-9.2 -6.2 Q-4.6 -8.8 0.6 -6.9 Q4.8 -5.4 8.6 -7.3 Q10.2 -3.6 9.1 -0.6 Q8.2 2.6 9.4 5.6 Q4.6 7.8 -0.4 6.1 Q-5.2 4.7 -8.9 6.8 Q-10.6 2.4 -9.4 -1.6 Z" fill="#FCFBF7" stroke="#d6cfc2" strokeWidth="0.6" strokeLinejoin="round" />
+            <path d="M-5.2 -6.9 Q-3.4 -0.6 -5.6 5.4" stroke="#e4ddd1" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+            <path d="M2.4 -6.4 Q4.6 -0.4 2.6 6.2" stroke="#e4ddd1" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+            <path d="M8.9 5.1 Q11 9.2 8.2 12.8 Q6 10.1 5.5 6.6 Z" fill="#F3F0E8" stroke="#d6cfc2" strokeWidth="0.5" strokeLinejoin="round" />
+            <path d="M-8.7 6.7 l-0.8 1.5 M-6.7 5.9 l-0.5 1.6 M-4.5 5.3 l-0.2 1.6 M-2.2 5.6 l0.1 1.5" stroke="#cfc7b9" strokeWidth="0.5" strokeLinecap="round" />
+          </g>
         </g>
       )}
     </svg>

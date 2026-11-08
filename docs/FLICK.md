@@ -13,7 +13,7 @@ Flick is ECHO, recolored for Southstill. The geometry and motion are ported dire
 | Echo trail: expanding, fading copies of the ring | `engine.emit()`, CSS-animated rings in a fixed layer |
 | Restrained halo | Radial-gradient halo |
 
-Additions for the web: squash/stretch along velocity, little feet that peek out when walking or dragged, a camera-flash "snap", a lens-cleaning cloth, a tiny map (404 page), sleepy lids, and "z"s.
+Additions for the web: squash/stretch along velocity, little feet that peek out when walking or dragged, a camera-flash "snap", a lens-cleaning cloth (a soft white rag with folds, a dangling corner and a frayed hem), a tiny map (404 page), sleepy lids, and "z"s.
 
 ## Architecture
 
@@ -57,7 +57,7 @@ Each state has a **priority**, a **maximum duration** and a **cooldown** (`machi
 | Menu / lightbox / dialog open | pause |
 | 45s idle | *sleep* (sleepy eyes, "z"), wakes on activity ("i wasn't sleeping. i was exposing slowly.") |
 | Scroll | eyes glance in the scroll direction; re-finds a free spot when scrolling stops |
-| Every 10–18s at rest | float up/down his side (desktop), clean his lens, glance around, or hop |
+| Every 10–18s at rest | drift somewhere new in his third of the screen along a gentle curve (desktop: anywhere in that third, only over empty space, never over text, photos, buttons or fields; phones: up/down his side), clean his lens, glance around, or hop |
 | Drag (desktop mouse) | spring-follows the cursor with feet out; wherever he's dropped becomes his corner |
 | Triple-click | film strip of real portfolio thumbnails |
 
@@ -80,7 +80,8 @@ Each state has a **priority**, a **maximum duration** and a **cooldown** (`machi
 
 - Antics are **visual only**: Web Animations on page elements (cancelled afterwards, which restores them exactly) and temporary overlays in Flick's own `pointer-events: none` layer. No content, layout or form control is ever changed. They never target forms, dialogs, the header, nav, the footer or anything marked `data-flick-avoid`.
 - Every antic aborts instantly on scroll, typing, menus, dialogs, resize, tab switch or navigation, with its timers cancelled and elements restored.
-- While Flick is **flying or performing he can't catch clicks** (his button is `pointer-events: none` until he's resting), so he never intercepts a click meant for the page.
+- Flick is **always clickable**, even mid-flight or mid-antic: a click stops him where he is and opens his menu (mid-trick, a click just gets a blink). Wandering pauses while his menu is open.
+- Hops and tricks animate a dedicated wrapper (`[data-flick-anim]`) that sits outside the element carrying the CSS hover bob, so the two never fight and nothing snaps when a hop starts or ends.
 - **Focusing a text field** silences him and moves him clear of it, still fully on screen. Both booking forms are `data-flick-avoid`.
 - **Popups never open under the header or off screen:** before the menu, intro card or film strip opens he checks there's room; if not, he glides to the bottom of his side first.
 - **Phone toolbars:** his box is anchored to the bottom of the viewport, so when the browser toolbar slides in and out while scrolling he rides along with the edge instead of jumping.
@@ -96,7 +97,7 @@ Each state has a **priority**, a **maximum duration** and a **cooldown** (`machi
 
 ### Ask Flick
 
-A deterministic guide, labeled "a guide, not an AI chatbot". Topic buttons and keyword search over answers assembled **at build time from `src/content`** (pricing, FAQs, service area, process). It never invents prices or availability, and says "I'd rather not guess" with a link to a human when it doesn't know. "Which session fits me?" deep-links to `/book?category=…`.
+A deterministic guide, labeled "a guide, not an AI chatbot", in a chat layout: your question as a bubble, a short typing indicator, then Flick's answer with links and "you might also ask" follow-ups. Answers are assembled from the **published CMS content** (`guide-data.ts`): packages and prices (including quoted ones like Custom), every category with its own answer (new categories included), FAQs, founders' names, service area and process. Matching handles plurals, phrases and small typos and adds everyday synonyms (e.g. "mare" → pets & horses, "motorcycle" → a cars/trucks/bikes category). When two answers are close it asks "did you mean…?" instead of guessing; when nothing matches it says "I'd rather not guess" with a link to a human. "Which session fits me?" lists every bookable category with its pricing and deep-links to `/book?category=…`.
 
 If you later add an LLM, do it server-side behind a route handler with retrieval scoped to `src/content`, rate limiting, a privacy note, prompt-injection defenses and a fallback to a human. It must never confirm bookings or quote prices that aren't in config.
 

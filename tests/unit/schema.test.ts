@@ -37,8 +37,9 @@ describe("inquirySchema", () => {
     expect(inquirySchema.safeParse({ ...base, kind: "quick", message: "" }).success).toBe(false);
   });
 
-  it("rejects unknown categories and packages", () => {
-    expect(inquirySchema.safeParse({ ...base, category: "drones" }).success).toBe(false);
-    expect(inquirySchema.safeParse({ ...base, packageId: "mega" }).success).toBe(false);
+  it("accepts the owner's own categories and packages, but only as safe ids", () => {
+    expect(inquirySchema.safeParse({ ...base, category: "cars-trucks-bikes", packageId: "custom" }).success).toBe(true);
+    expect(inquirySchema.safeParse({ ...base, category: "Drones; drop table" }).success).toBe(false);
+    expect(inquirySchema.safeParse({ ...base, packageId: "<mega>" }).success).toBe(false);
   });
 });

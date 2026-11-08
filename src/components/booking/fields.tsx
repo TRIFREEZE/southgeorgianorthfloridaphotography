@@ -83,7 +83,7 @@ export function SelectField({
 }: { id: string; label: ReactNode; hint?: ReactNode; error?: string; optional?: boolean; children: ReactNode } & ComponentProps<"select">) {
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} optional={optional}>
-      <select id={id} className="field appearance-none bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5%22%20fill%3D%22none%22%20stroke%3D%22%23252723%22%20stroke-width%3D%221.6%22/%3E%3C/svg%3E')] bg-[length:1.1rem] bg-[right_0.9rem_center] bg-no-repeat pr-10" aria-invalid={error ? true : undefined} aria-describedby={describedBy(id, hint, error)} {...input}>
+      <select id={id} className="field" aria-invalid={error ? true : undefined} aria-describedby={describedBy(id, hint, error)} {...input}>
         {children}
       </select>
     </FieldShell>

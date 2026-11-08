@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatPrice, type PackageId } from "@/content/pricing";
+import { formatPrice, packagePhotos } from "@/content/pricing";
 import type { Pricing } from "@/lib/cms/schema";
-import { bookingCategories, type BookingCategory } from "@/content/services";
+import type { BookingOption, StoryContent } from "@/lib/cms/sessions";
 import { site } from "@/content/site";
-import { storyFeelings, storySubjects } from "@/content/story";
-import { estimate, isPackageEligible } from "@/lib/inquiry/estimate";
+import { estimate, isPackageEligible, packagesFor } from "@/lib/inquiry/estimate";
 import { useFavorites } from "@/lib/favorites";
 import { track } from "@/lib/analytics";
 import { emitFlick } from "@/components/flick/bus";
@@ -17,8 +16,8 @@ import { Turnstile } from "./Turnstile";
 import { useInquirySubmit } from "./useInquirySubmit";
 
 type Draft = {
-  category: BookingCategory | "";
-  packageId: PackageId | "";
+  category: string;
+  packageId: string;
   extraPhotos: number;
   addOns: string[];
   groupDetails: string;
@@ -76,7 +75,7 @@ const steps = ["What are we capturing?", "What would make this perfect?", "Where
 
 const settings = ["Your home, yard or farm", "A park or outdoor spot", "Downtown or a business", "A venue", "Not sure yet: help me choose"];
 
-export function BookingWizard({ pricing }: { pricing: Pricing }) {
+export function BookingWizard({ pricing, options, story }: { pricing: Pricing; options: BookingOption[]; story: StoryContent }) {
   const favorites = useFavorites();
   const { state, submit } = useInquirySubmit();
   const [step, setStep] = useState(0);
@@ -103,20 +102,26 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
       /* ignore */
     }
     const cat = params.get("category");
-    if (cat && bookingCategories.some((c) => c.id === cat)) next.category = cat as BookingCategory;
+    if (cat && options.some((c) => c.bookingId === cat)) next.category = cat;
+    // A saved draft for a category that no longer exists starts fresh.
+    if (next.category && !options.some((c) => c.bookingId === next.category)) next.category = "";
     const pkg = params.get("package");
-    if (pkg && pricing.packages.some((p) => p.id === pkg)) next.packageId = pkg as PackageId;
+    if (pkg && pricing.packages.some((p) => p.id === pkg)) {
+      next.packageId = pkg;
+      // Arriving from a package card without a category: preselect the first one that offers it.
+      if (!cat) next.category = options.find((o) => o.pricingMode === "package" && o.packageIds.includes(pkg))?.bookingId ?? next.category;
+    }
     const subject = params.get("subject");
-    if (subject && storySubjects.some((s) => s.id === subject)) next.storySubject = subject;
+    if (subject && story.subjects.some((s) => s.id === subject)) next.storySubject = subject;
     const feeling = params.get("feeling");
-    if (feeling && storyFeelings.some((f) => f.id === feeling)) next.storyFeeling = feeling;
+    if (feeling && story.feelings.some((f) => f.id === feeling)) next.storyFeeling = feeling;
     const town = site.serviceArea.towns.find((t) => t.slug === params.get("town"));
     if (town) next.city = `${town.name}, ${town.state}`;
     hydrated.current = true;
     // Initializing from browser storage and the URL is a one-time sync with external state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setD(next);
-  }, [pricing]);
+  }, [pricing, options, story]);
 
   useEffect(() => {
     if (!hydrated.current) return;
@@ -141,10 +146,14 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
     });
   }, []);
 
-  const eligible = d.category ? isPackageEligible(d.category, pricing) : false;
+  const opt = options.find((o) => o.bookingId === d.category);
+  const eligible = d.category ? isPackageEligible(d.category, options) : false;
+  const packages = useMemo(() => (d.category ? packagesFor(d.category, pricing, options) : []), [d.category, pricing, options]);
+  const chosen = packages.find((p) => p.id === d.packageId);
+  const priced = eligible && Boolean(chosen && chosen.priceCents != null);
   const est = useMemo(
-    () => (d.category ? estimate({ category: d.category, packageId: d.packageId || null, extraPhotos: d.extraPhotos, addOns: d.addOns }, pricing) : null),
-    [d.category, d.packageId, d.extraPhotos, d.addOns, pricing],
+    () => (d.category ? estimate({ category: d.category, packageId: d.packageId || null, extraPhotos: d.extraPhotos, addOns: d.addOns }, pricing, options) : null),
+    [d.category, d.packageId, d.extraPhotos, d.addOns, pricing, options],
   );
 
 
@@ -154,7 +163,7 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
   const validate = (s: number) => {
     const e: Record<string, string> = {};
     if (s === 0 && !d.category) e.category = "Choose what we're photographing.";
-    if (s === 1 && eligible && !d.packageId) e.packageId = "Choose how many photos you'd like.";
+    if (s === 1 && eligible && !chosen) e.packageId = "Choose how many photos you'd like.";
     if (s === 2) {
       if (d.zip && !/^\d{5}$/.test(d.zip)) e.zip = "Use a 5-digit ZIP code.";
       if (d.dateFlexibility !== "flexible" && !d.preferredDate) e.preferredDate = "Add a date, or choose “I'm flexible”.";
@@ -204,9 +213,9 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
     void submit({
       kind: "wizard",
       ...d,
-      packageId: eligible ? d.packageId : "",
-      extraPhotos: eligible ? d.extraPhotos : 0,
-      addOns: eligible ? d.addOns : [],
+      packageId: eligible && chosen ? d.packageId : "",
+      extraPhotos: priced ? d.extraPhotos : 0,
+      addOns: priced ? d.addOns : [],
       preferredTime: d.preferredTime || undefined,
       inspirationIds: favorites,
       company_website: company?.value ?? "",
@@ -224,7 +233,7 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
   };
 
   const onToken = useCallback((t: string) => setToken(t), []);
-  const catLabel = bookingCategories.find((c) => c.id === d.category)?.label;
+  const catLabel = opt?.label;
 
   return (
     <form ref={formRef} onSubmit={onSubmit} noValidate className="relative scroll-mt-24" data-flick-avoid aria-labelledby="wizard-step-title">
@@ -262,27 +271,27 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
               <fieldset>
                 <legend className="sr-only">Session type</legend>
                 <div className="grid gap-3 sm:grid-cols-2" data-error-anchor={shownErrors.category ? true : undefined} tabIndex={shownErrors.category ? -1 : undefined}>
-                  {bookingCategories.map((c) => (
+                  {options.map((c) => (
                     <label
-                      key={c.id}
+                      key={c.bookingId}
                       className={`flex min-h-20 cursor-pointer flex-col justify-center rounded-[var(--radius-card)] border p-5 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-clay-deep ${
-                        d.category === c.id ? "border-ink bg-ink text-gallery" : "border-line bg-gallery hover:border-ink/40"
+                        d.category === c.bookingId ? "border-ink bg-ink text-gallery" : "border-line bg-gallery hover:border-ink/40"
                       }`}
                     >
                       <input
                         type="radio"
                         name="category"
-                        value={c.id}
+                        value={c.bookingId}
                         className="sr-only"
-                        checked={d.category === c.id}
+                        checked={d.category === c.bookingId}
                         onChange={() => {
-                          set("category", c.id);
-                          track("select_category", { category: c.id });
+                          set("category", c.bookingId);
+                          track("select_category", { category: c.bookingId });
                           emitFlick({ type: "card-pick" });
                         }}
                       />
                       <span className="font-display text-[1.35rem]">{c.label}</span>
-                      <span className={`text-sm ${d.category === c.id ? "text-sand" : "text-muted"}`}>{c.hint}</span>
+                      <span className={`text-sm ${d.category === c.bookingId ? "text-sand" : "text-muted"}`}>{c.hint}</span>
                     </label>
                   ))}
                 </div>
@@ -295,8 +304,8 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
                 {eligible ? (
                   <fieldset>
                     <legend className="mb-3 font-semibold">How many finished photos?</legend>
-                    <div className="grid gap-3 sm:grid-cols-3" data-error-anchor={shownErrors.packageId ? true : undefined} tabIndex={shownErrors.packageId ? -1 : undefined}>
-                      {pricing.packages.map((p) => (
+                    <div className={`grid gap-3 ${packages.length === 4 ? "sm:grid-cols-2 xl:grid-cols-4" : packages.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`} data-error-anchor={shownErrors.packageId ? true : undefined} tabIndex={shownErrors.packageId ? -1 : undefined}>
+                      {packages.map((p) => (
                         <label
                           key={p.id}
                           className={`relative flex cursor-pointer flex-col rounded-[var(--radius-card)] border p-5 transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-clay-deep ${
@@ -315,15 +324,22 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
                               emitFlick({ type: "card-pick" });
                             }}
                           />
-                          <span className="font-display text-[2.2rem] leading-none">{p.photos}</span>
-                          <span className="text-sm">photos · {formatPrice(p.priceCents)}</span>
-                          <span className={`mt-2 text-xs ${d.packageId === p.id ? "text-sand" : "text-muted"}`}>{p.name}</span>
+                          <span className="font-display text-[2.2rem] leading-none">{p.photos ?? p.name}</span>
+                          <span className="text-sm">
+                            {p.photos == null ? packagePhotos(p) : "photos"} · {p.priceCents == null ? "custom quote" : formatPrice(p.priceCents)}
+                          </span>
+                          {p.photos != null && <span className={`mt-2 text-xs ${d.packageId === p.id ? "text-sand" : "text-muted"}`}>{p.name}</span>}
                           {p.highlightLabel && <span className={`mt-2 text-xs font-semibold ${d.packageId === p.id ? "text-clay-light" : "text-clay-deep"}`}>{p.highlightLabel}</span>}
                         </label>
                       ))}
                     </div>
                     {shownErrors.packageId && <p className="mt-3 text-sm font-medium text-[#a3392b]" role="alert">{shownErrors.packageId}</p>}
-                    <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                    {chosen && chosen.priceCents == null && (
+                      <p className="mt-4 rounded-xl bg-gallery px-4 py-3 text-sm text-ink-soft" data-testid="custom-package-note">
+                        <strong>{chosen.name} is quoted personally.</strong> Tell us what you have in mind below and we&apos;ll send a written quote.
+                      </p>
+                    )}
+                    <div className={`mt-6 grid gap-5 sm:grid-cols-2 ${chosen && chosen.priceCents == null ? "hidden" : ""}`}>
                       <div>
                         <p className="mb-1.5 text-[0.92rem] font-semibold" id="extra-label">
                           Extra photos <span className="font-normal text-muted">({formatPrice(pricing.extraPhoto.priceCents)} each)</span>
@@ -369,13 +385,13 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
                 )}
 
                 <div className="grid gap-5 sm:grid-cols-2">
-                  {d.category === "animals" ? (
+                  {opt?.askAnimals ? (
                     <TextField id="w-animals" label="Who are the animals?" hint="e.g. two dogs and a very opinionated horse" value={d.animals} onChange={(e) => set("animals", e.target.value)} optional />
                   ) : null}
                   <TextField
                     id="w-group"
-                    label={d.category === "weddings-events" ? "Guest count & hours you're thinking" : d.category === "business-branding" ? "Headcount & what you need" : "Who's in the photos?"}
-                    hint={d.category === "weddings-events" ? "e.g. ~80 guests, ceremony + reception" : d.category === "business-branding" ? "e.g. 6 team headshots + product photos" : "e.g. 2 adults, 3 kids, grandma"}
+                    label={opt?.groupLabel ?? "Who's in the photos?"}
+                    hint={opt?.groupHint}
                     value={d.groupDetails}
                     onChange={(e) => set("groupDetails", e.target.value)}
                     optional
@@ -457,8 +473,8 @@ export function BookingWizard({ pricing }: { pricing: Pricing }) {
                   </h3>
                   <dl className="mt-3 grid gap-x-6 gap-y-2 text-[0.95rem] sm:grid-cols-2">
                     <Row k="Session" v={catLabel} />
-                    {eligible && <Row k="Package" v={pricing.packages.find((p) => p.id === d.packageId)?.name} />}
-                    {eligible && d.extraPhotos > 0 && <Row k="Extra photos" v={String(d.extraPhotos)} />}
+                    {eligible && <Row k="Package" v={chosen?.name} />}
+                    {priced && d.extraPhotos > 0 && <Row k="Extra photos" v={String(d.extraPhotos)} />}
                     <Row k="Where" v={[d.city, d.zip].filter(Boolean).join(" ") || "To discuss"} />
                     <Row k="When" v={d.dateFlexibility === "flexible" ? "Flexible" : [d.preferredDate, d.preferredDateAlt].filter(Boolean).join(" or ")} />
                     <Row k="Estimate" v={est?.label} />

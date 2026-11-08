@@ -1,10 +1,10 @@
-import { formatPrice, type PackageId } from "@/content/pricing";
+import { formatPrice } from "@/content/pricing";
 import type { Pricing } from "@/lib/cms/schema";
-import type { BookingCategory } from "@/content/services";
+import type { BookingOption } from "@/lib/cms/sessions";
 
 export interface EstimateInput {
-  category: BookingCategory;
-  packageId?: PackageId | null;
+  category: string;
+  packageId?: string | null;
   extraPhotos?: number | null;
   addOns?: string[] | null;
 }
@@ -20,31 +20,41 @@ export type Estimate =
   | { kind: "quote"; label: string; reason: string; quotedItems: string[] }
   | { kind: "incomplete"; label: string };
 
-export const isPackageEligible = (c: BookingCategory, pricing?: Pick<Pricing, "packageEligibleCategories">) =>
-  (pricing?.packageEligibleCategories ?? ["people", "animals"]).includes(c);
+type Opt = Pick<BookingOption, "bookingId" | "pricingMode" | "packageIds" | "quoteIntro">;
+
+/** Does this booking option use the photo-count packages? */
+export const isPackageEligible = (category: string, options: readonly Opt[]) => options.find((o) => o.bookingId === category)?.pricingMode === "package";
+
+/** The packages a booking option offers, in the owner's order. */
+export const packagesFor = (category: string, pricing: Pick<Pricing, "packages">, options: readonly Opt[]) => {
+  const o = options.find((x) => x.bookingId === category);
+  if (!o || o.pricingMode !== "package") return [];
+  const list = pricing.packages.filter((p) => !o.packageIds.length || o.packageIds.includes(p.id));
+  return list.length ? list : pricing.packages;
+};
 
 /**
- * Truthful estimate from the published pricing (edited in /admin → Content → Pricing). Shared by the booking wizard
- * (live display) and the server (stored with the inquiry), so the two can
- * never disagree. Anything without a configured price is listed as "quoted".
+ * Truthful estimate from the published pricing and categories (edited in /admin).
+ * Shared by the booking wizard (live display) and the server (stored with the
+ * inquiry), so the two can never disagree. Anything without a configured price is
+ * listed as "quoted".
  */
-export function estimate(input: EstimateInput, pricing: Pricing): Estimate {
+export function estimate(input: EstimateInput, pricing: Pricing, options: readonly Opt[]): Estimate {
   const travel = "Travel outside our core area (quoted up front)";
+  const opt = options.find((o) => o.bookingId === input.category);
 
-  if (!isPackageEligible(input.category, pricing)) {
-    const reason =
-      input.category === "weddings-events"
-        ? pricing.custom["weddings-events"].intro
-        : input.category === "business-branding"
-          ? pricing.custom["business-branding"].intro
-          : "Tell us your idea and we'll put together a clear quote.";
+  if (!opt || opt.pricingMode !== "package") {
+    const reason = opt?.quoteIntro || "Tell us your idea and we'll put together a clear quote.";
     return { kind: "quote", label: "Custom quote", reason, quotedItems: [travel] };
   }
 
-  const pkg = pricing.packages.find((p) => p.id === input.packageId);
+  const pkg = packagesFor(input.category, pricing, options).find((p) => p.id === input.packageId);
   if (!pkg) return { kind: "incomplete", label: "Choose a photo count to see your estimate" };
+  if (pkg.priceCents == null) {
+    return { kind: "quote", label: `${pkg.name}: custom quote`, reason: pkg.summary || "Tell us what you have in mind and we'll quote it in writing.", quotedItems: [travel] };
+  }
 
-  const lines = [{ label: `${pkg.name} · ${pkg.photos} edited photos`, cents: pkg.priceCents }];
+  const lines = [{ label: pkg.photos == null ? pkg.name : `${pkg.name} · ${pkg.photos} edited photos`, cents: pkg.priceCents }];
   const quotedItems: string[] = [];
 
   const extra = Math.max(0, Math.min(60, Math.floor(input.extraPhotos ?? 0)));

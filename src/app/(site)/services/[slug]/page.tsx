@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { formatPrice } from "@/content/pricing";
-import { serviceBySlug, services } from "@/content/services";
-import { PackageCard } from "@/components/home/PackageCard";
+import { PackageCard, packageGrid } from "@/components/home/PackageCard";
 import { Gallery } from "@/components/media/Gallery";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { FaqList } from "@/components/ui/FaqList";
@@ -11,18 +10,20 @@ import { Arrow, ButtonLink, Container, SectionHeading } from "@/components/ui/pr
 import { TrackView } from "@/components/ui/TrackView";
 import { getSiteData, getT } from "@/lib/cms/data";
 import { categoryById, portfolio } from "@/lib/cms/resolve";
-import { editedService } from "@/lib/cms/texts";
+import { bookingOptions, servicePages, sessionBySlug } from "@/lib/cms/sessions";
+import { packagesFor } from "@/lib/inquiry/estimate";
 import { breadcrumbJsonLd, pageMetadata, serviceJsonLd } from "@/lib/seo";
 
-export function generateStaticParams() {
-  return services.map((s) => ({ slug: s.slug }));
+/** Every category with a service page; new ones render on demand, no deploy needed. */
+export async function generateStaticParams() {
+  const pages = servicePages((await getSiteData()).content);
+  return (pages.length ? pages : [{ slug: "portraits-families" }]).map((s) => ({ slug: s.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/services/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const base = serviceBySlug(slug);
-  if (!base) return {};
-  const s = editedService((await getT()).texts, base.slug)!;
+  const s = sessionBySlug((await getSiteData()).content, slug);
+  if (!s) return { robots: { index: false } };
   return pageMetadata({ title: s.seoTitle, description: s.seoDescription, path: `/services/${s.slug}` });
 }
 
@@ -44,16 +45,17 @@ export default function ServicePage({ params }: PageProps<"/services/[slug]">) {
 
 async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "params">) {
   const { slug } = await params;
-  const base = serviceBySlug(slug);
-  if (!base) notFound();
   const d = await getSiteData();
+  const s = sessionBySlug(d.content, slug);
+  if (!s) notFound();
   const t = await getT();
-  const { pricing, texts } = d.content;
-  const s = editedService(texts, base.slug)!;
-  const { photos } = portfolio(d, s.category);
-  const cat = categoryById(d, s.category);
+  const { pricing } = d.content;
+  const { photos } = portfolio(d, s.categoryId);
+  const cat = categoryById(d, s.categoryId);
   const workHref = cat?.visible ? `/portfolio/${cat.slug}` : "/portfolio";
-  const quote = s.pricingMode === "quote" ? pricing.custom[s.slug as "weddings-events" | "business-branding"] : null;
+  const quote = s.pricingMode === "quote" ? s.quote : null;
+  const book = s.booking.show ? `/book?category=${s.bookingId}` : "/book";
+  const packages = packagesFor(s.bookingId, pricing, bookingOptions(d.content));
 
   return (
     <>
@@ -67,7 +69,7 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
           <div className="lg:col-span-5 lg:pt-10">
             <p className="text-lede text-ink-soft">{s.intro}</p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <ButtonLink href={`/book?category=${s.bookingCategory}`}>
+              <ButtonLink href={book}>
                 {s.cta} <Arrow />
               </ButtonLink>
               <ButtonLink href={workHref} variant="secondary">
@@ -87,22 +89,24 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
       )}
 
       <section className="py-16 sm:py-20" aria-labelledby="ideal-title">
-        <Container className="grid gap-12 lg:grid-cols-2">
-          <div>
-            <h2 id="ideal-title" className="text-display-sm">
+        <Container className={`grid gap-12 ${s.idealFor.length ? "lg:grid-cols-2" : ""}`}>
+          <div hidden={!s.idealFor.length}>
+            <h2 id={s.idealFor.length ? "ideal-title" : undefined} className="text-display-sm">
               {t("service.greatFor")}
             </h2>
             <ul className="mt-6 space-y-3 text-lede text-ink-soft">
               {s.idealFor.map((x) => (
                 <li key={x} className="flex gap-3">
-                  <span aria-hidden className="mt-[0.7em] h-px w-4 shrink-0 bg-clay" />
+                  <span aria-hidden className="dash mt-[0.7em] w-4" />
                   {x}
                 </li>
               ))}
             </ul>
           </div>
           <div>
-            <h2 className="text-display-sm">{t("service.pace")}</h2>
+            <h2 id={s.idealFor.length ? undefined : "ideal-title"} className="text-display-sm">
+              {t("service.pace")}
+            </h2>
             <p className="mt-6 text-ink-soft">{s.timing}</p>
           </div>
         </Container>
@@ -111,10 +115,10 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
       <section className="bg-gallery py-16 sm:py-24" aria-labelledby="how-title">
         <Container>
           <SectionHeading id="how-title" eyebrow={t("service.howEyebrow")} title={t("service.howTitle")} />
-          <ol className="mt-12 grid gap-8 md:grid-cols-3">
-            {s.howItWorks.map((h, i) => (
+          <ol className={`mt-12 grid gap-8 ${s.steps.length === 2 ? "md:grid-cols-2" : s.steps.length === 4 ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}>
+            {s.steps.map((h, i) => (
               <li key={i} className="border-t border-line pt-6" data-reveal style={{ ["--reveal-delay" as string]: `${i * 90}ms` }}>
-                <p className="font-display text-clay">0{i + 1}</p>
+                <p className="font-display text-clay">{String(i + 1).padStart(2, "0")}</p>
                 <h3 className="mt-2 text-[1.5rem]">{h.title}</h3>
                 <p className="mt-2 text-muted">{h.body}</p>
               </li>
@@ -136,13 +140,13 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
                 <ul className="mt-4 space-y-3 text-ink-soft">
                   {quote.factors.map((f) => (
                     <li key={f} className="flex gap-3 border-b border-line pb-3">
-                      <span aria-hidden className="mt-[0.7em] h-px w-4 shrink-0 bg-clay" />
+                      <span aria-hidden className="dash mt-[0.7em] w-4" />
                       {f}
                     </li>
                   ))}
                 </ul>
-                <ButtonLink href={`/book?category=${s.bookingCategory}`} className="mt-8">
-                  {s.cta} <Arrow />
+                <ButtonLink href={book} className="mt-8">
+                  {s.quote.cta} <Arrow />
                 </ButtonLink>
               </div>
             </div>
@@ -154,9 +158,9 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
                 title={pricing.noStopwatch.headline}
                 lede={t("service.packagesLede", { extraPrice: formatPrice(pricing.extraPhoto.priceCents) })}
               />
-              <div className="mt-10 grid gap-4 md:grid-cols-3">
-                {pricing.packages.map((p) => (
-                  <PackageCard key={p.id} pkg={p} />
+              <div className={`mt-10 grid gap-4 ${packageGrid(packages.length)}`}>
+                {packages.map((p) => (
+                  <PackageCard key={p.id} pkg={p} category={s.booking.show ? s.bookingId : undefined} />
                 ))}
               </div>
             </>

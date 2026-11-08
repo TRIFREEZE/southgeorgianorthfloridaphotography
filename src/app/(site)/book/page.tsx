@@ -6,8 +6,9 @@ import { BuildYourStory } from "@/components/story/BuildYourStory";
 import { Container, PageHero } from "@/components/ui/primitives";
 import { publicEnv } from "@/lib/env";
 import { getSiteData } from "@/lib/cms/data";
-import { portfolio } from "@/lib/cms/resolve";
-import { editedStory, storyLabels, textOf } from "@/lib/cms/texts";
+import { storyPool } from "@/lib/cms/resolve";
+import { bookingOptions, resolvedStory } from "@/lib/cms/sessions";
+import { storyLabels, textOf } from "@/lib/cms/texts";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -19,8 +20,10 @@ export const metadata: Metadata = pageMetadata({
 
 export default async function BookPage() {
   const d = await getSiteData();
-  const { photos } = portfolio(d);
   const { pricing, texts } = d.content;
+  const story = resolvedStory(d.content);
+  const photos = storyPool(d, story);
+  const options = bookingOptions(d.content);
   const t = (k: string) => textOf(texts, k);
   return (
     <>
@@ -52,7 +55,7 @@ export default async function BookPage() {
                 The session finder needs JavaScript. The quick inquiry form below works without it.
               </p>
             </noscript>
-            <BookingWizard pricing={pricing} />
+            <BookingWizard pricing={pricing} options={options} story={story} />
           </div>
         </Container>
       </section>
@@ -67,14 +70,14 @@ export default async function BookPage() {
             <p className="mt-4 text-muted">{t("book.quick.body")}</p>
           </div>
           <div className="lg:col-span-8">
-            <QuickInquiry idPrefix="book" />
+            <QuickInquiry idPrefix="book" options={options} />
           </div>
         </Container>
       </section>
 
       <section aria-labelledby="book-bys" className="py-20">
         <Container>
-          <BuildYourStory photos={photos} pricing={pricing} title={t("home.bys.title")} headingId="book-bys" content={editedStory(texts)} labels={storyLabels(texts)} />
+          <BuildYourStory photos={photos} pricing={pricing} title={t("home.bys.title")} headingId="book-bys" content={story} labels={storyLabels(texts)} />
         </Container>
       </section>
     </>

@@ -6,11 +6,12 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
 import { getSiteData } from "@/lib/cms/data";
 import { serviceCover } from "@/lib/cms/resolve";
-import { editedServices, textOf } from "@/lib/cms/texts";
+import { servicePages } from "@/lib/cms/sessions";
+import { textOf } from "@/lib/cms/texts";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Photography Sessions: Portraits, Pets & Horses, Weddings, Brands",
+  title: "Photography Sessions",
   description:
     "Portrait, family, pet, horse, wedding, event and business photography sessions across South Georgia and North Florida, with clear inclusions and pricing.",
   path: "/services",
@@ -20,14 +21,14 @@ export default async function ServicesPage() {
   const d = await getSiteData();
   const { texts } = d.content;
   const t = (k: string) => textOf(texts, k);
-  const services = editedServices(texts);
+  const services = servicePages(d.content);
   return (
     <>
       <PageHero eyebrow={t("services.eyebrow")} title={t("services.title")} lede={t("services.lede")} />
       <Container>
         <ul className="grid gap-6 md:grid-cols-2">
           {services.map((s, i) => {
-            const cover = serviceCover(d, s.slug, s.category);
+            const cover = serviceCover(d, s.slug, s.categoryId);
             return (
               <li key={s.slug} data-reveal style={{ ["--reveal-delay" as string]: `${i * 80}ms` }}>
                 <Link href={`/services/${s.slug}`} className="group block overflow-hidden rounded-[1.4rem] border border-line bg-gallery" data-flick-look>
@@ -36,7 +37,7 @@ export default async function ServicesPage() {
                       {cover ? (
                         <PhotoFill photo={cover} sizes="(min-width: 768px) 50vw, 100vw" showSampleLabel={false} />
                       ) : (
-                        <SamplePlate photo={{ id: `svc-${s.slug}`, category: s.category, title: s.name, tone: i * 3, width: 16, height: 10 }} showLabel={false} />
+                        <SamplePlate photo={{ id: `svc-${s.slug}`, category: s.categoryId, title: s.name, tone: i * 3, width: 16, height: 10 }} showLabel={false} />
                       )}
                     </span>
                   </div>

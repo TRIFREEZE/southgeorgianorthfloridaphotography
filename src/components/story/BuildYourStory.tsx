@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { site } from "@/content/site";
-import { composeStory, defaultStory, type StoryContent } from "@/content/story";
+import { composeStory } from "@/content/story";
+import { storyPhotos, type StoryContent } from "@/lib/cms/sessions";
 import type { Pricing } from "@/lib/cms/schema";
 import type { StoryLabels } from "@/lib/cms/texts";
 import type { Photo } from "@/lib/photo-types";
@@ -21,14 +22,14 @@ export function BuildYourStory({
   pricing,
   title = "Picture it first.",
   headingId,
-  content = defaultStory,
+  content,
   labels,
 }: {
   photos: Photo[];
   pricing: Pricing;
   title?: string;
   headingId: string;
-  content?: StoryContent;
+  content: StoryContent;
   labels: StoryLabels;
 }) {
   const { subjects: storySubjects, feelings: storyFeelings, seasons: storySeasons } = content;
@@ -41,7 +42,8 @@ export function BuildYourStory({
   const [copied, setCopied] = useState(false);
 
   const subj = storySubjects.find((s) => s.id === subject);
-  const pool = useMemo(() => photos.filter((p) => !subj || p.category === subj.category).slice(0, 8), [photos, subj]);
+  const feel = storyFeelings.find((f) => f.id === feeling);
+  const pool = useMemo(() => storyPhotos(photos, subj, feel), [photos, subj, feel]);
   const story = composeStory({ subject, feeling, town: town || null, season: season || null }, content);
   const mood = picked.length ? pool.filter((p) => picked.includes(p.id)) : pool.slice(0, 4);
 

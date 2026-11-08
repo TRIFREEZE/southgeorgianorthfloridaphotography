@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { composeStory, type StoryContent } from "@/content/story";
+import { composeStory } from "@/content/story";
+import { storyPhotos, type StoryContent } from "@/lib/cms/sessions";
 import type { Pricing } from "@/lib/cms/schema";
 import type { Photo } from "@/lib/photo-types";
 import { StoryCard } from "@/components/story/StoryCard";
@@ -21,7 +22,7 @@ export function SharedStory({ photos, pricing, content, labels }: { photos: Phot
       </div>
     );
   }
-  const mood = photos.filter((p) => p.category === story.subject.category).slice(0, 4);
+  const mood = storyPhotos(photos, story.subject, story.feeling, 4);
   return (
     <>
       <h1 className="mb-8 text-display-md">Someone shared a session idea with you.</h1>

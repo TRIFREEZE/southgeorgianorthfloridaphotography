@@ -152,6 +152,50 @@ describe("categories", () => {
   });
 });
 
+describe("photos in more than one category", () => {
+  it("adds and removes extra categories, shows the photo in each gallery, and survives a category delete", async () => {
+    const up = await fakeUpload("truck-and-dog.jpg", "#7a5c44", 600, 400);
+    const pid = await ops.addPhoto(repo, { ...up, categoryId: "people", consent: true });
+    await ops.patchPhotos(repo, [pid], { addTo: "brands" });
+    await ops.patchPhotos(repo, [pid], { addTo: "maternity" });
+    await ops.patchPhotos(repo, [pid], { addTo: "people" }); // already its main one: no duplicate
+    let s = (await repo.getMedia(pid))!.draft;
+    expect(s.categoryId).toBe("people");
+    expect(s.alsoIn).toEqual(["brands", "maternity"]);
+
+    const d = await ops.draftSiteData(repo);
+    const ids = (cat: string) => resolve.portfolio(d, cat).photos.map((p) => p.id);
+    expect(ids("people")).toContain(pid);
+    expect(ids("brands")).toContain(pid);
+
+    // Taking it out of its main category promotes the next one.
+    await ops.patchPhotos(repo, [pid], { removeFrom: "people" });
+    s = (await repo.getMedia(pid))!.draft;
+    expect(s).toMatchObject({ categoryId: "brands", alsoIn: ["maternity"] });
+
+    // Deleting a category removes it from photos without losing the photo's other categories.
+    const cats = (await ops.draftContent(repo)).categories;
+    await ops.saveCategories(repo, cats.filter((c) => c.id !== "brands"));
+    s = (await repo.getMedia(pid))!.draft;
+    expect(s).toMatchObject({ categoryId: "maternity", alsoIn: [] });
+  });
+
+  it("saves a full session setup for a new category and rejects clashing page addresses", async () => {
+    const cats = (await ops.draftContent(repo)).categories;
+    const cars = { id: "cars", slug: "cars", label: "Cars, trucks & bikes", description: "", visible: true, service: { slug: "cars", pricingMode: "quote" as const, quote: { intro: "Quoted per vehicle." } } };
+    await ops.saveCategories(repo, [...cats, cars]);
+    expect((await ops.draftContent(repo)).categories.find((c) => c.id === "cars")?.service?.quote?.intro).toBe("Quoted per vehicle.");
+    await expect(ops.saveCategories(repo, [...cats, cars, { ...cars, id: "cars-2", slug: "cars-2" }])).rejects.toThrow(/service page address/);
+  });
+
+  it("saves the story builder", async () => {
+    const story = { subjects: [{ id: "car", label: "My car", categoryId: "cars", pkg: null, noun: "car portraits", tip: "Wash it.", photoIds: [] }], feelings: [{ id: "bold", label: "Bold", line: "", tip: "", photoIds: [] }], seasons: [] };
+    await ops.saveContent(repo, "story", story);
+    expect((await ops.draftContent(repo)).story?.subjects[0].label).toBe("My car");
+    await expect(ops.saveContent(repo, "story", { ...story, subjects: [] })).rejects.toThrow();
+  });
+});
+
 describe("mosaic placement", () => {
   it("keeps card positions stable", () => {
     expect(ops.placeInMosaic(["a", "b", "c"], 1, "z")).toEqual(["a", "z", "c"]);
@@ -164,7 +208,9 @@ describe("mosaic placement", () => {
 describe("content", () => {
   it("validates pricing before saving", async () => {
     const c = await ops.draftContent(repo);
-    await expect(ops.saveContent(repo, "pricing", { ...c.pricing, packages: c.pricing.packages.slice(0, 2) })).rejects.toThrow();
+    await expect(ops.saveContent(repo, "pricing", { ...c.pricing, packages: [] })).rejects.toThrow();
+    await expect(ops.saveContent(repo, "pricing", { ...c.pricing, packages: [c.pricing.packages[0], c.pricing.packages[0]] })).rejects.toThrow();
+    await expect(ops.saveContent(repo, "pricing", { ...c.pricing, packages: c.pricing.packages.map((k) => ({ ...k, priceCents: -5 })) })).rejects.toThrow();
     const p = { ...c.pricing, packages: c.pricing.packages.map((k, i) => (i === 0 ? { ...k, priceCents: 22500 } : k)) };
     await ops.saveContent(repo, "pricing", p);
     expect((await ops.draftContent(repo)).pricing.packages[0].priceCents).toBe(22500);

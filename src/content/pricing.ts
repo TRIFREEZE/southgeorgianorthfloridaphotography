@@ -4,13 +4,17 @@
  * until you save your own.
  */
 
-export type PackageId = "little" | "full" | "whole";
+/** Package ids are free-form now (the owner can add packages); these are the originals. */
+export type PackageId = string;
 
 export interface PortraitPackage {
   id: PackageId;
   name: string;
-  priceCents: number;
-  photos: number;
+  /** null = quoted personally. */
+  priceCents: number | null;
+  /** null = no fixed count; `photosLabel` is shown instead. */
+  photos: number | null;
+  photosLabel?: string;
   summary: string;
   features: string[];
   /** Shown as a quiet label. Don't say "most popular" until booking data supports it. */
@@ -29,6 +33,7 @@ export interface AddOn {
 export const defaultPricing = {
   status: "draft" as "draft" | "confirmed",
   currency: "USD",
+  packagesV: 2,
 
   packages: [
     {
@@ -74,6 +79,15 @@ export const defaultPricing = {
         "Personal-use print release",
         "Private online gallery",
       ],
+    },
+    {
+      id: "custom",
+      name: "Custom",
+      priceCents: null,
+      photos: null,
+      photosLabel: "Any number of photos",
+      summary: "Something bigger or different: more photos, more places, a longer story. Tell us the idea and we'll quote it in writing.",
+      features: ["As many finished photos as the story needs", "Multiple locations or longer coverage", "A written quote before you commit", "Private online gallery"],
     },
   ] satisfies PortraitPackage[],
 
@@ -157,6 +171,14 @@ export const defaultPricing = {
   legalNote:
     "Prices are for standard portrait sessions in our core area. Sales tax, if applicable, and any travel quote are confirmed before you book.",
 } as const;
+
+/** "$149", or "Custom quote" for a package without a fixed price. */
+export const packagePrice = (p: { priceCents: number | null }, quoted = "Custom quote") => (p.priceCents == null ? quoted : formatPrice(p.priceCents));
+/** "20", or the package's label (e.g. "Your call") when there's no fixed count. */
+export const packagePhotos = (p: { photos: number | null; photosLabel?: string }) => (p.photos == null ? p.photosLabel || "Custom" : String(p.photos));
+/** Packages that have a real price, cheapest first. */
+export const pricedPackages = <T extends { priceCents: number | null }>(list: readonly T[]) =>
+  list.filter((p): p is T & { priceCents: number } => p.priceCents != null).sort((a, b) => a.priceCents - b.priceCents);
 
 export function formatPrice(cents: number, opts: { cents?: boolean } = {}) {
   return new Intl.NumberFormat("en-US", {

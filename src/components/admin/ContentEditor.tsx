@@ -77,7 +77,12 @@ function PricingEditor({ initial }: { initial: Pricing }) {
   const { bar } = useSave("pricing", p, initial);
   const pkg = (i: number, patch: Partial<Pricing["packages"][number]>) => setP((x) => ({ ...x, packages: x.packages.map((k, j) => (j === i ? { ...k, ...patch } : k)) }));
   const addOn = (i: number, patch: Partial<Pricing["addOns"][number]>) => setP((x) => ({ ...x, addOns: x.addOns.map((k, j) => (j === i ? { ...k, ...patch } : k)) }));
-  const custom = (k: keyof Pricing["custom"], patch: Partial<Pricing["custom"]["weddings-events"]>) => setP((x) => ({ ...x, custom: { ...x.custom, [k]: { ...x.custom[k], ...patch } } }));
+  const move = (i: number, d: -1 | 1) =>
+    setP((x) => {
+      const list = [...x.packages];
+      [list[i], list[i + d]] = [list[i + d], list[i]];
+      return { ...x, packages: list };
+    });
 
   return (
     <div className="max-w-4xl space-y-10">
@@ -90,21 +95,27 @@ function PricingEditor({ initial }: { initial: Pricing }) {
       </label>
 
       <section>
-        <h2 className="text-[1.4rem]">Portrait packages</h2>
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <h2 className="text-[1.4rem]">Packages</h2>
+        <p className="mt-1 max-w-2xl text-sm text-muted">Leave the price empty for a package that&apos;s quoted personally (like “Custom”). Leave photos empty when there&apos;s no fixed count. Each category chooses which packages it offers in Categories.</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {p.packages.map((k, i) => (
-            <div key={k.id} className="space-y-3 rounded-2xl border border-line bg-parchment p-4">
+            <div key={k.id} className="space-y-3 rounded-2xl border border-line bg-parchment p-4" data-testid={`pkg-${k.id}`}>
               <Field label="Name">
-                <input className="field" value={k.name} onChange={(e) => pkg(i, { name: e.target.value })} />
+                <input className="field" value={k.name} onChange={(e) => pkg(i, { name: e.target.value })} data-testid={`pkg-name-${i}`} />
               </Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Price">
-                  <Money cents={k.priceCents} onChange={(c) => pkg(i, { priceCents: c ?? 0 })} />
+                <Field label="Price" hint={k.priceCents == null ? "Custom quote" : undefined}>
+                  <Money cents={k.priceCents} allowEmpty onChange={(c) => pkg(i, { priceCents: c })} />
                 </Field>
-                <Field label="Photos">
-                  <input className="field" type="number" min={1} value={k.photos} onChange={(e) => pkg(i, { photos: Math.max(1, Number(e.target.value) || 1) })} data-testid={`pkg-photos-${i}`} />
+                <Field label="Photos" hint={k.photos == null ? "No fixed count" : undefined}>
+                  <input className="field" type="number" min={1} value={k.photos ?? ""} onChange={(e) => pkg(i, { photos: e.target.value === "" ? null : Math.max(1, Number(e.target.value) || 1) })} data-testid={`pkg-photos-${i}`} />
                 </Field>
               </div>
+              {k.photos == null && (
+                <Field label="Instead of a photo count, show">
+                  <input className="field" value={k.photosLabel ?? ""} placeholder="Your call" onChange={(e) => pkg(i, { photosLabel: e.target.value || undefined })} />
+                </Field>
+              )}
               <Field label="Summary">
                 <textarea className="field" rows={2} value={k.summary} onChange={(e) => pkg(i, { summary: e.target.value })} />
               </Field>
@@ -114,9 +125,37 @@ function PricingEditor({ initial }: { initial: Pricing }) {
               <Field label="Badge (optional)" hint="e.g. Most popular">
                 <input className="field" value={k.highlightLabel ?? ""} onChange={(e) => pkg(i, { highlightLabel: e.target.value || undefined })} />
               </Field>
+              <div className="flex flex-wrap gap-1 pt-1">
+                <Btn size="sm" variant="ghost" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${k.name} earlier`}>
+                  ←
+                </Btn>
+                <Btn size="sm" variant="ghost" disabled={i === p.packages.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${k.name} later`}>
+                  →
+                </Btn>
+                <Btn size="sm" variant="ghost" className="ml-auto text-[#8f3226]" disabled={p.packages.length <= 1} onClick={() => setP((x) => ({ ...x, packages: x.packages.filter((_, j) => j !== i) }))}>
+                  Remove
+                </Btn>
+              </div>
             </div>
           ))}
         </div>
+        {p.packages.length < 8 && (
+          <Btn
+            className="mt-3"
+            size="sm"
+            variant="secondary"
+            data-testid="add-package"
+            onClick={() =>
+              setP((x) => {
+                let id = "package";
+                for (let n = 2; x.packages.some((k) => k.id === id); n++) id = `package-${n}`;
+                return { ...x, packages: [...x.packages, { id, name: "New package", priceCents: null, photos: null, photosLabel: "", summary: "", features: [] }] };
+              })
+            }
+          >
+            + Package
+          </Btn>
+        )}
         <div className="mt-4 grid gap-4 sm:grid-cols-[12rem_1fr]">
           <Field label="Extra photos, each">
             <Money cents={p.extraPhoto.priceCents} onChange={(c) => setP({ ...p, extraPhoto: { ...p.extraPhoto, priceCents: c ?? 0 } })} />
@@ -160,22 +199,13 @@ function PricingEditor({ initial }: { initial: Pricing }) {
         )}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        {(["weddings-events", "business-branding"] as const).map((k) => (
-          <div key={k} className="space-y-3 rounded-2xl border border-line bg-parchment p-4">
-            <h2 className="text-[1.2rem]">{p.custom[k].label} (custom quotes)</h2>
-            <Field label="Intro">
-              <textarea className="field" rows={3} value={p.custom[k].intro} onChange={(e) => custom(k, { intro: e.target.value })} />
-            </Field>
-            <Field label="What affects the quote (one per line)">
-              <Lines value={p.custom[k].factors} onChange={(v) => custom(k, { factors: v })} />
-            </Field>
-            <Field label="Example estimate (optional)">
-              <input className="field" value={p.custom[k].exampleEstimate ?? ""} onChange={(e) => custom(k, { exampleEstimate: e.target.value || null })} />
-            </Field>
-          </div>
-        ))}
-      </section>
+      <p className="rounded-xl bg-sand/50 px-4 py-3 text-sm text-ink-soft">
+        Custom-quote wording (intro, what affects the quote, example estimate) now lives with each category in{" "}
+        <a className="font-semibold underline" href="/admin/categories">
+          Categories
+        </a>
+        , along with whether that category uses packages or a custom quote.
+      </p>
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-3">
@@ -232,11 +262,10 @@ const DEFAULTS = Object.fromEntries(TEXT_FIELDS.map((f) => [f.key, f.default]));
 
 /**
  * Wording that belongs to your pricing (the "no stopwatch" promise, travel,
- * deposit, small print, custom quotes). It's stored once, with your pricing,
+ * deposit, small print). It's stored once, with your pricing,
  * and shown here on every page where it appears, so it can be edited from
  * either tab. `after` places it next to the text around it on that page.
  */
-type CustomKey = "weddings-events" | "business-branding";
 interface PriceField {
   id: string;
   label: string;
@@ -246,33 +275,6 @@ interface PriceField {
   get: (p: Pricing) => string;
   set: (p: Pricing, v: string) => Pricing;
 }
-const lines = (v: string) => v.split("\n").map((x) => x.trim()).filter(Boolean);
-const customFields = (k: CustomKey, name: string): PriceField[] => [
-  {
-    id: `custom.${k}.intro`,
-    label: `${name}: custom-quote intro`,
-    places: [{ group: "Pricing page" }, { group: k === "weddings-events" ? "Service: Weddings & Events" : "Service: Business & Branding" }],
-    multiline: true,
-    get: (p) => p.custom[k].intro,
-    set: (p, v) => ({ ...p, custom: { ...p.custom, [k]: { ...p.custom[k], intro: v } } }),
-  },
-  {
-    id: `custom.${k}.factors`,
-    label: `${name}: what the quote depends on (one per line)`,
-    places: [{ group: "Pricing page" }, { group: k === "weddings-events" ? "Service: Weddings & Events" : "Service: Business & Branding" }],
-    multiline: true,
-    list: true,
-    get: (p) => p.custom[k].factors.join("\n"),
-    set: (p, v) => ({ ...p, custom: { ...p.custom, [k]: { ...p.custom[k], factors: lines(v) } } }),
-  },
-  {
-    id: `custom.${k}.example`,
-    label: `${name}: example estimate (optional)`,
-    places: [{ group: "Pricing page" }],
-    get: (p) => p.custom[k].exampleEstimate ?? "",
-    set: (p, v) => ({ ...p, custom: { ...p.custom, [k]: { ...p.custom[k], exampleEstimate: v.trim() ? v : null } } }),
-  },
-];
 const PRICE_FIELDS: PriceField[] = [
   {
     id: "noStopwatch.headline",
@@ -331,12 +333,10 @@ const PRICE_FIELDS: PriceField[] = [
   {
     id: "deposit.copy",
     label: "Deposit line (shown when a deposit is turned on)",
-    places: [{ group: "Pricing page", after: "pricing.custom.businessCta" }],
+    places: [{ group: "Pricing page", after: "pricing.custom.lede" }],
     get: (p) => p.deposit.copy,
     set: (p, v) => ({ ...p, deposit: { ...p.deposit, copy: v } }),
   },
-  ...customFields("weddings-events", "Weddings & events"),
-  ...customFields("business-branding", "Business & branding"),
 ];
 
 type Row = { kind: "text"; key: string; group: string; label: string; hint?: string; multiline?: boolean } | { kind: "price"; key: string; group: string; label: string; hint?: string; multiline?: boolean; field: PriceField };

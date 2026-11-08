@@ -24,6 +24,8 @@ async function run<T extends object>(fn: (repo: ReturnType<typeof requireRepo>) 
     if (e instanceof ops.CmsError) return { error: e.message };
     if (e instanceof z.ZodError) return { error: e.issues[0]?.message ?? "Please check the fields." };
     console.error("[cms]", e);
+    const msg = (e as { message?: string } | null)?.message ?? "";
+    if (/check constraint/i.test(msg)) return { error: "Your database needs a one-time update for this: open Supabase → SQL Editor and run the file supabase/migrations/20261109000000_flexible.sql, then try again." };
     return { error: e instanceof Error && e.message.startsWith("The CMS needs") ? e.message : "Something went wrong saving that. Please try again." };
   }
 }
@@ -110,7 +112,7 @@ export async function saveMosaic(ids: string[]) {
 
 export async function saveContentAction(key: Exclude<ContentKey, "layout" | "categories">, value: unknown) {
   return run(async (repo) => {
-    await ops.saveContent(repo, z.enum(["pricing", "texts", "faqs", "testimonials"]).parse(key), value);
+    await ops.saveContent(repo, z.enum(["pricing", "texts", "faqs", "testimonials", "story"]).parse(key), value);
     touched();
     return {};
   });

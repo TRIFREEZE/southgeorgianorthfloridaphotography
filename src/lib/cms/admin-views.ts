@@ -1,10 +1,10 @@
 import "server-only";
 import { publishedPosts } from "@/content/journal";
-import { services } from "@/content/services";
 import type { SlotView } from "@/components/admin/SlotBoard";
 import { adminPhotos, draftSiteData } from "./ops";
 import { categoryCover, founderPhoto, heroPhoto, journalCover, mosaicPhotos, serviceCover, visibleCategories } from "./resolve";
 import type { CmsRepo } from "./repo/types";
+import { servicePages } from "./sessions";
 
 /** Every photo position on the public site, resolved exactly as it will look after Publish. */
 export async function siteSlots(repo: CmsRepo): Promise<SlotView[]> {
@@ -51,22 +51,22 @@ export async function siteSlots(repo: CmsRepo): Promise<SlotView[]> {
       categoryId: c.id,
       href: `/portfolio/${c.slug}`,
     })),
-    ...services.map((s) => ({
+    ...servicePages(d.content).map((s) => ({
       key: `service:${s.slug}`,
       group: "Service pages",
       label: s.name,
       hint: "Cover photo on the Services list and this service page.",
       ratio: "4 / 3",
-      current: serviceCover(d, s.slug, s.category),
+      current: serviceCover(d, s.slug, s.categoryId),
       explicitId: l.serviceCovers[s.slug] ?? null,
-      categoryId: s.category,
+      categoryId: s.categoryId,
       href: `/services/${s.slug}`,
     })),
     ...publishedPosts().map((p) => ({
       key: `journal:${p.slug}`,
       group: "Journal covers",
       label: p.title,
-      hint: "Cover for this journal post. Shows an art plate until you choose one.",
+      hint: "Cover for this journal post. Until you choose one, it uses a photo from the post's category (or an art plate if there are none).",
       ratio: "16 / 9",
       current: journalCover(d, p.slug),
       explicitId: l.journalCovers[p.slug] ?? null,

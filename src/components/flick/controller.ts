@@ -11,7 +11,7 @@
  *  - Antics are rare and tasteful: polishing or (carefully) breaking-then-fixing
  *    something right beside him. Desktop only.
  *  - Guardrails: quiet and tucked while someone types, paused for menus/dialogs,
- *    reduced motion honored, never catches clicks while moving, mute/hide anytime.
+ *    reduced motion honored, always clickable (a click stops him), mute/hide anytime.
  *
  * Every listener and timer registered here is released in destroy().
  */
@@ -21,7 +21,7 @@ import { FlickEngine, type Vec } from "./engine";
 import { ambient, anticLines, contextFor, pickLine, reactions, sectionComments, type LineEvent } from "./lines";
 import { initialMachine, isPaused, transition, type FlickEvent, type FlickState, type Machine } from "./machine";
 import { sessionFlag } from "./prefs";
-import { rectIsFree, setFlickRoot, type Spot } from "./safeSpots";
+import { rectIsFree, setFlickRoot, spotIsFree, type Spot } from "./safeSpots";
 import { nextTrick, playTrick, TRICK_LINES } from "./tricks";
 import type { FlickMood, FlickProp } from "./types";
 import { isLowPowerDevice } from "./useMediaFlags";
@@ -304,6 +304,39 @@ export class FlickController {
     return { x: window.innerWidth - m - size / 2, y: window.innerHeight - m - size / 2 };
   }
 
+  /** The outer third of the screen on his side, kept clear of the header and the edges. */
+  private third() {
+    const s = this.opts.size;
+    const vw = window.innerWidth;
+    const m = this.opts.compact ? 10 : 22;
+    const right = this.onRightSide();
+    const x0 = right ? Math.max(vw * (2 / 3), vw / 2) + s / 2 : m + s / 2;
+    const x1 = right ? vw - m - s / 2 : Math.min(vw / 3, vw / 2) - s / 2;
+    return { x0: Math.min(x0, x1), x1: Math.max(x0, x1), y0: this.headerBottom() + s / 2 + 16, y1: window.innerHeight - s / 2 - 10 };
+  }
+
+  private inThird(p: Spot): Spot {
+    const t = this.third();
+    return { x: Math.min(t.x1, Math.max(t.x0, p.x)), y: Math.min(t.y1, Math.max(t.y0, p.y)) };
+  }
+
+  /**
+   * Somewhere new to drift to on desktop: anywhere in his third of the screen
+   * (not just up and down), but only over empty space (no text, photos, buttons
+   * or fields), and not right next to where he is now.
+   */
+  private wanderSpot(): Spot | null {
+    const t = this.third();
+    if (t.x1 - t.x0 < 8 || t.y1 - t.y0 < 60) return null;
+    const from = this.engine.pos;
+    for (let i = 0; i < 18; i++) {
+      const p = { x: rand(t.x0, t.x1), y: rand(t.y0, t.y1) };
+      if (Math.hypot(p.x - from.x, p.y - from.y) < 110) continue;
+      if (spotIsFree(p.x, p.y, this.opts.size * 1.15)) return p;
+    }
+    return null;
+  }
+
   private onRightSide() {
     return this.homeSpot().x > window.innerWidth / 2;
   }
@@ -328,9 +361,14 @@ export class FlickController {
     return home;
   }
 
-  /** Flick only catches clicks while resting; in flight he's a ghost to the pointer. */
+  /**
+   * Flick can always be clicked, even mid-flight or mid-antic (clicking him then
+   * just stops him and opens his menu). Kept as a hook so a future state can opt
+   * out, but nothing turns clicks off any more: people were missing him.
+   */
   private setInteractive(on: boolean) {
-    this.dom.button.style.pointerEvents = on ? "auto" : "none";
+    void on;
+    this.dom.button.style.pointerEvents = "auto";
   }
 
   private moodFor(m: FlickMood, ms: number) {
@@ -486,12 +524,25 @@ export class FlickController {
         break;
       }
       case "wander": {
-        // Up and down his own side only. Never across the screen.
-        const h = this.homeSpot();
-        const top = 96 + size / 2;
-        const bottom = window.innerHeight - size / 2 - 10;
-        const y = Math.abs(h.y - top) > Math.abs(h.y - bottom) ? rand(top, Math.max(top, h.y - 140)) : rand(Math.min(bottom, h.y + 140), bottom);
-        e.moveTo(this.clampSpot(h.x, y), 16, 7);
+        const spot = this.opts.compact ? null : this.wanderSpot();
+        if (spot) {
+          // A gentle curve rather than a straight line: through a waypoint pushed to one side of the path.
+          const from = e.pos;
+          const dx = spot.x - from.x;
+          const dy = spot.y - from.y;
+          const len = Math.hypot(dx, dy) || 1;
+          const bend = rand(0.18, 0.32) * len * (Math.random() < 0.5 ? -1 : 1);
+          const mid = this.inThird({ x: from.x + dx * 0.5 - (dy / len) * bend, y: from.y + dy * 0.5 + (dx / len) * bend });
+          e.moveTo(mid, 12, 6.5);
+          this.later(() => this.machine.state === "wander" && e.moveTo(spot, 14, 7.2), 520);
+        } else {
+          // Phones (and pages with no clear room): up and down his own side only.
+          const h = this.homeSpot();
+          const top = 96 + size / 2;
+          const bottom = window.innerHeight - size / 2 - 10;
+          const y = Math.abs(h.y - top) > Math.abs(h.y - bottom) ? rand(top, Math.max(top, h.y - 140)) : rand(Math.min(bottom, h.y + 140), bottom);
+          e.moveTo(this.clampSpot(h.x, y), 16, 7.4);
+        }
         this.later(this.done, rand(4200, 6500));
         break;
       }
@@ -859,9 +910,13 @@ export class FlickController {
       return;
     }
     if (this.introOpen) return;
+    if (this.trickRunning) return; // mid-trick: the blink is the answer; the menu waits a second
     if (this.menuOpen) this.closeMenu();
     else {
       this.abortAntic();
+      // Caught mid-flight: settle right where he is (no trip home) and open the menu there.
+      if (this.machine.state === "wander") this.engine.moveTo({ ...this.engine.pos }, 34, 11);
+      this.dispatch({ type: "pause", reason: "menu" });
       this.menuOpen = true;
       this.clearBubble(true);
       this.withRoom(300, (pl) => this.menuOpen && this.ui.setMenu({ open: true, ...pl }));
@@ -878,6 +933,7 @@ export class FlickController {
     if (!this.menuOpen) return;
     this.menuOpen = false;
     this.ui.setMenu(null);
+    this.dispatch({ type: "resume", reason: "menu" });
   }
 
   private trickRunning = false;

@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { PreviewFrames } from "@/components/admin/PreviewFrames";
-import { services } from "@/content/services";
 import { requireAdmin } from "@/lib/admin-auth";
 import { draftContent } from "@/lib/cms/ops";
+import { servicePages } from "@/lib/cms/sessions";
 import { getRepo } from "@/lib/cms/repo";
 
 export const metadata = { title: "Preview" };
@@ -18,7 +18,9 @@ export default function PreviewPage() {
 async function Body() {
   await requireAdmin();
   const repo = getRepo();
-  const cats = repo ? (await draftContent(repo)).categories.filter((c) => c.visible) : [];
+  const content = repo ? await draftContent(repo) : null;
+  const cats = content ? content.categories.filter((c) => c.visible) : [];
+  const services = content ? servicePages(content) : [];
   const pages = [
     { path: "/", label: "Homepage" },
     { path: "/portfolio", label: "Portfolio (all)" },
