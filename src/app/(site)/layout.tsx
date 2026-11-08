@@ -11,7 +11,7 @@ import { businessJsonLd, websiteJsonLd } from "@/lib/seo";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const d = await getSiteData();
-  const strip = mosaicPhotos(d, 6).map((p) => ({ id: p.id, src: p.src, alt: p.alt, tone: p.tone ?? 0, category: p.category, title: p.title, width: p.width, height: p.height }));
+  const strip = mosaicPhotos(d, 6, { fill: true }).map((p) => ({ id: p.id, src: p.src, alt: p.alt, tone: p.tone ?? 0, category: p.category, title: p.title, width: p.width, height: p.height }));
   const guide = guideData(d.content);
 
   return (

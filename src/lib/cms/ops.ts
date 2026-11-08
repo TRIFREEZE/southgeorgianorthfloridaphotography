@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { defaultContent } from "./defaults";
 import { parseContent, photoFromState } from "./data";
+import { MOSAIC_MAX } from "./mosaic-limits";
 import { mosaicPhotos, type SiteData } from "./resolve";
 import { ACCEPTED_TYPES, extFor, ImageError, MAX_UPLOAD_BYTES, processImage, slugify, titleFromFilename } from "./images";
 import type { CmsRepo, MediaRecord } from "./repo/types";
@@ -289,7 +290,7 @@ export async function saveCategories(repo: CmsRepo, list: Category[]) {
 
 export type SlotKey = "hero" | "founder" | "founder2" | `category:${string}` | `service:${string}` | `journal:${string}` | `mosaic:${number}` | `about:${number}`;
 
-const slotSchema = z.string().regex(/^(hero|founder2?|(category|service|journal):[a-z0-9-]{1,60}|mosaic:[0-6]|about:[0-2])$/);
+const slotSchema = z.string().regex(/^(hero|founder2?|(category|service|journal):[a-z0-9-]{1,60}|mosaic:([0-9]|1[0-2])|about:[0-2])$/);
 
 export function applySlot(layout: Layout, slot: string, photoId: string | null): Layout {
   slotSchema.parse(slot);
@@ -316,7 +317,7 @@ export function applySlot(layout: Layout, slot: string, photoId: string | null):
       if (existing >= 0) arr.splice(existing, 1);
       arr.splice(Math.min(i, arr.length), i < arr.length ? 1 : 0, photoId);
     } else if (i < arr.length) arr.splice(i, 1);
-    next.mosaic = arr.slice(0, 7);
+    next.mosaic = arr.slice(0, MOSAIC_MAX);
   }
   return next;
 }
@@ -327,10 +328,14 @@ export async function setSlot(repo: CmsRepo, slot: string, photoId: string | nul
   const content = await draftContent(repo);
   let layout = content.layout;
   if (slot.startsWith("mosaic:")) {
-    // Work from what the homepage shows right now, so card #4 stays card #4.
-    const shown = mosaicPhotos(await draftSiteData(repo), 7)
-      .filter((p) => !p.isSample)
-      .map((p) => p.id);
+    // Work from the owner's own picks as the homepage shows them, so card #4 stays card #4.
+    // With nothing picked yet (automatic featured photos), the first pick starts a fresh
+    // list: from then on the homepage shows exactly the photos chosen, nothing added.
+    const shown = layout.mosaic.length
+      ? mosaicPhotos(await draftSiteData(repo))
+          .filter((p) => !p.isSample)
+          .map((p) => p.id)
+      : [];
     layout = { ...layout, mosaic: placeInMosaic(shown, Number(slot.split(":")[1]), photoId) };
   } else layout = applySlot(layout, slot, photoId);
   await repo.putContent("layout", { draft: layout, dirty: true });
@@ -350,11 +355,11 @@ export function placeInMosaic(shown: string[], i: number, photoId: string | null
     if (j >= 0) arr.splice(j, 1);
     arr.push(photoId);
   }
-  return arr.slice(0, 7);
+  return arr.slice(0, MOSAIC_MAX);
 }
 
 export async function setMosaic(repo: CmsRepo, ids: string[]) {
-  const list = z.array(z.uuid()).max(7).parse(ids);
+  const list = z.array(z.uuid()).max(MOSAIC_MAX).parse(ids);
   const layout = (await draftContent(repo)).layout;
   await repo.putContent("layout", { draft: { ...layout, mosaic: list }, dirty: true });
 }

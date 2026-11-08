@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { assignSlot } from "@/app/admin/cms-actions";
+import { assignSlot, saveMosaic } from "@/app/admin/cms-actions";
 import { PhotoFill } from "@/components/media/Photo";
 import type { AdminPhoto } from "@/lib/cms/ops";
 import type { Category } from "@/lib/cms/schema";
@@ -46,9 +46,12 @@ export function SlotBoard({ slots, photos, categories }: { slots: SlotView[]; ph
       </p>
       {groups.map((g) => (
         <section key={g} aria-labelledby={`g-${g}`}>
-          <h2 id={`g-${g}`} className="text-[1.5rem]">
-            {g}
-          </h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 id={`g-${g}`} className="text-[1.5rem]">
+              {g}
+            </h2>
+            {slots.some((s) => s.group === g && s.key.startsWith("mosaic:") && s.explicitId) && <ClearMosaic />}
+          </div>
           <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {slots
               .filter((s) => s.group === g)
@@ -59,6 +62,25 @@ export function SlotBoard({ slots, photos, categories }: { slots: SlotView[]; ph
         </section>
       ))}
     </div>
+  );
+}
+
+/** Empties the homepage “selected work” picks, so featured photos fill in again until the next pick. */
+function ClearMosaic() {
+  const router = useRouter();
+  const toast = useToast();
+  const [busy, start] = useTransition();
+  const clear = () =>
+    start(async () => {
+      const r = await saveMosaic([]);
+      if (!r.ok) return toast(r.error, "error");
+      toast("Selected work cleared. Featured photos show until you pick again.");
+      router.refresh();
+    });
+  return (
+    <Btn size="sm" variant="ghost" onClick={clear} disabled={busy} data-testid="mosaic-clear">
+      Clear selected work
+    </Btn>
   );
 }
 
@@ -138,11 +160,16 @@ function SlotCard({ slot, photos, categories }: { slot: SlotView; photos: AdminP
               Crop & text
             </Btn>
           )}
-          {slot.explicitId && (
-            <Btn size="sm" variant="ghost" onClick={reset} disabled={busy} title="Let the site choose a featured photo automatically">
-              Automatic
-            </Btn>
-          )}
+          {slot.explicitId &&
+            (slot.key.startsWith("mosaic:") ? (
+              <Btn size="sm" variant="ghost" onClick={reset} disabled={busy} title="Take this photo out of the homepage cluster" data-testid="slot-remove">
+                Remove
+              </Btn>
+            ) : (
+              <Btn size="sm" variant="ghost" onClick={reset} disabled={busy} title="Let the site choose a featured photo automatically">
+                Automatic
+              </Btn>
+            ))}
           <a href={slot.href} target="_blank" rel="noreferrer" className="ml-auto self-center text-xs underline">
             View ↗
           </a>

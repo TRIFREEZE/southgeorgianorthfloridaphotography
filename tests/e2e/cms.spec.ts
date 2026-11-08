@@ -276,6 +276,43 @@ test("About page: extra photo strip from Site photos", async ({ page, browser })
   await visitor.close();
 });
 
+test("homepage selected work shows exactly the picked photos", async ({ page, browser }, info) => {
+  test.skip(info.project.name !== "desktop", "one run is enough");
+  await login(page);
+  await page.goto("/admin/site-photos");
+  const clear = page.getByTestId("mosaic-clear");
+  if (await clear.isVisible()) {
+    await clear.click();
+    await expect(clear).toBeHidden();
+  }
+  // The first pick starts a fresh list, even when dropped on spot #4.
+  const fourth = page.locator('[data-slot="mosaic:3"]');
+  await fourth.getByTestId("slot-input").setInputFiles(await photo("river-bend.jpg", "#6f7f8a", 1800, 1200));
+  const first = page.locator('[data-slot="mosaic:0"]');
+  await expect(first.getByText("Chosen", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-slot="mosaic:1"]').getByText("Empty", { exact: true })).toBeVisible();
+  const second = page.locator('[data-slot="mosaic:1"]');
+  await second.getByTestId("slot-input").setInputFiles(await photo("pine-shadow.jpg", "#7a6a50", 1200, 1600));
+  await expect(second.getByText("Chosen", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await publish(page);
+
+  const visitor = await browser.newPage();
+  await visitor.goto("/");
+  const cluster = visitor.getByTestId("cluster");
+  await cluster.scrollIntoViewIfNeeded();
+  await expect(cluster.locator("button")).toHaveCount(2);
+  await expect(cluster.getByRole("button", { name: /River bend/ })).toBeVisible();
+  await expect(cluster.getByRole("button", { name: /Pine shadow/ })).toBeVisible();
+  await visitor.close();
+
+  await page.goto("/admin/site-photos");
+  await page.locator('[data-slot="mosaic:0"]').getByTestId("slot-remove").click();
+  await expect(page.locator('[data-slot="mosaic:1"]').getByText("Empty", { exact: true })).toBeVisible();
+  await page.getByTestId("mosaic-clear").click();
+  await expect(page.getByTestId("mosaic-clear")).toBeHidden();
+  await publish(page);
+});
+
 test("private client gallery: password, signed photos, downloads", async ({ page, browser }) => {
   await login(page);
   await page.goto("/admin/galleries");

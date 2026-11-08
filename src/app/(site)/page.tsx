@@ -54,7 +54,7 @@ export default async function HomePage() {
               {t("home.work.cta")} <Arrow />
             </ButtonLink>
           </div>
-          <Gallery photos={mosaicPhotos(d, 13, { fill: true })} layout="mosaic" label="Selected photographs" />
+          <Gallery photos={mosaicPhotos(d)} layout="mosaic" label="Selected photographs" />
         </Container>
       </section>
 

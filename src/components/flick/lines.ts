@@ -52,7 +52,6 @@ export const ambient: Record<LineContext, string[]> = {
     "fun fact: i've never once said 'cheese'.",
     "golden hour is my favorite hour. the other 23 are fine.",
     "if i blink, that's me taking a picture. kidding. mostly.",
-    "everything here is real. except the samples. those say sample.",
     "i'm the only lens on staff with feet.",
   ],
   portfolio: [

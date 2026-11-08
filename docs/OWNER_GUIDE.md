@@ -14,12 +14,12 @@ The site launches with clearly labeled sample placeholders. Here's the fastest w
 
 1. **Name your files descriptively** before uploading (`bay-mare-sunset-thomasville.jpg`). The name becomes the starting title and alt text. Camera names like `IMG_2041` are ignored.
 2. **Photo library → choose a category → drop the whole folder** onto the drop zone. Upload as many as you like at once; each file shows its own progress. Repeat for each category.
-3. **Site photos** shows every photo spot on the site as a card: the homepage hero, the 7 "selected work" tiles, both founders' portraits and up to three extra About-page photos, each category cover, each service page and each journal post. Cards still showing samples are marked **Sample**. **Drag a file from your computer onto any card** to replace it in one step, or press **Library** to choose a photo you've already uploaded.
+3. **Site photos** shows every photo spot on the site as a card: the homepage hero, the 13 "selected work" spots, both founders' portraits and up to three extra About-page photos, each category cover, each service page and each journal post. Cards still showing samples are marked **Sample**. **Drag a file from your computer onto any card** to replace it in one step, or press **Library** to choose a photo you've already uploaded.
 4. Press **Preview**, check desktop and phone, then **Publish**.
 
 Spots you don't set by hand are **Automatic**: they use your *Featured* photos first, then the first photo in the category. Once a category has any real photo, its samples disappear.
 
-**Homepage "selected work":** your picks from Site photos (topped up with featured photos, up to 13) are arranged as a round cluster in different sizes, each photo shown whole. The first one is the biggest and sits in the middle. As visitors scroll down, the photos drift in from the edges and settle into the circle (the motion is handled by the browser itself where supported, so it stays smooth on phones). Phones show the first 9. Service pages use the same cluster for their photos.
+**Homepage "selected work":** you choose exactly which photos appear. Pick up to 13 in Site photos → Homepage (#1 is the biggest and sits in the middle; the next few are the larger ones). Only the photos you pick are shown, in your order, and nothing is added: pick 4 and the cluster is 4 photos; pick 13 and it's all 13. Empty spots are simply left out. **Remove** takes one photo out; **Clear selected work** empties the list. Until you've picked any, your *Featured* photos fill in automatically, and the first photo you pick starts a fresh list. The photos are arranged as a round cluster in different sizes, each shown whole. As visitors scroll down, the photos drift in from the edges and settle into the circle (the motion is handled by the browser itself where supported, so it stays smooth on phones). Phones show the first 9. Service pages use the same cluster for their photos.
 
 ## Editing a photo
 

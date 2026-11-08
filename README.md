@@ -55,7 +55,7 @@ The full guide is in **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**. In short:
 
 | Dashboard page | What you manage |
 |---|---|
-| **Site photos** | Every photo position: homepage hero, the 7 "selected work" tiles, both founders' portraits and extra About photos, each category cover, each service page cover, each journal cover. Drag a file onto a card to replace it. |
+| **Site photos** | Every photo position: homepage hero, the 13 "selected work" spots, both founders' portraits and extra About photos, each category cover, each service page cover, each journal cover. Drag a file onto a card to replace it. |
 | **Photo library** | Bulk drag-and-drop upload with progress, categories, drag-to-reorder, featured, show/hide, delete with safeguards, and the photo editor (independent desktop and mobile focal point + zoom with live crop previews, title, alt text, description, location, permission). |
 | **Categories** | Each category is a full session type: gallery, service page, session-finder option and pricing entry (packages or custom quote), all editable. Create, rename, reorder, hide, delete (photos are never deleted with a category). |
 | **Build your story** | Add, remove and reorder the story builder's buttons, link each to a category, a suggested package and specific photos. |

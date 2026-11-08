@@ -202,6 +202,38 @@ describe("mosaic placement", () => {
     expect(ops.placeInMosaic(["a", "b", "c"], 0, "c")).toEqual(["c", "b", "a"]);
     expect(ops.placeInMosaic(["a"], 4, "z")).toEqual(["a", "z"]);
     expect(ops.placeInMosaic(["a", "b"], 0, null)).toEqual(["b"]);
+    const many = Array.from({ length: 13 }, (_, i) => `p${i}`);
+    expect(ops.placeInMosaic(many, 13, "z")).toHaveLength(13);
+  });
+
+  it("has 13 homepage spots", () => {
+    const base = { hero: null, founder: null, founder2: null, mosaic: [], aboutPhotos: [], categoryCovers: {}, serviceCovers: {}, journalCovers: {} };
+    expect(ops.applySlot(base, "mosaic:12", "x").mosaic).toEqual(["x"]);
+    expect(() => ops.applySlot(base, "mosaic:13", "x")).toThrow();
+  });
+
+  it("shows exactly the picked photos, with nothing added", async () => {
+    const ids: string[] = [];
+    for (const [i, c] of ["#33445a", "#5a4433", "#445a33", "#5a3344"].entries()) {
+      const pid = await ops.addPhoto(repo, { ...(await fakeUpload(`mosaic-${i}.jpg`, c)), categoryId: "people", consent: true });
+      ids.push(pid);
+    }
+    await ops.patchPhotos(repo, ids, { featured: true });
+    await ops.setMosaic(repo, []);
+    const auto = resolve.mosaicPhotos(await ops.draftSiteData(repo));
+    expect(auto.length).toBeGreaterThan(2); // nothing picked: featured photos fill in
+
+    // The first pick starts a fresh list, even on a spot further down.
+    await ops.setSlot(repo, "mosaic:5", ids[2]);
+    expect((await ops.draftContent(repo)).layout.mosaic).toEqual([ids[2]]);
+    await ops.setSlot(repo, "mosaic:1", ids[0]);
+    const d = await ops.draftSiteData(repo);
+    expect(resolve.mosaicPhotos(d).map((p) => p.id)).toEqual([ids[2], ids[0]]);
+    expect(resolve.mosaicPhotos(d, 6, { fill: true }).length).toBeGreaterThan(2); // Flick's strip still tops up
+
+    await ops.setSlot(repo, "mosaic:0", null);
+    expect(resolve.mosaicPhotos(await ops.draftSiteData(repo)).map((p) => p.id)).toEqual([ids[0]]);
+    await ops.setMosaic(repo, []);
   });
 });
 

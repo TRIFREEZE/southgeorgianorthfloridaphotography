@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MOSAIC_MAX } from "./mosaic-limits";
 
 /**
  * Shapes of everything the CMS stores. Stored JSON is always parsed through these
@@ -77,7 +78,7 @@ export const layoutSchema = z.object({
   founder: z.string().nullable().default(null),
   /** The second founder's portrait (About page + homepage). */
   founder2: z.string().nullable().default(null),
-  mosaic: z.array(z.string()).max(7).default([]),
+  mosaic: z.array(z.string()).max(MOSAIC_MAX).default([]),
   categoryCovers: z.record(z.string(), z.string().nullable()).default({}),
   serviceCovers: z.record(z.string(), z.string().nullable()).default({}),
   journalCovers: z.record(z.string(), z.string().nullable()).default({}),

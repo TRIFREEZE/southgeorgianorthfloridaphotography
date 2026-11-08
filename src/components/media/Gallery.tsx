@@ -7,6 +7,7 @@ import { emitFlick } from "@/components/flick/bus";
 import { PhotoFill } from "./Photo";
 import { Lightbox } from "./Lightbox";
 import { PhotoCluster } from "./PhotoCluster";
+import { MOSAIC_MAX, MOSAIC_PHONE } from "@/lib/cms/mosaic-limits";
 
 type Layout = "mosaic" | "masonry";
 
@@ -50,8 +51,8 @@ export function Gallery({
           {/* A round cluster of photos in different sizes that gathers as you scroll. Phones get a smaller set so each photo stays a good size. */}
           {/* Photos drifting in from the sides are clipped at the screen edge (not the column edge), so they never cause sideways scrolling. */}
           <div className="-mx-5 overflow-x-clip px-5 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
-            <PhotoCluster photos={photos.slice(0, 9)} label={label} onOpen={openAt} className="md:hidden" testId="cluster-phone" />
-            <PhotoCluster photos={photos.slice(0, 13)} label={label} onOpen={openAt} className="hidden md:block" testId="cluster" />
+            <PhotoCluster photos={photos.slice(0, MOSAIC_PHONE)} label={label} onOpen={openAt} className="md:hidden" testId="cluster-phone" />
+            <PhotoCluster photos={photos.slice(0, MOSAIC_MAX)} label={label} onOpen={openAt} className="hidden md:block" testId="cluster" />
           </div>
         </>
       ) : (

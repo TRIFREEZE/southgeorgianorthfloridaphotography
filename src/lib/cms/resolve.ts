@@ -1,6 +1,7 @@
 import { publishedPosts } from "@/content/journal";
 import { samplePhotos } from "@/content/sample-photos";
 import type { Photo } from "@/lib/photo-types";
+import { MOSAIC_MAX } from "./mosaic-limits";
 import type { Category, SiteContent } from "./schema";
 
 /**
@@ -59,16 +60,21 @@ export function aboutPhotos(d: SiteData): Photo[] {
   return d.content.layout.aboutPhotos.map((id) => photoById(d, id)).filter((p): p is Photo => Boolean(p));
 }
 
-/** Homepage mosaic: the hand-picked order first, topped up with featured photos. */
-/** Homepage selected work: the hand-picked order first, topped up with featured photos (always, with `fill`). */
-export function mosaicPhotos(d: SiteData, limit = 7, opts: { fill?: boolean } = {}): Photo[] {
+/**
+ * Homepage selected work. Once the owner has picked any photos, exactly those show,
+ * in their order, with nothing added. Until then it falls back to featured photos
+ * (or labeled samples on a brand-new site). `fill` tops up with other photos anyway,
+ * for places that need a full set (Flick's film strip).
+ */
+export function mosaicPhotos(d: SiteData, limit = MOSAIC_MAX, opts: { fill?: boolean } = {}): Photo[] {
   const hero = heroPhoto(d);
   const picked = d.content.layout.mosaic.map((id) => photoById(d, id)).filter((p): p is Photo => Boolean(p));
+  if (picked.length && !opts.fill) return picked.slice(0, limit);
   const { photos, isReal } = portfolio(d);
   if (!isReal && !picked.length) return photos.filter((p) => p.featured && p.id !== hero.id).slice(0, limit);
   const out = [...picked];
   const pool = photos.filter((p) => p.id !== hero.id && !out.some((o) => o.id === p.id));
-  if (opts.fill || out.length < 5) out.push(...pool.filter((p) => p.featured), ...pool.filter((p) => !p.featured));
+  out.push(...pool.filter((p) => p.featured), ...pool.filter((p) => !p.featured));
   return out.slice(0, limit);
 }
 

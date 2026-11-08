@@ -4,20 +4,26 @@ import type { SlotView } from "@/components/admin/SlotBoard";
 import { adminPhotos, draftSiteData } from "./ops";
 import { categoryCover, founderPhoto, heroPhoto, journalCover, mosaicPhotos, serviceCover, visibleCategories } from "./resolve";
 import type { CmsRepo } from "./repo/types";
+import { MOSAIC_MAX, MOSAIC_PHONE } from "./mosaic-limits";
 import { servicePages } from "./sessions";
 
 /** Every photo position on the public site, resolved exactly as it will look after Publish. */
 export async function siteSlots(repo: CmsRepo): Promise<SlotView[]> {
   const d = await draftSiteData(repo);
   const l = d.content.layout;
-  const mosaic = mosaicPhotos(d, 7);
+  const mosaic = mosaicPhotos(d);
+  const picked = l.mosaic.length > 0;
   const slots: SlotView[] = [
     { key: "hero", group: "Homepage", label: "Hero (top of homepage)", hint: "The first photo every visitor sees. Tall on desktop, 4:5 on phones.", ratio: "3 / 4", current: heroPhoto(d), explicitId: l.hero, categoryId: null, href: "/" },
-    ...Array.from({ length: 7 }, (_, i) => ({
+    ...Array.from({ length: MOSAIC_MAX }, (_, i) => ({
       key: `mosaic:${i}`,
       group: "Homepage",
       label: `Selected work #${i + 1}`,
-      hint: i === 0 ? "The large tile in the homepage gallery (also used in Flick's film strip)." : "Homepage gallery tile.",
+      hint: [
+        i === 0 ? "The biggest photo, in the middle of the homepage cluster." : i < 4 ? "One of the larger photos in the homepage cluster." : "A smaller photo toward the edge of the cluster.",
+        i >= MOSAIC_PHONE ? "Desktop and tablet only (phones show #1–9)." : "",
+        picked ? "Empty spots are left out: only the photos you pick appear." : "Until you pick one, featured photos fill these automatically.",
+      ].filter(Boolean).join(" "),
       ratio: i === 0 ? "4 / 5" : "1 / 1",
       current: mosaic[i] ?? null,
       explicitId: l.mosaic[i] ?? null,
