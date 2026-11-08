@@ -138,12 +138,6 @@ export const TEXT_FIELDS: TextField[] = [
     multiline: true,
     hint: "The headline's last word cycles through these, in order. Put the word from your headline first. Leave just one word to turn cycling off.",
   }),
-  f(
-    HOME,
-    "home.hero.lede",
-    "Hero: paragraph",
-    "South Georgia & North Florida photography for the people, animals, and stories you love. Portraits, families, pets, horses, weddings and businesses, priced by the photos you take home, not the minutes on a clock.",
-  ),
   f(HOME, "home.hero.cta1", "Hero: main button", "See the photography"),
   f(HOME, "home.hero.cta2", "Hero: second button", "Book a session"),
   f(HOME, "home.hero.price", "Hero: starting price line", "Portrait sessions from {price}.", { hint: "{price} becomes your lowest package price. Shown once prices are marked final." }),

@@ -257,7 +257,8 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
         ))}
       </ol>
 
-      <div className="grid gap-8 lg:grid-cols-12">
+      {/* Heading in its own row, so the estimate box lines up with the first row of choices beside it. */}
+      <div className="grid gap-x-8 gap-y-7 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <p className="eyebrow" aria-hidden>
             Step {step + 1} of 4
@@ -265,8 +266,10 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
           <h2 id="wizard-step-title" ref={headingRef} tabIndex={-1} className="mt-2 text-display-sm outline-none">
             {steps[step]}
           </h2>
+        </div>
 
-          <div className="mt-7 space-y-7">
+        <div className="lg:col-span-8 lg:row-start-2">
+          <div className="space-y-7">
             {step === 0 && (
               <fieldset>
                 <legend className="sr-only">Session type</legend>
@@ -520,7 +523,7 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
           </div>
         </div>
 
-        <aside className="lg:col-span-4" aria-label="Estimate">
+        <aside className="lg:col-span-4 lg:col-start-9 lg:row-start-2" aria-label="Estimate">
           <div className="rounded-[var(--radius-card)] bg-ink p-6 text-gallery on-dark lg:sticky lg:top-28">
             <p className="eyebrow">Live estimate</p>
             {!est || est.kind === "incomplete" ? (

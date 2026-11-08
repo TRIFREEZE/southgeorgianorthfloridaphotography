@@ -65,7 +65,7 @@ export default async function ExperiencePage() {
                 <ul className="mt-4 space-y-2.5 text-ink-soft">
                   {p.items.map((x) => (
                     <li key={x} className="flex gap-3">
-                      <span aria-hidden className="dash mt-[0.7em]" />
+                      <span aria-hidden className="dash" />
                       {x}
                     </li>
                   ))}

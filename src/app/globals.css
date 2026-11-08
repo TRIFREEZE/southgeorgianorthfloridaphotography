@@ -152,7 +152,8 @@
     content: "";
     position: absolute;
     left: 0.2em;
-    top: 0.72em;
+    top: 0.8em;
+    top: 0.5lh;
     width: 0.45em;
     height: 0;
     border-top: 1px solid var(--color-clay);
@@ -198,13 +199,25 @@
     display: none;
   }
 
-  /* Short list dashes. A border (not a 1px-tall box) is snapped to whole device pixels, so every dash is the same weight. */
+  /*
+   * Short list dashes, centred on the first line of text beside them whatever the
+   * font size (the box is exactly one line tall). Drawn with a border, which is
+   * snapped to whole device pixels, so every dash is the same weight.
+   */
   .dash {
-    display: block;
+    display: flex;
+    align-items: center;
     flex-shrink: 0;
     width: 0.75rem;
-    height: 0;
-    border-top: 1px solid var(--color-clay);
+    height: 1.5em;
+    height: 1lh;
+    color: var(--color-clay);
+  }
+  .dash::before {
+    content: "";
+    display: block;
+    width: 100%;
+    border-top: 1px solid currentColor;
   }
 
   .grain {

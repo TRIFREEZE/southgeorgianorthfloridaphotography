@@ -151,6 +151,14 @@ export function PhotoEditor({
                 ? ` · original ${formatBytes(s.originalBytes)} kept safely`
                 : ""}
             </span>
+            {Math.max(s.width, s.height) < 1800 && (
+              <span className="w-full rounded-lg bg-sand/70 px-3 py-2 text-ink-soft" data-testid="low-res">
+                This file is only {Math.max(s.width, s.height)}px on its long side, so it will look soft in big spots (the hero, journal covers, full screen). Upload the full-size export if you have it.
+              </span>
+            )}
+            {Math.max(f.zoom.d, f.zoom.m) > 1.6 && Math.max(s.width, s.height) < 2400 && (
+              <span className="w-full rounded-lg bg-sand/70 px-3 py-2 text-ink-soft">Zoomed in this far, a photo this size can look soft in large spots. A smaller zoom keeps it crisp.</span>
+            )}
             {photo.isNew && <Badge tone="new">New</Badge>}
             {!photo.isNew && photo.changed && (
               <Badge tone="changed">Unpublished edits</Badge>

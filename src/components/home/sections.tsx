@@ -9,7 +9,7 @@ import { PhotoFill } from "@/components/media/Photo";
 import { SamplePlate } from "@/components/media/SamplePlate";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, SectionHeading } from "@/components/ui/primitives";
-import { PackageCard } from "./PackageCard";
+import { PackageCard, packageGrid } from "./PackageCard";
 
 type Texts = Record<string, string>;
 
@@ -111,7 +111,7 @@ export function PricingPreview({ pricing, texts }: { pricing: Pricing; texts: Te
             {textOf(texts, "home.pricing.cta")} <Arrow />
           </ButtonLink>
         </div>
-        <div className="mt-12 grid gap-4 md:grid-cols-3 lg:gap-5">
+        <div className={`mt-12 grid gap-4 lg:gap-5 ${packageGrid(pricing.packages.length)}`}>
           {pricing.packages.map((p) => (
             <PackageCard key={p.id} pkg={p} />
           ))}

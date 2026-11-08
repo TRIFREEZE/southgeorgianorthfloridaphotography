@@ -136,13 +136,19 @@ export function FlickSVG({
       )}
       {prop === "cloth" && (
         <g className="flick-cloth">
-          {/* a soft white rag: rumpled edges, two folds, a dangling corner and a frayed hem */}
-          <g transform="rotate(-10)">
-            <path d="M-9.2 -6.2 Q-4.6 -8.8 0.6 -6.9 Q4.8 -5.4 8.6 -7.3 Q10.2 -3.6 9.1 -0.6 Q8.2 2.6 9.4 5.6 Q4.6 7.8 -0.4 6.1 Q-5.2 4.7 -8.9 6.8 Q-10.6 2.4 -9.4 -1.6 Z" fill="#FCFBF7" stroke="#d6cfc2" strokeWidth="0.6" strokeLinejoin="round" />
-            <path d="M-5.2 -6.9 Q-3.4 -0.6 -5.6 5.4" stroke="#e4ddd1" strokeWidth="0.9" fill="none" strokeLinecap="round" />
-            <path d="M2.4 -6.4 Q4.6 -0.4 2.6 6.2" stroke="#e4ddd1" strokeWidth="0.9" fill="none" strokeLinecap="round" />
-            <path d="M8.9 5.1 Q11 9.2 8.2 12.8 Q6 10.1 5.5 6.6 Z" fill="#F3F0E8" stroke="#d6cfc2" strokeWidth="0.5" strokeLinejoin="round" />
-            <path d="M-8.7 6.7 l-0.8 1.5 M-6.7 5.9 l-0.5 1.6 M-4.5 5.3 l-0.2 1.6 M-2.2 5.6 l0.1 1.5" stroke="#cfc7b9" strokeWidth="0.5" strokeLinecap="round" />
+          {/* a flat microfiber lens cloth: square, fine woven texture, stitched hem, one corner folded over */}
+          <defs>
+            <pattern id={`${ring}-weave`} width="1.6" height="1.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <path d="M0 0.8 H1.6" stroke="#FFFFFF" strokeOpacity="0.22" strokeWidth="0.35" />
+              <path d="M0.8 0 V1.6" stroke="#2F4650" strokeOpacity="0.12" strokeWidth="0.35" />
+            </pattern>
+          </defs>
+          <g transform="rotate(-12)">
+            <path d="M-9 -8 H8.4 Q9 -8 9 -7.4 V3.2 L3.2 9 H-8.4 Q-9 9 -9 8.4 Z" fill="#8FA9B6" />
+            <path d="M-9 -8 H8.4 Q9 -8 9 -7.4 V3.2 L3.2 9 H-8.4 Q-9 9 -9 8.4 Z" fill={`url(#${ring}-weave)`} />
+            <path d="M-7.6 -6.6 H7.6 V2.6 L2.6 7.6 H-7.6 Z" fill="none" stroke="#E6EEF2" strokeWidth="0.45" strokeDasharray="1 0.7" strokeLinejoin="round" />
+            <path d="M9 3.2 L3.2 9 L3.9 3.9 Z" fill="#B7CAD3" />
+            <path d="M9 3.2 L3.9 3.9 L3.2 9" fill="none" stroke="#6F8996" strokeWidth="0.35" strokeLinejoin="round" />
           </g>
         </g>
       )}

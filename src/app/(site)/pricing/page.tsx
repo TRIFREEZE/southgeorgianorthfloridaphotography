@@ -90,7 +90,7 @@ export default async function PricingPage() {
                     <ul className="mt-5 space-y-2 text-[0.95rem] text-ink-soft">
                       {s.quote.factors.map((f) => (
                         <li key={f} className="flex gap-3">
-                          <span aria-hidden className="dash mt-[0.7em]" />
+                          <span aria-hidden className="dash" />
                           {f}
                         </li>
                       ))}

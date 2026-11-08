@@ -20,8 +20,9 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
   const starting = pricedPackages(pricing.packages)[0]?.priceCents;
   return (
     <section className="relative overflow-hidden" aria-labelledby="hero-title">
-      <Container className="grid items-end gap-8 pt-8 pb-14 sm:pt-12 md:grid-cols-12 md:gap-10 lg:pt-16 lg:pb-24">
-        <div className="md:col-span-7 lg:col-span-7 md:pb-6">
+      {/* The text block is centred on the photo itself (its caption hangs below and isn't counted). */}
+      <Container className="grid gap-8 pt-8 pb-16 sm:pt-12 md:grid-cols-12 md:items-center md:gap-10 lg:pt-16 lg:pb-28">
+        <div className="md:col-span-7 lg:col-span-7">
           <h1 id="hero-title">
             <span className="eyebrow block max-w-md leading-relaxed">{t("home.hero.eyebrow")}</span>
             <span className="headline-reveal mt-5 block font-display text-display-xl leading-[0.98] tracking-[-0.025em]">
@@ -33,8 +34,7 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
               ))}
             </span>
           </h1>
-          <p className="mt-7 max-w-xl text-lede text-muted">{t("home.hero.lede")}</p>
-          <div className="mt-9 flex flex-wrap items-center gap-3">
+          <div className="mt-9 flex flex-wrap items-center gap-3 lg:mt-11">
             <ButtonLink href="/portfolio">
               {t("home.hero.cta1")} <Arrow />
             </ButtonLink>
@@ -50,7 +50,7 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand shadow-[0_30px_60px_-30px_rgba(37,39,35,0.45)] md:aspect-[3/4]">
               <PhotoFill photo={photo} priority sizes="(min-width: 768px) 40vw, 100vw" quality={85} />
             </div>
-            <figcaption className="mt-3 flex items-center justify-between gap-4 text-xs text-muted">
+            <figcaption className="mt-3 flex items-center justify-between gap-4 text-xs text-muted md:absolute md:inset-x-0 md:top-full">
               <span>{photo.isSample ? "Hero photograph: replace it in Admin → Site photos" : photo.title}</span>
               <span className="font-display italic">{t("site.secondaryLine")}</span>
             </figcaption>

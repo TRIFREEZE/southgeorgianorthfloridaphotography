@@ -13,7 +13,7 @@ Flick is ECHO, recolored for Southstill. The geometry and motion are ported dire
 | Echo trail: expanding, fading copies of the ring | `engine.emit()`, CSS-animated rings in a fixed layer |
 | Restrained halo | Radial-gradient halo |
 
-Additions for the web: squash/stretch along velocity, little feet that peek out when walking or dragged, a camera-flash "snap", a lens-cleaning cloth (a soft white rag with folds, a dangling corner and a frayed hem), a tiny map (404 page), sleepy lids, and "z"s.
+Additions for the web: squash/stretch along velocity, little feet that peek out when walking or dragged, a camera-flash "snap", a lens-cleaning cloth (a flat microfiber cloth with a woven texture, stitched hem and a folded corner), a tiny map (404 page), sleepy lids, and "z"s.
 
 ## Architecture
 

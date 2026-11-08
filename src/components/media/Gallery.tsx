@@ -9,16 +9,44 @@ import { Lightbox } from "./Lightbox";
 
 type Layout = "mosaic" | "masonry";
 
-/* Asymmetric editorial mosaic: art-directed spans for up to 7 images. */
-const mosaicSpans = [
-  "col-span-6 row-span-4 md:col-span-7 md:row-span-6",
-  "col-span-6 row-span-3 md:col-span-5 md:row-span-3",
-  "col-span-3 row-span-3 md:col-span-5 md:row-span-3",
-  "col-span-3 row-span-3 md:col-span-4 md:row-span-4",
-  "col-span-6 row-span-3 md:col-span-4 md:row-span-4",
-  "col-span-3 row-span-3 md:col-span-4 md:row-span-4",
-  "col-span-3 row-span-3 md:col-span-12 md:row-span-3",
-];
+/**
+ * Collage: every photo shown whole (no cropping), packed into rows that each fill
+ * the full width exactly, like a printed contact sheet. Photos keep their order;
+ * the split into rows is chosen so every row ends up about the same height, so a
+ * wide shot simply shares its row with fewer neighbors than tall ones do.
+ */
+const ratio = (p: Photo) => Math.min(3, Math.max(0.4, p.width / p.height || 1));
+
+export function collageRows(photos: Photo[], width: number, rowHeight: number): Photo[][] {
+  const ars = photos.map(ratio);
+  const total = ars.reduce((s, a) => s + a, 0);
+  const k = Math.max(1, Math.min(photos.length, Math.round((total * rowHeight) / width)));
+  const ideal = total / k;
+  // Best contiguous split into k rows: smallest squared difference from the ideal row width.
+  const n = ars.length;
+  const prefix = [0];
+  for (const a of ars) prefix.push(prefix.at(-1)! + a);
+  const cost = (i: number, j: number) => (prefix[j] - prefix[i] - ideal) ** 2;
+  const best: number[][] = Array.from({ length: k + 1 }, () => Array(n + 1).fill(Infinity));
+  const cut: number[][] = Array.from({ length: k + 1 }, () => Array(n + 1).fill(0));
+  best[0][0] = 0;
+  for (let r = 1; r <= k; r++)
+    for (let j = r; j <= n; j++)
+      for (let i = r - 1; i < j; i++) {
+        const c = best[r - 1][i] + cost(i, j);
+        if (c < best[r][j]) {
+          best[r][j] = c;
+          cut[r][j] = i;
+        }
+      }
+  const rows: Photo[][] = [];
+  for (let r = k, j = n; r > 0; r--) {
+    const i = cut[r][j];
+    rows.unshift(photos.slice(i, j));
+    j = i;
+  }
+  return rows;
+}
 
 export function Gallery({
   photos,
@@ -56,13 +84,11 @@ export function Gallery({
   return (
     <>
       {layout === "mosaic" ? (
-        <ul aria-label={label} className="grid auto-rows-[minmax(3.2rem,8vw)] grid-cols-6 gap-2.5 sm:gap-3 md:auto-rows-[minmax(3rem,5.2vw)] md:grid-cols-12 lg:gap-4">
-          {photos.slice(0, 7).map((p, i) => (
-            <li key={p.id} className={`${mosaicSpans[i]} ${i === 6 ? "md:hidden" : ""}`} data-reveal="crop" style={{ ["--reveal-delay" as string]: `${i * 70}ms` }}>
-              <Tile photo={p} onOpen={(e) => openAt(i, e)} sizes={i === 0 ? "(min-width: 768px) 58vw, 100vw" : "(min-width: 768px) 34vw, 50vw"} />
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* Two arrangements (phone and wider screens) so the layout never jumps after loading; hidden images aren't downloaded. */}
+          <Collage photos={photos.slice(0, 7)} rows={collageRows(photos.slice(0, 7), 350, 165)} className="flex md:hidden" label={label} onOpen={openAt} />
+          <Collage photos={photos.slice(0, 7)} rows={collageRows(photos.slice(0, 7), 1248, 360)} className="hidden md:flex" label={label} onOpen={openAt} wide />
+        </>
       ) : (
         <ul aria-label={label} className="columns-2 gap-2.5 sm:gap-4 lg:columns-3 [&>li]:mb-2.5 sm:[&>li]:mb-4">
           {photos.map((p, i) => (
@@ -79,7 +105,32 @@ export function Gallery({
   );
 }
 
-function Tile({ photo, onOpen, sizes }: { photo: Photo; onOpen: (e: React.MouseEvent) => void; sizes: string }) {
+function Collage({ photos, rows, className, label, onOpen, wide = false }: { photos: Photo[]; rows: Photo[][]; className: string; label: string; onOpen: (i: number, e: React.MouseEvent) => void; wide?: boolean }) {
+  return (
+    <div role="group" aria-label={label} className={`flex-col gap-2.5 sm:gap-3 lg:gap-4 ${className}`} data-testid={wide ? "collage" : "collage-phone"}>
+      {rows.map((row, r) => {
+        const sum = row.reduce((s, p) => s + ratio(p), 0);
+        return (
+          <ul key={r} className="flex gap-2.5 sm:gap-3 lg:gap-4">
+            {row.map((p) => {
+              const i = photos.indexOf(p);
+              const ar = ratio(p);
+              const share = Math.round((ar / sum) * 100);
+              return (
+                // Same flex share as aspect ratio → every photo in the row is exactly the same height, uncropped.
+                <li key={p.id} className="min-w-0" data-reveal="crop" data-collage-item style={{ flex: `${ar} 1 0%`, aspectRatio: String(ar), ["--reveal-delay" as string]: `${i * 70}ms` }}>
+                  <Tile photo={p} onOpen={(e) => onOpen(i, e)} sizes={wide ? `(min-width: 768px) ${Math.max(20, share)}vw, 100vw` : `${Math.max(34, share)}vw`} whole />
+                </li>
+              );
+            })}
+          </ul>
+        );
+      })}
+    </div>
+  );
+}
+
+function Tile({ photo, onOpen, sizes, whole = false }: { photo: Photo; onOpen: (e: React.MouseEvent) => void; sizes: string; whole?: boolean }) {
   return (
     <button
       type="button"
@@ -89,7 +140,7 @@ function Tile({ photo, onOpen, sizes }: { photo: Photo; onOpen: (e: React.MouseE
       aria-label={`Open photo: ${photo.title}${photo.isSample ? " (sample placeholder)" : ""}`}
     >
       <span className="absolute inset-0 transition-transform duration-[1200ms] ease-[var(--ease-out-soft)] group-hover:scale-[1.035]">
-        <PhotoFill photo={photo} sizes={sizes} />
+        <PhotoFill photo={photo} sizes={sizes} crop={!whole} />
       </span>
       <span className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] translate-y-2 bg-gradient-to-t from-ink/70 to-transparent p-4 pt-10 text-sm text-gallery opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
         {photo.title}

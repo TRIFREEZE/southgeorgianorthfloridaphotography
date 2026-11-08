@@ -97,7 +97,7 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
             <ul className="mt-6 space-y-3 text-lede text-ink-soft">
               {s.idealFor.map((x) => (
                 <li key={x} className="flex gap-3">
-                  <span aria-hidden className="dash mt-[0.7em] w-4" />
+                  <span aria-hidden className="dash w-4" />
                   {x}
                 </li>
               ))}
@@ -140,7 +140,7 @@ async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "
                 <ul className="mt-4 space-y-3 text-ink-soft">
                   {quote.factors.map((f) => (
                     <li key={f} className="flex gap-3 border-b border-line pb-3">
-                      <span aria-hidden className="dash mt-[0.7em] w-4" />
+                      <span aria-hidden className="dash w-4" />
                       {f}
                     </li>
                   ))}

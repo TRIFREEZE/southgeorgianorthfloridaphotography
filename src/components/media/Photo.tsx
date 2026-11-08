@@ -13,6 +13,19 @@ export function cropStyle(p: Pick<PhotoT, "focalX" | "focalY" | "focalMX" | "foc
   };
 }
 
+/**
+ * When a photo is zoomed in (its crop), it's drawn larger than its box, so the
+ * browser must fetch a proportionally bigger file or it looks soft and blocky.
+ * Scales each size in a `sizes` list (never the media conditions) by the zoom.
+ */
+export function zoomedSizes(sizes: string, zoom: number) {
+  if (!(zoom > 1.01)) return sizes;
+  return sizes
+    .split(",")
+    .map((entry) => entry.replace(/(\d+(?:\.\d+)?)(vw|px)\s*$/, (_, n: string, u: string) => `${Math.round(Number(n) * zoom)}${u}`))
+    .join(",");
+}
+
 export const CROP_CLASS =
   "object-cover [object-position:var(--pos-m)] [transform-origin:var(--pos-m)] [transform:scale(var(--z-m))] md:[object-position:var(--pos-d)] md:[transform-origin:var(--pos-d)] md:[transform:scale(var(--z-d))]";
 
@@ -51,8 +64,8 @@ export function PhotoFill({
       src={photo.src}
       alt={photo.alt}
       fill
-      sizes={sizes}
-      quality={quality}
+      sizes={crop ? zoomedSizes(sizes, Math.max(photo.zoomD ?? 1, photo.zoomM ?? 1)) : sizes}
+      quality={crop && Math.max(photo.zoomD ?? 1, photo.zoomM ?? 1) > 1.01 ? 85 : quality}
       preload={priority}
       fetchPriority={priority ? "high" : undefined}
       loading={priority ? "eager" : "lazy"}

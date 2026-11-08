@@ -27,6 +27,7 @@ Click any photo in the library (or **Crop & text** on a Site photos card):
 - **Alt text** (required to go live): describe what's in the frame ("Bay mare and her rider at sunset in a pecan orchard"). It helps Google Images and people using screen readers.
 - **Title, description, location:** optional. Location only if true; it powers local relevance.
 - **Category:** where it appears in the portfolio. *None* keeps it as a site-only photo (good for your hero or portrait).
+- **Resolution:** the editor warns you if a file is small (under 1800px on its long side) or zoomed in so far it would look soft in big spots like the hero or journal covers. Upload the full-size export for those.
 - **Also show in:** tick any other categories this photo belongs to (a dog on a family shoot can be in *People* and *Pets*). It appears in each of those galleries.
 - **Visible on the site / Featured:** hide a photo without deleting it, or prefer it for covers and the homepage.
 - **Permission:** pick the true status. If clients are recognizable you need their permission (keep the release). A photo marked *Not confirmed yet* can't be published.
