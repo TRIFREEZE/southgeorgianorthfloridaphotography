@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { publishedPosts } from "@/content/journal";
+import { PhotoFill } from "@/components/media/Photo";
 import { SamplePlate } from "@/components/media/SamplePlate";
+import { getSiteData } from "@/lib/cms/data";
+import { journalCover } from "@/lib/cms/resolve";
 import { Container, PageHero } from "@/components/ui/primitives";
 import { pageMetadata } from "@/lib/seo";
 
@@ -13,7 +16,8 @@ export const metadata: Metadata = pageMetadata({
 
 const fmt = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-export default function JournalPage() {
+export default async function JournalPage() {
+  const d = await getSiteData();
   const posts = publishedPosts();
   return (
     <>
@@ -25,7 +29,14 @@ export default function JournalPage() {
               <Link href={`/journal/${p.slug}`} className="group block">
                 <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] bg-sand">
                   <span className="absolute inset-0 transition-transform duration-1000 group-hover:scale-[1.04]">
-                    <SamplePlate photo={{ id: `j-${p.slug}`, category: p.coverCategory, title: p.title, tone: i * 4 + 2, width: 4, height: 3 }} showLabel={false} />
+                    {(() => {
+                      const cover = journalCover(d, p.slug);
+                      return cover ? (
+                        <PhotoFill photo={cover} sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" showSampleLabel={false} />
+                      ) : (
+                        <SamplePlate photo={{ id: `j-${p.slug}`, category: p.coverCategory, title: p.title, tone: i * 4 + 2, width: 4, height: 3 }} showLabel={false} />
+                      );
+                    })()}
                   </span>
                 </div>
                 <p className="eyebrow mt-5">

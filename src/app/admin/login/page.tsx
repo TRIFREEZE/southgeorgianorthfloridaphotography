@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { adminConfig, getAdmin } from "@/lib/admin-auth";
 import { LoginForm } from "./LoginForm";
 
@@ -17,6 +18,7 @@ export default function LoginPage() {
 }
 
 async function LoginGate() {
+  await connection(); // configuration is read at request time, never baked in at build
   const cfg = adminConfig();
   if (!cfg.ok) {
     return (

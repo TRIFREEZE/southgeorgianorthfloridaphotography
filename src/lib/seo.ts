@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { faqs as allFaqs } from "@/content/faqs";
-import { pricing } from "@/content/pricing";
+import type { Faq, Pricing } from "@/lib/cms/schema";
 import { site } from "@/content/site";
 import type { Service } from "@/content/services";
 import { isProductionDeployment, publicEnv, socialLinks } from "@/lib/env";
@@ -89,7 +88,7 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
   };
 }
 
-export function serviceJsonLd(service: Service) {
+export function serviceJsonLd(service: Service, pricing: Pricing) {
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Service",
@@ -112,7 +111,7 @@ export function serviceJsonLd(service: Service) {
   return data;
 }
 
-export function faqJsonLd(items = allFaqs) {
+export function faqJsonLd(items: Pick<Faq, "q" | "a">[]) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",

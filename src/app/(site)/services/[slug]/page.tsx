@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { formatPrice, pricing } from "@/content/pricing";
+import { formatPrice } from "@/content/pricing";
 import { serviceBySlug, services } from "@/content/services";
 import { PackageCard } from "@/components/home/PackageCard";
 import { Gallery } from "@/components/media/Gallery";
@@ -8,7 +9,9 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, SectionHeading } from "@/components/ui/primitives";
 import { TrackView } from "@/components/ui/TrackView";
-import { getPortfolioPhotos } from "@/lib/photos";
+import { getSiteData } from "@/lib/cms/data";
+import { categoryById, portfolio } from "@/lib/cms/resolve";
+import { textOf } from "@/lib/cms/texts";
 import { breadcrumbJsonLd, pageMetadata, serviceJsonLd } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -22,11 +25,31 @@ export async function generateMetadata({ params }: PageProps<"/services/[slug]">
   return pageMetadata({ title: s.seoTitle, description: s.seoDescription, path: `/services/${s.slug}` });
 }
 
-export default async function ServicePage({ params }: PageProps<"/services/[slug]">) {
+/** Unlisted paths wait for the complete static page (so unknown ones get a real 404). */
+export const ensureStatic = "navigation";
+
+/**
+ * The body sits in a Suspense boundary so the page can be regenerated on demand
+ * after an edit is published (params are only known per path). Known paths
+ * still prerender completely, so the HTML search engines see is unchanged.
+ */
+export default function ServicePage({ params }: PageProps<"/services/[slug]">) {
+  return (
+    <Suspense fallback={null}>
+      <ServicePageBody params={params} />
+    </Suspense>
+  );
+}
+
+async function ServicePageBody({ params }: Pick<PageProps<"/services/[slug]">, "params">) {
   const { slug } = await params;
   const s = serviceBySlug(slug);
   if (!s) notFound();
-  const { photos } = await getPortfolioPhotos(s.category);
+  const d = await getSiteData();
+  const { pricing, texts } = d.content;
+  const { photos } = portfolio(d, s.category);
+  const cat = categoryById(d, s.category);
+  const workHref = cat?.visible ? `/portfolio/${cat.slug}` : "/portfolio";
   const quote = s.pricingMode === "quote" ? pricing.custom[s.slug as "weddings-events" | "business-branding"] : null;
 
   return (
@@ -36,15 +59,15 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
         <Container className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-7">
             <p className="eyebrow mb-5">{s.name}</p>
-            <h1 className="text-display-lg">{s.headline}</h1>
+            <h1 className="text-display-lg">{textOf(texts, `services.${s.slug}.headline`)}</h1>
           </div>
           <div className="lg:col-span-5 lg:pt-10">
-            <p className="text-lede text-ink-soft">{s.intro}</p>
+            <p className="text-lede text-ink-soft">{textOf(texts, `services.${s.slug}.intro`)}</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <ButtonLink href={`/book?category=${s.bookingCategory}`}>
                 {s.cta} <Arrow />
               </ButtonLink>
-              <ButtonLink href={`/portfolio/${s.category}`} variant="secondary">
+              <ButtonLink href={workHref} variant="secondary">
                 See the work
               </ButtonLink>
             </div>
@@ -146,14 +169,14 @@ export default async function ServicePage({ params }: PageProps<"/services/[slug
             </h2>
           </div>
           <div className="lg:col-span-8">
-            <FaqList items={s.faqs} />
+            <FaqList items={d.content.faqs.filter((f) => f.services.includes(s.slug))} />
           </div>
         </Container>
       </section>
 
       <JsonLd
         data={[
-          serviceJsonLd(s),
+          serviceJsonLd(s, pricing),
           breadcrumbJsonLd([
             { name: "Home", path: "/" },
             { name: "Services", path: "/services" },

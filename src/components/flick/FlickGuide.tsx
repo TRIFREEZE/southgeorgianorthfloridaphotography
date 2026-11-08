@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { bookingCategories, services } from "@/content/services";
-import { formatPrice, pricing } from "@/content/pricing";
+import { formatPrice } from "@/content/pricing";
 import { isPackageEligible } from "@/lib/inquiry/estimate";
 import { FlickSVG } from "./FlickSVG";
-import { guideTopics, searchGuide, type GuideAnswer } from "./guide";
+import { buildGuide, searchGuide, type GuideAnswer, type GuideData } from "./guide";
 
 /**
  * "Ask Flick": an accessible modal guide with structured answers from the
  * site's own content. Explicitly not an AI chatbot.
  */
-export function FlickGuide({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function FlickGuide({ open, onClose, data }: { open: boolean; onClose: () => void; data: GuideData }) {
+  const guide = useMemo(() => buildGuide(data), [data]);
+  const { pricing } = data;
+  const [cheap, rec] = [...pricing.packages].sort((a, b) => a.priceCents - b.priceCents);
   const ref = useRef<HTMLDialogElement>(null);
   const [answer, setAnswer] = useState<GuideAnswer | null>(null);
   const [matching, setMatching] = useState(false);
@@ -69,7 +72,7 @@ export function FlickGuide({ open, onClose }: { open: boolean; onClose: () => vo
             className="flex gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              const hit = searchGuide(q);
+              const hit = searchGuide(guide, q);
               setMatching(false);
               setAnswer(hit);
               setMiss(!hit);
@@ -125,8 +128,8 @@ export function FlickGuide({ open, onClose }: { open: boolean; onClose: () => vo
                       <li key={c.id} className="rounded-lg border border-line bg-gallery p-3">
                         <p className="font-semibold">{c.label}</p>
                         <p className="text-sm text-muted">
-                          {isPackageEligible(c.id)
-                            ? `Priced by photos: from ${formatPrice(pricing.packages[0].priceCents)} for ${pricing.packages[0].photos}. ${pricing.packages[1].name} (${pricing.packages[1].photos} photos, ${formatPrice(pricing.packages[1].priceCents)}) is our recommended start.`
+                          {isPackageEligible(c.id, pricing)
+                            ? `Priced by photos: from ${formatPrice(cheap.priceCents)} for ${cheap.photos}. ${rec.name} (${rec.photos} photos, ${formatPrice(rec.priceCents)}) is our recommended start.`
                             : c.id === "other"
                               ? "Tell us your idea and we'll suggest the right setup."
                               : "Custom quote with clear coverage and deliverables."}
@@ -159,7 +162,7 @@ export function FlickGuide({ open, onClose }: { open: boolean; onClose: () => vo
                   Which session fits me?
                 </button>
               </li>
-              {guideTopics.map((t) => (
+              {guide.topics.map((t) => (
                 <li key={t.id}>
                   <button type="button" onClick={() => setAnswer(t)} className="min-h-11 rounded-full border border-ink/20 bg-parchment px-4 text-sm hover:border-ink/50">
                     {t.question}

@@ -45,3 +45,7 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /blob-report/
+
+# Local CMS data (dev/tests only)
+.data/
+.data-e2e/

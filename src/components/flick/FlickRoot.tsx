@@ -5,6 +5,7 @@ import { track } from "@/lib/analytics";
 import { FlickController, type Bubble, type FlickUI, type Placement } from "./controller";
 import { FilmStrip } from "./FilmStrip";
 import { FlickGuide } from "./FlickGuide";
+import type { GuideData } from "./guide";
 import { FlickSVG } from "./FlickSVG";
 import { setFlickHidden, setFlickMuted, useFlickPrefs } from "./prefs";
 import type { FilmStripPhoto, FlickMood, FlickProp } from "./types";
@@ -17,7 +18,7 @@ export const FLICK_SIZE = { desktop: 124, compact: 96 } as const;
  * Flick's React shell: renders the character, speech bubble, intro card, menu,
  * film strip and guide. All behavior lives in FlickController.
  */
-export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }) {
+export default function FlickRoot({ filmStrip, guide, preview = false }: { filmStrip: FilmStripPhoto[]; guide: GuideData; preview?: boolean }) {
   const prefs = useFlickPrefs();
   const reducedMotion = useReducedMotion();
   const compact = useCompactMode();
@@ -62,7 +63,7 @@ export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }
     if (prefs.hidden) return;
     const [root, body, squash, button, trail] = [rootRef.current, bodyRef.current, squashRef.current, buttonRef.current, trailRef.current];
     if (!root || !body || !squash || !button || !trail) return;
-    const c = new FlickController({ root, body, squash, button, trail }, { size, compact, reducedMotion, muted: prefs.muted }, ui);
+    const c = new FlickController({ root, body, squash, button, trail }, { size, compact, reducedMotion, muted: prefs.muted, skipIntro: preview }, ui);
     ctrl.current = c;
     c.start();
     return () => {
@@ -220,7 +221,7 @@ export default function FlickRoot({ filmStrip }: { filmStrip: FilmStripPhoto[] }
           {strip && <FilmStrip photos={filmStrip} onClose={() => setStrip(null)} alignRight={strip.right} below={strip.below} />}
         </div>
       </div>
-      <FlickGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
+      <FlickGuide open={guideOpen} onClose={() => setGuideOpen(false)} data={guide} />
     </>
   );
 }

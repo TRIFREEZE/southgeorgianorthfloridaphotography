@@ -1,21 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { faqs } from "@/content/faqs";
-import { formatPrice, pricing } from "@/content/pricing";
-import { site } from "@/content/site";
+import { defaultPricing, formatPrice } from "@/content/pricing";
+import { getSiteData } from "@/lib/cms/data";
+import { textOf } from "@/lib/cms/texts";
 import { PackageCard } from "@/components/home/PackageCard";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
 import { TrackView } from "@/components/ui/TrackView";
 import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = pageMetadata({
-  title: "Photography Pricing: Portrait Packages from 8 to 40 Photos",
-  description: `Straightforward photography pricing in South Georgia & North Florida. Portrait packages from ${formatPrice(pricing.packages[0].priceCents)} priced by finished photos, plus custom wedding, event and business quotes.`,
-  path: "/pricing",
-});
+export async function generateMetadata(): Promise<Metadata> {
+  const { pricing } = (await getSiteData()).content;
+  const low = Math.min(...pricing.packages.map((p) => p.priceCents));
+  const counts = pricing.packages.map((p) => p.photos);
+  return pageMetadata({
+    title: `Photography Pricing: Portrait Packages from ${Math.min(...counts)} to ${Math.max(...counts)} Photos`,
+    description: `Straightforward photography pricing in South Georgia & North Florida. Portrait packages from ${formatPrice(Number.isFinite(low) ? low : defaultPricing.packages[0].priceCents)} priced by finished photos, plus custom wedding, event and business quotes.`,
+    path: "/pricing",
+  });
+}
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const { pricing, faqs, texts } = (await getSiteData()).content;
   const wedding = pricing.custom["weddings-events"];
   const business = pricing.custom["business-branding"];
   return (
@@ -24,7 +30,7 @@ export default function PricingPage() {
       <PageHero
         eyebrow="Pricing"
         title={pricing.noStopwatch.headline}
-        lede="Intentionally accessible pricing for portraits, families, pets and horses, built around how many finished photos you'd like rather than how many minutes we shoot."
+        lede={textOf(texts, "pricing.lede")}
       />
 
       <section aria-labelledby="packages-title">
@@ -40,7 +46,7 @@ export default function PricingPage() {
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <Info title="Extra photos" body={`${formatPrice(pricing.extraPhoto.priceCents)} each. ${pricing.extraPhoto.note}`} />
             <Info title="Travel" body={`${pricing.travel.copy}${pricing.travel.includedRadiusMiles ? ` Included within ${pricing.travel.includedRadiusMiles} miles of our base.` : ""}`} />
-            <Info title="Delivery" body={site.turnaroundCopy ?? site.provisionalTurnaroundCopy} />
+            <Info title="Delivery" body={textOf(texts, "delivery.turnaround")} />
           </div>
           <p className="mt-6 text-sm text-muted">{pricing.legalNote}</p>
         </Container>

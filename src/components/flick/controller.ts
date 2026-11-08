@@ -73,6 +73,8 @@ export interface FlickOptions {
   compact: boolean;
   reducedMotion: boolean;
   muted: boolean;
+  /** Skip the first-visit introduction (the owner's preview frames). */
+  skipIntro?: boolean;
 }
 
 export class FlickController {
@@ -132,7 +134,6 @@ export class FlickController {
       .then((b) => {
         if (!b.charging && b.level < 0.2) {
           this.lowPower = true;
-          this.engine.setOptions({ trail: false });
         }
       })
       .catch(() => {});
@@ -154,7 +155,7 @@ export class FlickController {
     }
     this.ui.setShown(true);
 
-    if (!this.introduced()) this.later(() => this.startIntro(), this.opts.reducedMotion ? 300 : 1300);
+    if (!this.opts.skipIntro && !this.introduced()) this.later(() => this.startIntro(), this.opts.reducedMotion ? 300 : 1300);
     else if (!sessionFlag("greeted")) this.later(() => this.sayEvent("welcome-back", { force: true }), 2200);
     sessionFlag("greeted", true);
 
@@ -269,8 +270,9 @@ export class FlickController {
     this.timers.add(t);
   }
 
+  /** The echo-ring trail is retired: Flick moves cleanly, with no rings behind him. */
   private trailOn() {
-    return !this.opts.reducedMotion && !this.lowPower;
+    return false;
   }
 
   /** Desktop floats up and down his side; phones stay put; reduced motion stays put. */
@@ -449,8 +451,6 @@ export class FlickController {
       case "celebrate":
         this.moodFor("happy", 2600);
         e.hop(20, 2);
-        e.emit(0.6, 1.1, 1.6);
-        this.later(() => e.emit(0.5, 1.1, 2.2), 180);
         this.confetti(e.pos);
         break;
       case "help":
@@ -463,7 +463,7 @@ export class FlickController {
   }
 
   private confetti(p: Vec) {
-    if (this.opts.reducedMotion) return;
+    if (this.opts.reducedMotion || this.lowPower) return;
     const colors = ["#A46B55", "#D4A28C", "#727F70", "#E6D3CC", "#DFD2C0"];
     for (let i = 0; i < 14; i++) {
       const s = document.createElement("span");

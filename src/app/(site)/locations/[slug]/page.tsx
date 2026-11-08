@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { locationBySlug, locationPages, type LocationPage } from "@/content/locations";
 import { Gallery } from "@/components/media/Gallery";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
-import { getPortfolioPhotos } from "@/lib/photos";
+import { getSiteData } from "@/lib/cms/data";
+import { portfolio } from "@/lib/cms/resolve";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 /** City pages only render once they're published with genuinely local content (see content/locations.ts). */
@@ -22,11 +24,27 @@ export async function generateMetadata({ params }: PageProps<"/locations/[slug]"
   return pageMetadata({ title: l.seoTitle, description: l.seoDescription, path: `/locations/${l.slug}`, absoluteTitle: true });
 }
 
-export default async function LocationPage({ params }: PageProps<"/locations/[slug]">) {
+/** Unlisted paths wait for the complete static page (so unknown ones get a real 404). */
+export const ensureStatic = "navigation";
+
+/**
+ * The body sits in a Suspense boundary so the page can be regenerated on demand
+ * after an edit is published (params are only known per path). Known paths
+ * still prerender completely, so the HTML search engines see is unchanged.
+ */
+export default function LocationPage({ params }: PageProps<"/locations/[slug]">) {
+  return (
+    <Suspense fallback={null}>
+      <LocationPageBody params={params} />
+    </Suspense>
+  );
+}
+
+async function LocationPageBody({ params }: Pick<PageProps<"/locations/[slug]">, "params">) {
   const { slug } = await params;
   const l = locationBySlug(slug);
   if (!isLive(l)) notFound();
-  const { photos, isReal } = await getPortfolioPhotos();
+  const { photos, isReal } = portfolio(await getSiteData());
   const local = isReal ? photos.filter((p) => p.location?.toLowerCase().includes(l.photoLocationMatch.toLowerCase())) : [];
 
   return (

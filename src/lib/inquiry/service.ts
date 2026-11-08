@@ -1,7 +1,9 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { bookingCategories } from "@/content/services";
-import { formatPrice, pricing } from "@/content/pricing";
+import { formatPrice } from "@/content/pricing";
+import { getSiteData } from "@/lib/cms/data";
+import type { Pricing } from "@/lib/cms/schema";
 import { site } from "@/content/site";
 import { publicEnv } from "@/lib/env";
 import { serverEnv } from "@/lib/server-env";
@@ -86,7 +88,8 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
     console.error("[inquiry] duplicate check failed; continuing", err instanceof Error ? err.message : err);
   }
 
-  const est = estimate({ category: data.category, packageId: data.packageId, extraPhotos: data.extraPhotos, addOns: data.addOns });
+  const { pricing } = (await getSiteData()).content;
+  const est = estimate({ category: data.category, packageId: data.packageId, extraPhotos: data.extraPhotos, addOns: data.addOns }, pricing);
   const row: InquiryRow = {
     ref: newRef(),
     kind: data.kind,
@@ -138,7 +141,7 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
     };
   }
 
-  const [owner, client] = await Promise.all([notifyOwner(data, saved.ref, est.label), confirmClient(data, saved.ref)]);
+  const [owner, client] = await Promise.all([notifyOwner(data, saved.ref, est.label, pricing), confirmClient(data, saved.ref)]);
   await store.updateNotification(saved.id, owner, client);
   if (owner !== "sent") console.warn(`[inquiry] ${saved.ref} saved; owner notification ${owner}`);
 
@@ -147,7 +150,7 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
 
 const categoryLabel = (id: string) => bookingCategories.find((c) => c.id === id)?.label ?? id;
 
-async function notifyOwner(d: Inquiry, ref: string, estimateLabel: string) {
+async function notifyOwner(d: Inquiry, ref: string, estimateLabel: string, pricing: Pricing) {
   const to = serverEnv().ownerNotificationEmail;
   if (!to) return "skipped";
   const pkg = pricing.packages.find((x) => x.id === d.packageId);

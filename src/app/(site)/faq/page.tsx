@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { faqs, type Faq } from "@/content/faqs";
+import type { Faq } from "@/lib/cms/schema";
+import { getSiteData } from "@/lib/cms/data";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
@@ -20,7 +21,8 @@ const groups: { topic: Faq["topic"]; title: string }[] = [
   { topic: "rights", title: "Rights & printing" },
 ];
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const faqs = (await getSiteData()).content.faqs.filter((f) => f.faqPage);
   return (
     <>
       <PageHero eyebrow="FAQ" title="Good questions, honest answers." />
@@ -46,7 +48,7 @@ export default function FaqPage() {
           </ButtonLink>
         </div>
       </Container>
-      <JsonLd data={faqJsonLd()} />
+      {faqs.length > 0 && <JsonLd data={faqJsonLd(faqs)} />}
     </>
   );
 }

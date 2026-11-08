@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { formatPrice, type PortraitPackage } from "@/content/pricing";
+import { formatPrice } from "@/content/pricing";
+import type { PortraitPackage } from "@/lib/cms/schema";
 
 export function PackageCard({ pkg, compact = false }: { pkg: PortraitPackage; compact?: boolean }) {
   const highlighted = Boolean(pkg.highlightLabel);

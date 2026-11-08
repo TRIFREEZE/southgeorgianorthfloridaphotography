@@ -4,7 +4,9 @@ import { site } from "@/content/site";
 import { PhotoFill } from "@/components/media/Photo";
 import { SamplePlate } from "@/components/media/SamplePlate";
 import { Arrow, ButtonLink, Container } from "@/components/ui/primitives";
-import { getFounderPhoto } from "@/lib/photos";
+import { getSiteData } from "@/lib/cms/data";
+import { founderPhoto } from "@/lib/cms/resolve";
+import { textOf } from "@/lib/cms/texts";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -14,15 +16,20 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function AboutPage() {
-  const portrait = await getFounderPhoto();
+  const d = await getSiteData();
+  const portrait = founderPhoto(d);
+  const t = (k: string) => textOf(d.content.texts, `about.${k}`);
+  const name = t("name");
+  const role = t("role");
+  const story = t("story").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   return (
     <>
       <section className="pt-14 pb-16 sm:pt-20 lg:pt-28">
         <Container className="grid gap-12 md:grid-cols-12 md:items-end">
           <div className="md:col-span-7">
-            <p className="eyebrow mb-5">About{about.name ? ` · ${about.name}` : ""}</p>
-            <h1 className="text-display-lg">{about.lead}</h1>
-            <p className="mt-6 max-w-xl text-lede text-muted">{about.short}</p>
+            <p className="eyebrow mb-5">About{name ? ` · ${name}` : ""}</p>
+            <h1 className="text-display-lg">{t("lead")}</h1>
+            <p className="mt-6 max-w-xl text-lede text-muted">{t("short")}</p>
           </div>
           <div className="md:col-span-5">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand">
@@ -32,7 +39,7 @@ export default async function AboutPage() {
                 <SamplePlate photo={{ id: "about-fallback", category: "about", title: "Founder portrait", tone: 15, width: 4, height: 5 }} />
               )}
             </div>
-            <p className="mt-3 text-sm text-muted">{about.name ? `${about.name}, ${about.roleLine.toLowerCase()}` : about.roleLine}</p>
+            <p className="mt-3 text-sm text-muted">{name ? `${name}, ${role.toLowerCase()}` : role}</p>
           </div>
         </Container>
       </section>
@@ -43,8 +50,8 @@ export default async function AboutPage() {
             The short version of a longer story
           </h2>
           <div className="prose-rcl text-lede lg:col-span-7 lg:col-start-6">
-            {about.story.map((para) => (
-              <p key={para.slice(0, 24)}>{para}</p>
+            {story.map((para, i) => (
+              <p key={i}>{para}</p>
             ))}
           </div>
         </Container>

@@ -5,7 +5,7 @@ import type { Photo } from "@/lib/photo-types";
  * published in /admin. They render as abstract art plates with a visible
  * "Sample" label: never stock photography, never presented as client work.
  */
-type Seed = [id: string, category: Photo["category"], subcategory: string, title: string, w: number, h: number, tone: number];
+type Seed = [id: string, category: string | null, subcategory: string, title: string, w: number, h: number, tone: number];
 
 const seeds: Seed[] = [
   ["sample-hero", "people", "Families", "Your hero photograph goes here", 3, 2, 0],
@@ -23,7 +23,7 @@ const seeds: Seed[] = [
   ["sample-brand-1", "brands", "Personal brands", "Personal brand placeholder", 4, 5, 12],
   ["sample-team-1", "brands", "Team photos", "Team portrait placeholder", 3, 2, 13],
   ["sample-product-1", "brands", "Products", "Product placeholder", 1, 1, 14],
-  ["sample-founder", "about", "Founder", "Your portrait goes here", 4, 5, 15],
+  ["sample-founder", null, "Founder", "Your portrait goes here", 4, 5, 15],
 ];
 
 export const samplePhotos: Photo[] = seeds.map(([id, category, subcategory, title, w, h, tone], i) => ({
@@ -38,7 +38,8 @@ export const samplePhotos: Photo[] = seeds.map(([id, category, subcategory, titl
   location: null,
   focalX: 50,
   focalY: 50,
-  featured: i < 8 && category !== "about",
+  sortOrder: i,
+  featured: i < 8 && category !== null,
   hero: id === "sample-hero",
   isSample: true,
   tone,

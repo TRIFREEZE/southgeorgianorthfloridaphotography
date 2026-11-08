@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { pricing } from "@/content/pricing";
 import { services } from "@/content/services";
 import { PhotoFill } from "@/components/media/Photo";
 import { SamplePlate } from "@/components/media/SamplePlate";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
-import { getCategoryCovers } from "@/lib/photos";
+import { getSiteData } from "@/lib/cms/data";
+import { serviceCover } from "@/lib/cms/resolve";
+import { textOf } from "@/lib/cms/texts";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -17,7 +18,8 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function ServicesPage() {
-  const covers = await getCategoryCovers();
+  const d = await getSiteData();
+  const { pricing, texts } = d.content;
   return (
     <>
       <PageHero
@@ -28,7 +30,7 @@ export default async function ServicesPage() {
       <Container>
         <ul className="grid gap-6 md:grid-cols-2">
           {services.map((s, i) => {
-            const cover = covers[s.category];
+            const cover = serviceCover(d, s.slug, s.category);
             return (
               <li key={s.slug} data-reveal style={{ ["--reveal-delay" as string]: `${i * 80}ms` }}>
                 <Link href={`/services/${s.slug}`} className="group block overflow-hidden rounded-[1.4rem] border border-line bg-gallery" data-flick-look>
@@ -44,7 +46,7 @@ export default async function ServicesPage() {
                   <div className="p-6 sm:p-8">
                     <p className="eyebrow">{s.pricingMode === "package" ? "Priced by photo count" : pricing.custom["weddings-events"].label}</p>
                     <h2 className="mt-3 text-[2rem] leading-tight">{s.name}</h2>
-                    <p className="mt-3 text-muted">{s.headline}</p>
+                    <p className="mt-3 text-muted">{textOf(texts, `services.${s.slug}.headline`)}</p>
                     <span className="mt-6 inline-flex items-center gap-2 font-semibold text-clay-deep">
                       Explore {s.navLabel} <Arrow />
                     </span>

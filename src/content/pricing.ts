@@ -1,10 +1,7 @@
 /**
- * Every price, photo count and policy line on the site comes from this file.
- * Change a number here, push to GitHub, and Vercel redeploys with the new rates —
- * the pricing page, homepage preview, booking estimate, Ask Flick and structured
- * data all update together.
- *
- * OWNER: set `status` to "confirmed" once you've approved these numbers.
+ * DEFAULT pricing: the starting values. The live prices are edited in
+ * /admin → Content → Pricing and stored in Supabase; these defaults apply only
+ * until you save your own.
  */
 
 export type PackageId = "little" | "full" | "whole";
@@ -29,7 +26,7 @@ export interface AddOn {
   unit?: "each" | "flat";
 }
 
-export const pricing = {
+export const defaultPricing = {
   status: "draft" as "draft" | "confirmed",
   currency: "USD",
 
@@ -170,4 +167,4 @@ export function formatPrice(cents: number, opts: { cents?: boolean } = {}) {
   }).format(cents / 100);
 }
 
-export const startingPriceCents = Math.min(...pricing.packages.map((p) => p.priceCents));
+

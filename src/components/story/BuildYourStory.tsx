@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { site } from "@/content/site";
 import { composeStory, storyFeelings, storySeasons, storySubjects } from "@/content/story";
+import type { Pricing } from "@/lib/cms/schema";
 import type { Photo } from "@/lib/photo-types";
 import { track } from "@/lib/analytics";
 import { emitFlick } from "@/components/flick/bus";
@@ -13,7 +15,7 @@ import { StoryCard, storyShareQuery } from "./StoryCard";
  * Optional 30-second "Build Your Story" experience. Never gates booking:
  * the regular booking links stay one click away throughout.
  */
-export function BuildYourStory({ photos, headingId }: { photos: Photo[]; headingId: string }) {
+export function BuildYourStory({ photos, pricing, title = "Picture it first.", headingId }: { photos: Photo[]; pricing: Pricing; title?: string; headingId: string }) {
   const [subject, setSubject] = useState<string | null>(null);
   const [feeling, setFeeling] = useState<string | null>(null);
   const [town, setTown] = useState<string>("");
@@ -50,14 +52,14 @@ export function BuildYourStory({ photos, headingId }: { photos: Photo[]; heading
       <div className="lg:col-span-5">
         <p className="eyebrow mb-4">Build your story · optional</p>
         <h2 id={headingId} className="text-display-md">
-          Picture it first.
+          {title}
         </h2>
         <p className="mt-5 text-ink-soft">
           Four quick choices and we&apos;ll sketch your session: the feel, a suggested package with honest pricing, travel, and one
           prep tip. Takes about 30 seconds. Or skip it and{" "}
-          <a href="/book" className="font-semibold text-clay-deep underline">
+          <Link href="/book" className="font-semibold text-clay-deep underline">
             just ask a human
-          </a>
+          </Link>
           .
         </p>
       </div>
@@ -68,6 +70,7 @@ export function BuildYourStory({ photos, headingId }: { photos: Photo[]; heading
             <StoryCard
               story={story}
               photos={mood}
+              pricing={pricing}
               actions={
                 <>
                   <button type="button" onClick={copy} className="inline-flex min-h-12 items-center rounded-full border border-ink/25 px-5 font-semibold hover:border-ink">

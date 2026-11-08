@@ -1,4 +1,5 @@
-import { pricing, formatPrice, type PackageId } from "@/content/pricing";
+import { formatPrice, type PackageId } from "@/content/pricing";
+import type { Pricing } from "@/lib/cms/schema";
 import type { BookingCategory } from "@/content/services";
 
 export interface EstimateInput {
@@ -19,18 +20,18 @@ export type Estimate =
   | { kind: "quote"; label: string; reason: string; quotedItems: string[] }
   | { kind: "incomplete"; label: string };
 
-export const isPackageEligible = (c: BookingCategory) =>
-  (pricing.packageEligibleCategories as readonly string[]).includes(c);
+export const isPackageEligible = (c: BookingCategory, pricing?: Pick<Pricing, "packageEligibleCategories">) =>
+  (pricing?.packageEligibleCategories ?? ["people", "animals"]).includes(c);
 
 /**
- * Truthful estimate from the pricing config. Shared by the booking wizard
+ * Truthful estimate from the published pricing (edited in /admin → Content → Pricing). Shared by the booking wizard
  * (live display) and the server (stored with the inquiry), so the two can
  * never disagree. Anything without a configured price is listed as "quoted".
  */
-export function estimate(input: EstimateInput): Estimate {
+export function estimate(input: EstimateInput, pricing: Pricing): Estimate {
   const travel = "Travel outside our core area (quoted up front)";
 
-  if (!isPackageEligible(input.category)) {
+  if (!isPackageEligible(input.category, pricing)) {
     const reason =
       input.category === "weddings-events"
         ? pricing.custom["weddings-events"].intro

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { publishedLocations } from "@/content/locations";
-import { pricing } from "@/content/pricing";
+import { getSiteData } from "@/lib/cms/data";
 import { site } from "@/content/site";
 import { publicEnv } from "@/lib/env";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
@@ -14,7 +14,8 @@ export const metadata: Metadata = pageMetadata({
   path: "/locations",
 });
 
-export default function LocationsPage() {
+export default async function LocationsPage() {
+  const { pricing } = (await getSiteData()).content;
   const live = publishedLocations();
   return (
     <>

@@ -1,12 +1,9 @@
 import Link from "next/link";
-import { about } from "@/content/about";
-import { experienceSteps, processHeadline } from "@/content/experience";
-import { faqs } from "@/content/faqs";
+import { experienceSteps } from "@/content/experience";
 import { publishedPosts } from "@/content/journal";
-import { pricing } from "@/content/pricing";
-import { reviews } from "@/content/reviews";
-import { portfolioCategories, type CategoryId } from "@/content/services";
 import { site } from "@/content/site";
+import type { Category, Faq, Pricing, Testimonial } from "@/lib/cms/schema";
+import { textOf } from "@/lib/cms/texts";
 import type { Photo } from "@/lib/photo-types";
 import { PhotoFill } from "@/components/media/Photo";
 import { SamplePlate } from "@/components/media/SamplePlate";
@@ -14,12 +11,12 @@ import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, SectionHeading } from "@/components/ui/primitives";
 import { PackageCard } from "./PackageCard";
 
-export function UtilityLine() {
+type Texts = Record<string, string>;
+
+export function UtilityLine({ text }: { text: string }) {
   return (
     <div className="border-b border-line/70 bg-gallery/60">
-      <Container className="flex min-h-9 items-center justify-center py-2 text-center text-[0.78rem] tracking-wide text-muted">
-        {site.utilityLine}
-      </Container>
+      <Container className="flex min-h-9 items-center justify-center py-2 text-center text-[0.78rem] tracking-wide text-muted">{text}</Container>
     </div>
   );
 }
@@ -48,7 +45,7 @@ export function TrustBar() {
   );
 }
 
-export function UnhurriedPromise() {
+export function UnhurriedPromise({ pricing, texts }: { pricing: Pricing; texts: Texts }) {
   return (
     <section className="py-20 sm:py-28" aria-labelledby="promise-title">
       <Container className="grid gap-10 lg:grid-cols-12">
@@ -57,7 +54,7 @@ export function UnhurriedPromise() {
             The unhurried promise
           </p>
           <h2 id="promise-title" className="text-display-lg" data-reveal>
-            You book the photographs, <em className="text-clay">not a stopwatch.</em>
+            {textOf(texts, "home.promise.title")} <em className="text-clay">{textOf(texts, "home.promise.accent")}</em>
           </h2>
         </div>
         <div className="space-y-5 text-lede text-ink-soft lg:col-span-5 lg:col-start-8 lg:pt-12" data-reveal>
@@ -72,64 +69,58 @@ export function UnhurriedPromise() {
   );
 }
 
-export function ChooseYourStory({ covers }: { covers: Record<CategoryId, Photo | null> }) {
+export interface StoryCardItem {
+  category: Category;
+  cover: Photo | null;
+  href: string;
+  tone: number;
+}
+
+export function ChooseYourStory({ items, texts }: { items: StoryCardItem[]; texts: Texts }) {
+  if (!items.length) return null;
   return (
     <section className="py-20 sm:py-24" aria-labelledby="choose-title">
       <Container>
-        <SectionHeading id="choose-title" eyebrow="Choose your story" title="Who are we photographing?" lede="Every kind of session, the same unhurried care." />
+        <SectionHeading id="choose-title" eyebrow="Choose your story" title={textOf(texts, "home.choose.title")} lede={textOf(texts, "home.choose.lede")} />
         <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:gap-5">
-          {portfolioCategories.map((c, i) => {
-            const cover = covers[c.id];
-            return (
-              <li key={c.id} data-reveal style={{ ["--reveal-delay" as string]: `${i * 80}ms` }}>
-                <Link
-                  href={`/services/${c.serviceSlug}`}
-                  className="group relative block aspect-[4/5] overflow-hidden rounded-[1.3rem] bg-sand sm:aspect-[5/4] lg:aspect-[16/11]"
-                  data-flick-look
-                >
-                  <span className="absolute inset-0 transition-transform duration-[1400ms] ease-[var(--ease-out-soft)] group-hover:scale-[1.04]">
-                    {cover ? (
-                      <PhotoFill photo={cover} sizes="(min-width: 640px) 50vw, 100vw" showSampleLabel={false} />
-                    ) : (
-                      <SamplePlate photo={{ id: `cat-${c.id}`, category: c.id, title: c.label, tone: i * 3, width: 5, height: 4 }} showLabel={false} />
-                    )}
-                  </span>
-                  <span className="absolute inset-0 z-[2] bg-gradient-to-t from-ink/80 via-ink/25 to-transparent" />
-                  <span className="absolute inset-x-0 bottom-0 z-[3] flex items-end justify-between gap-4 p-6 text-gallery sm:p-8">
-                    <span>
-                      <span className="block font-display text-[1.9rem] leading-none sm:text-[2.3rem]">{c.label}</span>
-                      <span className="mt-2 block max-w-sm text-sm text-sand/90">{c.description}</span>
-                    </span>
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-gallery/40 transition-colors group-hover:bg-gallery group-hover:text-ink">
-                      <Arrow className="h-5 w-5" />
-                    </span>
-                  </span>
-                  {cover?.isSample && (
-                    <span className="absolute left-4 top-4 z-[3] rounded-full bg-ink/75 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-gallery">
-                      Sample
-                    </span>
+          {items.map(({ category: c, cover, href, tone }, i) => (
+            <li key={c.id} data-reveal style={{ ["--reveal-delay" as string]: `${i * 80}ms` }}>
+              <Link href={href} className="group relative block aspect-[4/5] overflow-hidden rounded-[1.3rem] bg-sand sm:aspect-[5/4] lg:aspect-[16/11]" data-flick-look>
+                <span className="absolute inset-0 transition-transform duration-[1400ms] ease-[var(--ease-out-soft)] group-hover:scale-[1.04]">
+                  {cover ? (
+                    <PhotoFill photo={cover} sizes="(min-width: 640px) 50vw, 100vw" showSampleLabel={false} />
+                  ) : (
+                    <SamplePlate photo={{ id: `cat-${c.id}`, category: c.id, title: c.label, tone, width: 5, height: 4 }} showLabel={false} />
                   )}
-                </Link>
-              </li>
-            );
-          })}
+                </span>
+                <span className="absolute inset-0 z-[2] bg-gradient-to-t from-ink/80 via-ink/25 to-transparent" />
+                <span className="absolute inset-x-0 bottom-0 z-[3] flex items-end justify-between gap-4 p-6 text-gallery sm:p-8">
+                  <span>
+                    <span className="block font-display text-[1.9rem] leading-none sm:text-[2.3rem]">{c.label}</span>
+                    {c.description && <span className="mt-2 block max-w-sm text-sm text-sand/90">{c.description}</span>}
+                  </span>
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-gallery/40 transition-colors group-hover:bg-gallery group-hover:text-ink">
+                    <Arrow className="h-5 w-5" />
+                  </span>
+                </span>
+                {(!cover || cover.isSample) && (
+                  <span className="absolute left-4 top-4 z-[3] rounded-full bg-ink/75 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-gallery">Sample</span>
+                )}
+              </Link>
+            </li>
+          ))}
         </ul>
       </Container>
     </section>
   );
 }
 
-export function PricingPreview() {
+export function PricingPreview({ pricing, texts }: { pricing: Pricing; texts: Texts }) {
   return (
     <section className="bg-gallery py-20 sm:py-28" aria-labelledby="pricing-preview-title">
       <Container>
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <SectionHeading
-            id="pricing-preview-title"
-            eyebrow="Straightforward pricing"
-            title={pricing.noStopwatch.headline}
-            lede="Portrait packages are priced by finished photos. Weddings, events and business work are quoted for exactly what you need."
-          />
+          <SectionHeading id="pricing-preview-title" eyebrow="Straightforward pricing" title={pricing.noStopwatch.headline} lede={textOf(texts, "home.pricing.lede")} />
           <ButtonLink href="/pricing" variant="ghost" className="shrink-0">
             Full pricing &amp; inclusions <Arrow />
           </ButtonLink>
@@ -140,25 +131,26 @@ export function PricingPreview() {
           ))}
         </div>
         <p className="mt-8 text-center text-muted">
-          Not sure? <Link href="/book" className="font-semibold text-clay-deep underline">We&apos;ll help you choose.</Link>
+          Not sure?{" "}
+          <Link href="/book" className="font-semibold text-clay-deep underline">
+            We&apos;ll help you choose.
+          </Link>
         </p>
       </Container>
     </section>
   );
 }
 
-export function ExperienceTimeline() {
+export function ExperienceTimeline({ title }: { title: string }) {
   return (
     <section className="py-20 sm:py-28" aria-labelledby="timeline-title">
       <Container>
-        <SectionHeading id="timeline-title" eyebrow="How it works" title={processHeadline} />
+        <SectionHeading id="timeline-title" eyebrow="How it works" title={title} />
         <ol className="relative mt-14 grid gap-10 md:grid-cols-4 md:gap-6">
           <span aria-hidden className="absolute left-[1.1rem] top-2 bottom-2 w-px bg-line md:left-0 md:right-0 md:top-[1.1rem] md:bottom-auto md:h-px md:w-auto" />
           {experienceSteps.map((s, i) => (
             <li key={s.n} className="relative pl-12 md:pl-0 md:pt-14" data-reveal style={{ ["--reveal-delay" as string]: `${i * 120}ms` }}>
-              <span className="absolute left-0 top-0 flex h-[2.2rem] w-[2.2rem] items-center justify-center rounded-full border border-clay bg-parchment font-display text-sm text-clay-deep">
-                {s.n}
-              </span>
+              <span className="absolute left-0 top-0 flex h-[2.2rem] w-[2.2rem] items-center justify-center rounded-full border border-clay bg-parchment font-display text-sm text-clay-deep">{s.n}</span>
               <h3 className="text-[1.5rem]">{s.title}</h3>
               <p className="mt-2 text-[0.97rem] text-muted">{s.short}</p>
             </li>
@@ -169,25 +161,21 @@ export function ExperienceTimeline() {
   );
 }
 
-export function MeetPhotographer({ portrait }: { portrait: Photo | null }) {
+export function MeetPhotographer({ portrait, texts }: { portrait: Photo; texts: Texts }) {
   return (
     <section className="bg-rose/40 py-20 sm:py-28" aria-labelledby="meet-title">
       <Container className="grid items-center gap-10 md:grid-cols-12">
         <div className="md:col-span-5" data-reveal="crop">
           <div className="relative aspect-[4/5] overflow-hidden rounded-[1.3rem] bg-sand">
-            {portrait ? (
-              <PhotoFill photo={portrait} sizes="(min-width: 768px) 40vw, 100vw" />
-            ) : (
-              <SamplePlate photo={{ id: "founder-fallback", category: "about", title: "Founder portrait", tone: 15, width: 4, height: 5 }} />
-            )}
+            <PhotoFill photo={portrait} sizes="(min-width: 768px) 40vw, 100vw" />
           </div>
         </div>
         <div className="md:col-span-6 md:col-start-7" data-reveal>
           <p className="eyebrow mb-4">Meet the photographer</p>
           <h2 id="meet-title" className="text-display-md">
-            {about.lead}
+            {textOf(texts, "about.lead")}
           </h2>
-          <p className="mt-6 text-lede text-ink-soft">{about.short}</p>
+          <p className="mt-6 text-lede text-ink-soft">{textOf(texts, "about.short")}</p>
           <div className="mt-8">
             <ButtonLink href="/about" variant="secondary">
               The longer story <Arrow />
@@ -199,7 +187,7 @@ export function MeetPhotographer({ portrait }: { portrait: Photo | null }) {
   );
 }
 
-export function FeaturedStories() {
+export function FeaturedStories({ covers }: { covers: Record<string, Photo | null> }) {
   const posts = publishedPosts().slice(0, 3);
   if (!posts.length) return null;
   return (
@@ -217,7 +205,11 @@ export function FeaturedStories() {
               <Link href={`/journal/${p.slug}`} className="group block">
                 <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] bg-sand">
                   <span className="absolute inset-0 transition-transform duration-1000 group-hover:scale-[1.04]">
-                    <SamplePlate photo={{ id: `post-${p.slug}`, category: p.coverCategory, title: p.title, tone: i * 4 + 2, width: 4, height: 3 }} showLabel={false} />
+                    {covers[p.slug] ? (
+                      <PhotoFill photo={covers[p.slug]!} sizes="(min-width: 768px) 33vw, 100vw" />
+                    ) : (
+                      <SamplePlate photo={{ id: `post-${p.slug}`, category: p.coverCategory, title: p.title, tone: i * 4 + 2, width: 4, height: 3 }} showLabel={false} />
+                    )}
                   </span>
                 </div>
                 <p className="eyebrow mt-5">
@@ -233,14 +225,15 @@ export function FeaturedStories() {
   );
 }
 
-export function Reviews() {
-  if (reviews.length === 0) return null; // Real, consented reviews only.
+export function Reviews({ testimonials }: { testimonials: Testimonial[] }) {
+  const items = testimonials.filter((t) => t.published && t.consent);
+  if (items.length === 0) return null; // Real, consented reviews only.
   return (
     <section className="bg-gallery py-20 sm:py-28" aria-labelledby="reviews-title">
       <Container>
         <SectionHeading id="reviews-title" eyebrow="Kind words" title="From people we've photographed" />
         <ul className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {reviews.map((r) => (
+          {items.map((r) => (
             <li key={r.id} className="rounded-[var(--radius-card)] border border-line bg-parchment p-7" data-reveal>
               <blockquote className="font-display text-[1.3rem] leading-snug">&ldquo;{r.quote}&rdquo;</blockquote>
               <p className="mt-5 text-sm font-semibold">{r.name}</p>
@@ -253,12 +246,12 @@ export function Reviews() {
   );
 }
 
-export function AreasServed() {
+export function AreasServed({ pricing, title }: { pricing: Pricing; title: string }) {
   return (
     <section className="py-20 sm:py-24" aria-labelledby="areas-title">
       <Container className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <SectionHeading id="areas-title" eyebrow="Where we work" title="Rooted in South Georgia & North Florida." />
+          <SectionHeading id="areas-title" eyebrow="Where we work" title={title} />
         </div>
         <div className="lg:col-span-6 lg:col-start-7" data-reveal>
           <ul className="flex flex-wrap gap-2.5">
@@ -277,12 +270,14 @@ export function AreasServed() {
   );
 }
 
-export function FaqPreview() {
+export function FaqPreview({ faqs, title }: { faqs: Faq[]; title: string }) {
+  const items = faqs.filter((f) => f.home);
+  if (!items.length) return null;
   return (
     <section className="py-20 sm:py-24" aria-labelledby="faq-title">
       <Container className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-4">
-          <SectionHeading id="faq-title" eyebrow="Good questions" title="Things people ask first." />
+          <SectionHeading id="faq-title" eyebrow="Good questions" title={title} />
           <div className="mt-8" data-reveal>
             <ButtonLink href="/faq" variant="ghost">
               All FAQs <Arrow />
@@ -290,7 +285,7 @@ export function FaqPreview() {
           </div>
         </div>
         <div className="lg:col-span-8">
-          <FaqList items={faqs.filter((f) => f.home)} />
+          <FaqList items={items} />
         </div>
       </Container>
     </section>

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { formatPrice, pricing } from "@/content/pricing";
+import { formatPrice } from "@/content/pricing";
+import type { Pricing } from "@/lib/cms/schema";
 import { site } from "@/content/site";
 import type { ComposedStory } from "@/content/story";
 import type { Photo } from "@/lib/photo-types";
@@ -20,7 +21,7 @@ export function storyShareQuery(story: ComposedStory) {
 }
 
 /** The composed, shareable session story card. Only uses the owner's published portfolio images. */
-export function StoryCard({ story, photos, actions }: { story: ComposedStory; photos: Photo[]; actions?: React.ReactNode }) {
+export function StoryCard({ story, photos, pricing, actions }: { story: ComposedStory; photos: Photo[]; pricing: Pricing; actions?: React.ReactNode }) {
   const town = site.serviceArea.towns.find((t) => t.slug === story.town);
   const pkg = story.subject.pkg ? pricing.packages.find((p) => p.id === story.subject.pkg) : null;
   const title = `${story.feeling.label.replace(" & easy", "")} ${story.subject.id === "wedding" ? "celebration" : story.subject.id === "business" ? "brand session" : `${story.subject.id} portraits`}`;

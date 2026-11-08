@@ -1,5 +1,5 @@
 import "server-only";
-import { getServiceClient } from "@/lib/supabase/server";
+import { getServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const STATUSES = ["new", "contacted", "quoted", "accepted", "declined", "booked", "archived"] as const;
 export type Status = (typeof STATUSES)[number];
@@ -44,7 +44,9 @@ export interface LeadRow {
   admin_notes: string | null;
 }
 
+/* Leads live in Supabase. In local development without Supabase these return empty results. */
 export async function listLeads(status?: string) {
+  if (!isSupabaseConfigured()) return [] as LeadRow[];
   let q = getServiceClient().from("inquiries").select("*").order("created_at", { ascending: false }).limit(300);
   if (status && (STATUSES as readonly string[]).includes(status)) q = q.eq("status", status);
   const { data, error } = await q;
@@ -53,6 +55,7 @@ export async function listLeads(status?: string) {
 }
 
 export async function getLead(id: string) {
+  if (!isSupabaseConfigured()) return { lead: null, events: [] };
   const db = getServiceClient();
   const [{ data: lead, error }, { data: events }] = await Promise.all([
     db.from("inquiries").select("*").eq("id", id).maybeSingle(),
@@ -63,6 +66,7 @@ export async function getLead(id: string) {
 }
 
 export async function statusCounts() {
+  if (!isSupabaseConfigured()) return Object.fromEntries(STATUSES.map((s) => [s, 0])) as Record<Status, number>;
   const db = getServiceClient();
   const results = await Promise.all(
     STATUSES.map(async (s) => {
@@ -71,35 +75,4 @@ export async function statusCounts() {
     }),
   );
   return Object.fromEntries(results) as Record<Status, number>;
-}
-
-export interface AdminPhoto {
-  id: string;
-  created_at: string;
-  storage_path: string;
-  width: number;
-  height: number;
-  bytes: number | null;
-  original_filename: string | null;
-  category: string;
-  subcategory: string | null;
-  title: string | null;
-  alt: string;
-  location: string | null;
-  capture_date: string | null;
-  focal_x: number;
-  focal_y: number;
-  sort_order: number;
-  featured: boolean;
-  hero: boolean;
-  published: boolean;
-  story_text: string | null;
-  license_status: string;
-  permission_note: string | null;
-}
-
-export async function listAdminPhotos() {
-  const { data, error } = await getServiceClient().from("photos").select("*").order("sort_order").order("created_at", { ascending: false }).limit(500);
-  if (error) throw error;
-  return (data ?? []) as AdminPhoto[];
 }

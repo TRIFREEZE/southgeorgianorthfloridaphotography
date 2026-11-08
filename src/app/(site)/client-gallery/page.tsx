@@ -9,9 +9,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * Phase 1: private galleries are delivered through a dedicated gallery provider
- * (secure links/passwords enforced server-side by that provider). This page does
- * not pretend to be a secure gallery itself.
+ * Landing page for clients. Each private gallery lives at its own unguessable
+ * /client-gallery/<link> address and is unlocked with its own password
+ * (managed in /admin → Client galleries).
  */
 export default function ClientGalleryPage() {
   return (
@@ -20,11 +20,11 @@ export default function ClientGalleryPage() {
         <p className="eyebrow">Client galleries</p>
         <h1 className="mt-4 text-display-md">Looking for your photos?</h1>
         <p className="mt-6 text-lede text-ink-soft">
-          Your private gallery link arrives by email when your photos are ready. It&apos;s the safest way in, and it&apos;s unique to you.
+          Your private gallery link and password arrive by email when your photos are ready. Both are unique to you.
         </p>
         <ul className="prose-rcl mt-8">
           <li>Search your inbox (and spam) for an email from us with &ldquo;gallery&rdquo; in the subject.</li>
-          <li>Links are private. Please don&apos;t post them publicly.</li>
+          <li>Links and passwords are private. Please don&apos;t post them publicly.</li>
           <li>Lost it or the link expired? Ask and we&apos;ll resend it.</li>
         </ul>
         <div className="mt-10 flex flex-wrap gap-3">

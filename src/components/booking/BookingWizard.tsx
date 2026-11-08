@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatPrice, pricing, type PackageId } from "@/content/pricing";
+import { formatPrice, type PackageId } from "@/content/pricing";
+import type { Pricing } from "@/lib/cms/schema";
 import { bookingCategories, type BookingCategory } from "@/content/services";
 import { site } from "@/content/site";
 import { storyFeelings, storySubjects } from "@/content/story";
@@ -75,7 +76,7 @@ const steps = ["What are we capturing?", "What would make this perfect?", "Where
 
 const settings = ["Your home, yard or farm", "A park or outdoor spot", "Downtown or a business", "A venue", "Not sure yet: help me choose"];
 
-export function BookingWizard() {
+export function BookingWizard({ pricing }: { pricing: Pricing }) {
   const favorites = useFavorites();
   const { state, submit } = useInquirySubmit();
   const [step, setStep] = useState(0);
@@ -114,7 +115,7 @@ export function BookingWizard() {
     // Initializing from browser storage and the URL is a one-time sync with external state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setD(next);
-  }, []);
+  }, [pricing]);
 
   useEffect(() => {
     if (!hydrated.current) return;
@@ -139,10 +140,10 @@ export function BookingWizard() {
     });
   }, []);
 
-  const eligible = d.category ? isPackageEligible(d.category) : false;
+  const eligible = d.category ? isPackageEligible(d.category, pricing) : false;
   const est = useMemo(
-    () => (d.category ? estimate({ category: d.category, packageId: d.packageId || null, extraPhotos: d.extraPhotos, addOns: d.addOns }) : null),
-    [d.category, d.packageId, d.extraPhotos, d.addOns],
+    () => (d.category ? estimate({ category: d.category, packageId: d.packageId || null, extraPhotos: d.extraPhotos, addOns: d.addOns }, pricing) : null),
+    [d.category, d.packageId, d.extraPhotos, d.addOns, pricing],
   );
 
 

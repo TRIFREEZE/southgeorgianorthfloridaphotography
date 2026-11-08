@@ -5,7 +5,9 @@ import { ContactLink } from "@/components/layout/ContactLink";
 import { BuildYourStory } from "@/components/story/BuildYourStory";
 import { Container, PageHero } from "@/components/ui/primitives";
 import { publicEnv } from "@/lib/env";
-import { getPortfolioPhotos } from "@/lib/photos";
+import { getSiteData } from "@/lib/cms/data";
+import { portfolio } from "@/lib/cms/resolve";
+import { textOf } from "@/lib/cms/texts";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -16,13 +18,15 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function BookPage() {
-  const { photos } = await getPortfolioPhotos();
+  const d = await getSiteData();
+  const { photos } = portfolio(d);
+  const { pricing, texts } = d.content;
   return (
     <>
       <PageHero
         eyebrow="Book a session"
-        title="Let's plan something worth keeping."
-        lede="Use the session finder for a live estimate, or just send a quick note. Either way, a real person replies, and nothing is booked or charged until we've agreed on the details."
+        title={textOf(texts, "book.title")}
+        lede={textOf(texts, "book.lede")}
       >
         <p className="mt-5 text-sm text-muted">
           Already know what you want?{" "}
@@ -47,7 +51,7 @@ export default async function BookPage() {
                 The session finder needs JavaScript. The quick inquiry form below works without it.
               </p>
             </noscript>
-            <BookingWizard />
+            <BookingWizard pricing={pricing} />
           </div>
         </Container>
       </section>
@@ -69,7 +73,7 @@ export default async function BookPage() {
 
       <section aria-labelledby="book-bys" className="py-20">
         <Container>
-          <BuildYourStory photos={photos} headingId="book-bys" />
+          <BuildYourStory photos={photos} pricing={pricing} title={textOf(texts, "home.bys.title")} headingId="book-bys" />
         </Container>
       </section>
     </>

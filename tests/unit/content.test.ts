@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { faqs } from "@/content/faqs";
 import { publishedLocations } from "@/content/locations";
-import { pricing } from "@/content/pricing";
+import { defaultContent } from "@/lib/cms/defaults";
+
+const pricing = defaultContent().pricing;
 import { reviews } from "@/content/reviews";
 import { samplePhotos } from "@/content/sample-photos";
 import { composeStory } from "@/content/story";
-import { searchGuide } from "@/components/flick/guide";
+import { buildGuide, searchGuide as search } from "@/components/flick/guide";
+
+const guide = buildGuide({ pricing, faqs });
+const searchGuide = (q: string) => search(guide, q);
 import { pickLine, contextFor } from "@/components/flick/lines";
 
 describe("truthful content guards", () => {

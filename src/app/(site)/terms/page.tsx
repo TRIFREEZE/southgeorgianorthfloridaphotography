@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { pricing } from "@/content/pricing";
+import { getSiteData } from "@/lib/cms/data";
 import { site } from "@/content/site";
 import { LegalPage } from "@/components/ui/LegalPage";
 import { pageMetadata } from "@/lib/seo";
@@ -7,7 +7,8 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata: Metadata = pageMetadata({ title: "Terms of Use", description: `Terms for using the ${site.shortName} website.`, path: "/terms" });
 
 /* OWNER: your session contract governs bookings. Have both reviewed by a local professional before taking payments. */
-export default function TermsPage() {
+export default async function TermsPage() {
+  const { pricing } = (await getSiteData()).content;
   return (
     <LegalPage title="Terms of use" updated="November 7, 2026">
       <p>By using this website you agree to these terms. They cover the website only. Photography sessions are governed by a separate written agreement.</p>

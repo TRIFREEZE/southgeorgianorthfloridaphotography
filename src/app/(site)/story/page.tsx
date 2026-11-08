@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Container } from "@/components/ui/primitives";
-import { getPortfolioPhotos } from "@/lib/photos";
+import { getSiteData } from "@/lib/cms/data";
+import { portfolio } from "@/lib/cms/resolve";
 import { SharedStory } from "./SharedStory";
 
 export const metadata: Metadata = {
@@ -11,12 +12,13 @@ export const metadata: Metadata = {
 };
 
 export default async function StoryPage() {
-  const { photos } = await getPortfolioPhotos();
+  const d = await getSiteData();
+  const { photos } = portfolio(d);
   return (
     <section className="py-16 sm:py-24">
       <Container className="max-w-3xl">
         <Suspense fallback={<p className="text-muted">Loading story…</p>}>
-          <SharedStory photos={photos} />
+          <SharedStory photos={photos} pricing={d.content.pricing} />
         </Suspense>
       </Container>
     </section>

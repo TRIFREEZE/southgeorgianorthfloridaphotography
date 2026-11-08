@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { experienceSteps, processHeadline } from "@/content/experience";
-import { faqs } from "@/content/faqs";
-import { pricing } from "@/content/pricing";
-import { site } from "@/content/site";
+import { getSiteData } from "@/lib/cms/data";
+import { textOf } from "@/lib/cms/texts";
 import { FaqList } from "@/components/ui/FaqList";
 import { Arrow, ButtonLink, Container, PageHero } from "@/components/ui/primitives";
 import { pageMetadata } from "@/lib/seo";
@@ -20,7 +19,9 @@ const prep = [
   { title: "After", items: ["Carefully edited, natural-looking photos", "A private online gallery to download and share", "Personal-use print release for portraits", "Option to add extra photos from your gallery"] },
 ];
 
-export default function ExperiencePage() {
+export default async function ExperiencePage() {
+  const { content } = await getSiteData();
+  const { pricing, faqs, texts } = content;
   return (
     <>
       <PageHero eyebrow="Our approach" title={processHeadline} lede="Good photographs come from people feeling at ease. Everything about how we work is built around giving you the time and calm to get there." />
@@ -77,7 +78,7 @@ export default function ExperiencePage() {
               </div>
             ))}
           </div>
-          <p className="mt-10 text-muted">{site.turnaroundCopy ?? site.provisionalTurnaroundCopy}</p>
+          <p className="mt-10 text-muted">{textOf(texts, "delivery.turnaround")}</p>
         </Container>
       </section>
 

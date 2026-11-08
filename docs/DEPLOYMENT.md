@@ -9,12 +9,12 @@ Time needed: about 45 minutes, most of it waiting for DNS.
 ## 1. Supabase (database, photo storage, admin login)
 
 1. Create a project at [supabase.com](https://supabase.com). Pick a region close to Vercel's default (**East US / us-east-1** pairs well with Vercel's `iad1`). Save the database password somewhere safe.
-2. **Run the migration.** Choose one:
-   - **SQL editor (simplest):** Supabase → SQL Editor → New query → paste the whole of `supabase/migrations/20261107000000_init.sql` → Run. It's safe to run again.
-   - **CLI:** `npx supabase login`, `npx supabase link --project-ref YOUR-REF`, then `npx supabase db push`.
+2. **Run both migrations, in order.** Choose one:
+   - **SQL editor (simplest):** Supabase → SQL Editor → New query → paste the whole of `supabase/migrations/20261107000000_init.sql` → Run. Then a new query with the whole of `supabase/migrations/20261108000000_cms.sql` → Run. Both are safe to run again.
+   - **CLI:** `npx supabase login`, `npx supabase link --project-ref YOUR-REF`, then `npx supabase db push` (runs both).
 
-   This creates the `inquiries`, `inquiry_events`, `submission_events` and `photos` tables, Row Level Security policies, and two storage buckets: `portfolio` (public, processed images) and `portfolio-uploads` (private staging).
-3. **Check it worked:** Table Editor shows the four tables, each with RLS enabled. Storage shows both buckets.
+   The first creates the inquiry tables (`inquiries`, `inquiry_events`, `submission_events`) and the `portfolio` (public, optimized photos) and `portfolio-uploads` (private originals) storage buckets. The second adds the content manager: `media` (every photo with its draft and live versions), `site_content` (placements, categories, pricing, page text, FAQs, testimonials), `client_galleries` + `client_gallery_photos`, the private `client-galleries` bucket, and a `storage_usage()` function for the dashboard. Everything has Row Level Security on with **no public access**: only the server (secret key) reads or writes, and visitors only ever receive published content and optimized images.
+3. **Check it worked:** Table Editor shows `inquiries`, `inquiry_events`, `submission_events`, `media`, `site_content`, `client_galleries`, `client_gallery_photos` (each with RLS enabled). Storage shows `portfolio`, `portfolio-uploads` and `client-galleries`.
 4. **Create your admin login:** Authentication → Users → *Add user* → *Create new user* → your email + a strong password → tick *Auto Confirm User*. Use the same email in `ADMIN_EMAILS` (step 4).
 5. **Copy your keys:** Project Settings → API Keys.
    - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
@@ -83,7 +83,10 @@ Honeypot, a minimum fill time and database-backed rate limiting are always on. F
 - [ ] Submit the **quick inquiry** on `/contact` with your own email → you land on the thank-you page with a reference like `RCL-AB12CD` → the owner email arrives → the client confirmation arrives → the row appears in Supabase → Table Editor → `inquiries`.
 - [ ] Run the **session finder** on `/book` end to end.
 - [ ] `/admin` → log in → the lead is listed → change its stage → add a note → export CSV.
-- [ ] `/admin/photos` → upload one photo → add alt text, confirm the license, tick *Published* → Save → it appears on `/portfolio` (samples disappear once real photos are published).
+- [ ] `/admin/site-photos` → drag a photo onto the **Hero** card → *Preview* (check desktop and phone) → *Publish* → reload the homepage in a private window: the new hero is live, with no redeploy.
+- [ ] `/admin/library` → drop 3–4 photos with a category chosen → click one → set a desktop and a mobile crop → *Save* → *Publish* → they appear on `/portfolio/<category>` (that category's samples disappear).
+- [ ] `/admin/galleries` → create a test gallery → add a photo → open the share link in a private window → the password unlocks it and downloads work → delete the test gallery.
+- [ ] `/admin` → **Storage** shows usage for all three buckets.
 - [ ] Vercel → Settings → Cron Jobs shows `/api/cron/prune` scheduled daily.
 
 ## 7. Search & local visibility
@@ -94,8 +97,8 @@ Honeypot, a minimum fill time and database-backed rate limiting are always on. F
 
 ## 8. Ongoing
 
-- **Content:** edit `src/content/*.ts` (prices, FAQs, about, etc.) on GitHub → commit → Vercel redeploys in about a minute. Test changes in a pull request preview first if you like.
-- **Photos:** `/admin/photos`, live within seconds (cache tags are invalidated on save).
+- **Photos, pricing, page text, FAQs, testimonials, categories, client galleries:** all in `/admin`. Edits are drafts until you press **Publish**; then the live site updates within seconds (cache tags are invalidated). No commits or redeploys.
+- **Code-level content** (service page structure, journal posts, city pages, legal pages) still lives in `src/content/` and deploys on commit.
 - **Leads:** `/admin/leads`. Marking a lead **Booked** is always your manual decision; the site never confirms bookings on its own.
 
 ## Troubleshooting
@@ -106,7 +109,10 @@ Honeypot, a minimum fill time and database-backed rate limiting are always on. F
 | Inquiry saved but no email | Check Resend domain status, `EMAIL_FROM` uses the verified domain, and Vercel → Logs for `[inquiry] … owner notification failed`. |
 | `/admin` says "not set up" | It names the missing variable. `ADMIN_SESSION_SECRET` must be 32+ chars. |
 | Can't log in to admin | The email must exist in Supabase Auth (confirmed) **and** be in `ADMIN_EMAILS`. After 8 failed attempts, wait 15 minutes. |
-| Upload fails with "Upload failed (4xx)" | The migration's storage buckets are missing. Re-run the SQL. File must be JPEG/PNG/WebP/AVIF/TIFF under 50 MB. |
-| Published photo doesn't appear | It needs alt text and a non-pending license (enforced by the database). Hard-refresh. Cached pages refresh on save, and within an hour at most. |
+| Dashboard says "Connect Supabase to manage the site" | The Supabase variables are missing in this environment. Add them and redeploy once. |
+| Upload fails with "Upload failed (4xx)" | The storage buckets or the second migration are missing. Re-run `20261108000000_cms.sql`. Files must be JPEG/PNG/WebP/AVIF/TIFF under 100 MB. iPhone HEIC files need exporting as JPEG first. |
+| *Publish* is greyed out | The bar names the reason: a visible photo needs alt text, or its permission is still "Not confirmed yet". |
+| Published change doesn't appear | Hard-refresh or use a private window (you may still be in Preview; use *Exit preview*). Pages refresh on Publish and within an hour at most. |
+| Storage shows "Empty" for everything | `storage_usage()` is missing: re-run the CMS migration. |
 | Images from a custom Supabase domain don't load | `next.config.ts` reads the Supabase host at build time. Redeploy after changing `NEXT_PUBLIC_SUPABASE_URL`. |
 | Preview deployments show up in Google | They shouldn't: `robots.txt` and meta robots block everything except `VERCEL_ENV=production`. |

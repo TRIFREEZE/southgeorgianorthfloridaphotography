@@ -137,7 +137,7 @@ export function Lightbox({
           <div className="relative flex-1">
             <div className="absolute inset-x-2 inset-y-0 sm:inset-x-20">
               {photo.src ? (
-                <PhotoFill key={photo.id} photo={photo} sizes="100vw" className="!object-contain" quality={85} />
+                <PhotoFill key={photo.id} photo={photo} sizes="100vw" crop={false} quality={85} />
               ) : (
                 <div className="absolute inset-0 m-auto aspect-[var(--ar)] max-h-full max-w-full" style={{ ["--ar" as string]: `${photo.width}/${photo.height}` }}>
                   <PhotoFill photo={photo} sizes="100vw" />

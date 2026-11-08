@@ -1,4 +1,4 @@
-import { pricing, formatPrice } from "./pricing";
+import { defaultPricing as pricing, formatPrice } from "./pricing";
 import { site } from "./site";
 
 export interface Faq {

@@ -1,60 +1,63 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { categoryById, portfolioCategories, type CategoryId } from "@/content/services";
 import { PortfolioView } from "@/components/media/PortfolioView";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { PageHero } from "@/components/ui/primitives";
-import { getPortfolioPhotos } from "@/lib/photos";
+import { getSiteData } from "@/lib/cms/data";
+import { categoryBySlug, portfolio, visibleCategories } from "@/lib/cms/resolve";
+import { site } from "@/content/site";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
-const copy: Record<CategoryId, { title: string; lede: string; seo: string }> = {
-  people: {
-    title: "People & families",
-    lede: "Families, maternity, couples, seniors, individuals and headshots, with room to warm up and be yourselves.",
-    seo: "Family, maternity, couples, senior and headshot photography in South Georgia and North Florida.",
-  },
-  animals: {
-    title: "Pets & horses",
-    lede: "Horses, dogs, cats and farm animals, photographed patiently, at their pace, with safety first.",
-    seo: "Horse, equestrian, dog, cat and farm animal photography in South Georgia and North Florida.",
-  },
-  "weddings-events": {
-    title: "Weddings & celebrations",
-    lede: "Weddings, engagements and milestone events, documented calmly so you can stay present.",
-    seo: "Wedding, engagement and event photography in South Georgia and North Florida.",
-  },
-  brands: {
-    title: "Businesses & brands",
-    lede: "Teams, founders, products and storefronts, natural and editorial, made to be used.",
-    seo: "Brand, headshot, product and small-business photography in South Georgia and North Florida.",
-  },
-};
-
-export function generateStaticParams() {
-  return portfolioCategories.map((c) => ({ category: c.id }));
+/** Categories are managed in /admin → Categories; new ones render on demand, no deploy needed. */
+export async function generateStaticParams() {
+  const d = await getSiteData();
+  const cats = visibleCategories(d);
+  return (cats.length ? cats : [{ slug: "people" }]).map((c) => ({ category: c.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/portfolio/[category]">): Promise<Metadata> {
   const { category } = await params;
-  const cat = categoryById(category);
-  if (!cat) return {};
-  return pageMetadata({ title: `${cat.label} Photography Portfolio`, description: copy[cat.id].seo, path: `/portfolio/${cat.id}` });
+  const cat = categoryBySlug(await getSiteData(), category);
+  if (!cat) return { robots: { index: false } };
+  return pageMetadata({
+    title: `${cat.label} Photography Portfolio`,
+    description: `${cat.description || cat.label} Photography in ${site.region}.`.slice(0, 300),
+    path: `/portfolio/${cat.slug}`,
+  });
 }
 
-export default async function CategoryPage({ params }: PageProps<"/portfolio/[category]">) {
+/** Unlisted paths wait for the complete static page (so unknown ones get a real 404). */
+export const ensureStatic = "navigation";
+
+/**
+ * The body sits in a Suspense boundary so the page can be regenerated on demand
+ * after an edit is published (params are only known per path). Known paths
+ * still prerender completely, so the HTML search engines see is unchanged.
+ */
+export default function CategoryPage({ params }: PageProps<"/portfolio/[category]">) {
+  return (
+    <Suspense fallback={null}>
+      <CategoryPageBody params={params} />
+    </Suspense>
+  );
+}
+
+async function CategoryPageBody({ params }: Pick<PageProps<"/portfolio/[category]">, "params">) {
   const { category } = await params;
-  const cat = categoryById(category);
+  const d = await getSiteData();
+  const cat = categoryBySlug(d, category);
   if (!cat) notFound();
-  const { photos, isReal } = await getPortfolioPhotos(cat.id);
+  const { photos, isReal } = portfolio(d, cat.id);
   return (
     <>
-      <PageHero eyebrow="Portfolio" title={copy[cat.id].title} lede={copy[cat.id].lede} />
-      <PortfolioView photos={photos} isReal={isReal} active={cat.id} />
+      <PageHero eyebrow="Portfolio" title={cat.label} lede={cat.description || undefined} />
+      <PortfolioView photos={photos} isReal={isReal} categories={visibleCategories(d)} active={cat} />
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", path: "/" },
           { name: "Portfolio", path: "/portfolio" },
-          { name: cat.label, path: `/portfolio/${cat.id}` },
+          { name: cat.label, path: `/portfolio/${cat.slug}` },
         ])}
       />
     </>

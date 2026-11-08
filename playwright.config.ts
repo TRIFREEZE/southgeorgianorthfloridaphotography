@@ -2,8 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * E2E tests run against a production build (`npm run build` first).
- * ALLOW_MEMORY_STORE=1 lets a local `next start` accept inquiries without Supabase
- * (never possible on Vercel). Set PLAYWRIGHT_CHROME_PATH to use a system Chrome,
+ * ALLOW_MEMORY_STORE=1 / ALLOW_LOCAL_BACKEND=1 let a local `next start` accept
+ * inquiries and run the CMS without Supabase (never possible on Vercel). Set PLAYWRIGHT_CHROME_PATH to use a system Chrome,
  * or run `npx playwright install chromium`.
  */
 const executablePath = process.env.PLAYWRIGHT_CHROME_PATH;
@@ -27,10 +27,20 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: `npx next start -p ${port}`,
+        // Fresh local CMS data for every run (file-based backend, never used on Vercel).
+        command: `rm -rf .data-e2e && npx next start -p ${port}`,
         port,
         reuseExistingServer: true,
-        env: { ALLOW_MEMORY_STORE: "1", NEXT_PUBLIC_SITE_URL: `http://localhost:${port}` },
+        env: {
+          ALLOW_MEMORY_STORE: "1",
+          ALLOW_LOCAL_BACKEND: "1",
+          CMS_LOCAL_DIR: ".data-e2e",
+          NEXT_PUBLIC_SITE_URL: `http://localhost:${port}`,
+          // Test-only credentials for the local backend; not used anywhere else.
+          ADMIN_EMAILS: "owner@example.test",
+          ADMIN_DEV_PASSWORD: "e2e-only-password",
+          ADMIN_SESSION_SECRET: "e2e-only-session-secret-0123456789abcdef",
+        },
         timeout: 60_000,
       },
 });

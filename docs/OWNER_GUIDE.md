@@ -1,28 +1,71 @@
 # Owner guide
 
-You can run this site in a few hours a week. Photos and leads are handled in `/admin`. Words and prices live in small, commented files you can edit on GitHub (pencil icon → edit → *Commit changes*). Vercel redeploys automatically.
+You can run this site in a few hours a week. **Everything you'll change regularly is in `/admin`**: photos, where they appear, categories, prices, page text, FAQs, testimonials, client galleries and leads. Nothing you do there needs code, GitHub or a redeploy.
 
-## Before launch: replace every placeholder
+## How editing works (the 30-second version)
 
-### Photos (in `/admin/photos`)
-1. Upload **12–24 of your strongest original photos** across the four categories (People & Families, Pets & Horses, Weddings & Celebrations, Businesses & Brands).
-2. For each photo:
-   - **Alt text:** describe what's actually in the frame ("Bay mare and her rider at sunset in a pecan orchard"). Required to publish.
-   - **License / permission:** pick the true status. If clients are recognizable, you need their permission (keep the release). Photos can't be published while this is "Not confirmed yet".
-   - **Location:** only if true. It powers local relevance, so never guess.
-   - **Featured:** shows in the homepage mosaic and category cards.
-   - **Homepage hero:** exactly one. Pick something with clear light and room for the eye.
-   - **Focal point X/Y %:** keeps faces in frame when the photo is cropped (50/50 = center; 50/20 = keep the top).
-3. Upload **one portrait of yourself** with category *About / founder*. It appears on the homepage and `/about`.
-4. Once any real photo is published, all sample placeholders disappear automatically.
+1. Make changes anywhere in the dashboard. They save as **drafts**. Visitors don't see them yet.
+2. The bar at the top always shows what's unpublished. Press **Preview** to see the real site with your changes on a desktop and a phone side by side.
+3. Press **Publish**. The live site updates within seconds. Or press **Discard** to throw the drafts away.
 
-Files are processed for you: rotated, resized to a 3000px master, stripped of EXIF/GPS location data, and served as fast AVIF/WebP at every size. Give files descriptive names before uploading (`horse-portrait-thomasville.jpg`), since names become part of the image URL.
+## Replacing the sample photos (about 5 minutes for 30 photos)
 
-### Words (in `src/content/`)
-- **`pricing.ts`:** confirm every number, then set `status: "confirmed"`. The homepage hero shows "Portrait sessions from $89" only after that. Set `travel.includedRadiusMiles` when you've decided it, and leave `deposit.enabled: false` until your contract and payment process are final.
-- **`site.ts`:** confirm the towns you really serve (`serviceArea.confirmed: true`), and set `turnaroundCopy` (e.g. "Galleries are delivered within two weeks.") when you're confident.
-- **`about.ts`:** rewrite the story in your own words, add your `name`, set `confirmed: true`. Only true facts. No invented credentials, years or client counts.
-- **`reviews.ts`:** add real reviews **with permission** (first name + initial is fine). The section stays hidden until there's at least one.
+The site launches with clearly labeled sample placeholders. Here's the fastest way to replace them all:
+
+1. **Name your files descriptively** before uploading (`bay-mare-sunset-thomasville.jpg`). The name becomes the starting title and alt text. Camera names like `IMG_2041` are ignored.
+2. **Photo library → choose a category → drop the whole folder** onto the drop zone. Upload as many as you like at once; each file shows its own progress. Repeat for each category.
+3. **Site photos** shows every photo spot on the site as a card: the homepage hero, the 7 "selected work" tiles, your portrait, each category cover, each service page and each journal post. Cards still showing samples are marked **Sample**. **Drag a file from your computer onto any card** to replace it in one step, or press **Library** to choose a photo you've already uploaded.
+4. Press **Preview**, check desktop and phone, then **Publish**.
+
+Spots you don't set by hand are **Automatic**: they use your *Featured* photos first, then the first photo in the category. Once a category has any real photo, its samples disappear.
+
+## Editing a photo
+
+Click any photo in the library (or **Crop & text** on a Site photos card):
+
+- **Crop for desktop and mobile separately.** Click or drag on the photo to choose what must stay in frame, then switch to the **Mobile** tab and do it again. The previews on the right show the real shapes the site uses (wide banner, tall card, phone card, phone full screen). Use **Zoom** to tighten a crop. *Copy desktop crop* starts mobile from the same point.
+- **Alt text** (required to go live): describe what's in the frame ("Bay mare and her rider at sunset in a pecan orchard"). It helps Google Images and people using screen readers.
+- **Title, description, location:** optional. Location only if true; it powers local relevance.
+- **Category:** where it appears in the portfolio. *None* keeps it as a site-only photo (good for your hero or portrait).
+- **Visible on the site / Featured:** hide a photo without deleting it, or prefer it for covers and the homepage.
+- **Permission:** pick the true status. If clients are recognizable you need their permission (keep the release). A photo marked *Not confirmed yet* can't be published.
+- **Replace file…:** swap in a new version (a re-edit, a better frame). The title, alt text, category, placements and order are kept. The old file is deleted after you publish.
+- **Delete:** shows everywhere the photo is used first. A photo that has never been published is removed immediately; a live one stays live until you publish, and you can **Restore** it until then. Deleting 5+ photos at once asks you to type DELETE.
+
+**Reordering:** pick a category tab in the library, then drag photos into the order you want (on a phone or tablet, press and hold first). **Bulk actions:** tick photos to move them to a category, feature, show/hide, confirm permission or delete them together.
+
+Your originals are always kept untouched in private storage. The site gets an optimized copy (rotated, resized to 2560px, location data removed) and serves fast modern formats at every screen size. iPhone **HEIC** files need exporting as JPEG first (Photos → File → Export, or Settings → Camera → Formats → Most Compatible).
+
+## Categories
+
+**Categories** lets you rename one, change its web address (`/portfolio/…`), add new ones (e.g. *Maternity*), hide one, drag them into order (this is the order of the portfolio filters and homepage story cards) and delete one. Deleting a category never deletes photos: they move to *No category* so you can re-sort them.
+
+## Pricing, page text, FAQs and testimonials
+
+**Pricing & text** has four tabs. Every save is a draft; publish to go live.
+
+- **Pricing:** package names, prices and photo counts, what's included, extra-photo price, add-ons, custom-quote wording for weddings/events and businesses, travel, deposit, the "no stopwatch" promise and small print. Tick **These prices are final** when you've confirmed them. The booking estimate always uses these exact numbers.
+- **Page text:** every headline and paragraph on the main pages, grouped by page. An empty box uses the original wording (shown in grey). In the homepage headline, the last word is set in italic clay.
+- **FAQs:** edit, add, remove and reorder, and choose where each appears (FAQ page, homepage, and any service page). Ask Flick answers from these too.
+- **Testimonials:** only real words from real clients, with their permission. One appears on the site only when both *Client gave permission* and *Show on site* are ticked.
+
+## Client galleries
+
+**Client galleries → New client gallery:** give it a title, an optional welcome message, an optional end date, and choose whether full-resolution downloads are allowed. A memorable password is suggested for you. Then drop the client's photos in. Send the **share link** and the **password** separately (for example, link by email and password by text).
+
+Client photos live in their own private storage, never in your portfolio, and never in search results. Images are delivered through links that expire after an hour; changing the password signs out everyone who opened it before. Close a gallery by unticking *Gallery is open*, or delete it (you'll be asked to type its title).
+
+## Storage
+
+**Overview → Storage** shows how much space your website photos, original uploads and client galleries use, against your plan (set `STORAGE_QUOTA_GB` in Vercel; Supabase Pro includes 100 GB).
+
+## A few things still live in files
+
+These rarely change and stay in `src/content/` (edit on GitHub → pencil icon → *Commit changes*; Vercel redeploys in about a minute):
+
+- **`site.ts`:** the towns you really serve (`serviceArea.confirmed: true`) and brand lines.
+- **`services.ts`:** the structure of the four service pages (their headlines and intros are editable in the dashboard).
+- **`about.ts`:** set `confirmed: true` once the About text in the dashboard is yours. Only true facts. No invented credentials, years or client counts.
 - **Legal pages** (`src/app/(site)/privacy`, `terms`): they describe exactly what the site does. Have them reviewed for your situation, along with your session contract, before taking payments.
 
 `/admin` shows a live **Launch readiness** list of what's still missing.

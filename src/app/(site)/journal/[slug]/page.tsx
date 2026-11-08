@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { journalPosts, postBySlug, publishedPosts, type Block } from "@/content/journal";
 import { site } from "@/content/site";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { PhotoFill } from "@/components/media/Photo";
 import { Arrow, ButtonLink, Container } from "@/components/ui/primitives";
+import { getSiteData } from "@/lib/cms/data";
+import { journalCover } from "@/lib/cms/resolve";
 import { absoluteUrl, breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -44,10 +48,27 @@ function render(b: Block, i: number) {
   }
 }
 
-export default async function PostPage({ params }: PageProps<"/journal/[slug]">) {
+/** Unlisted paths wait for the complete static page (so unknown ones get a real 404). */
+export const ensureStatic = "navigation";
+
+/**
+ * The body sits in a Suspense boundary so the page can be regenerated on demand
+ * after an edit is published (params are only known per path). Known paths
+ * still prerender completely, so the HTML search engines see is unchanged.
+ */
+export default function PostPage({ params }: PageProps<"/journal/[slug]">) {
+  return (
+    <Suspense fallback={null}>
+      <PostPageBody params={params} />
+    </Suspense>
+  );
+}
+
+async function PostPageBody({ params }: Pick<PageProps<"/journal/[slug]">, "params">) {
   const { slug } = await params;
   const post = postBySlug(slug);
   if (!post) notFound();
+  const cover = journalCover(await getSiteData(), post.slug);
   const more = publishedPosts().filter((p) => p.slug !== post.slug).slice(0, 2);
   const date = new Date(`${post.date}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -67,6 +88,11 @@ export default async function PostPage({ params }: PageProps<"/journal/[slug]">)
             <time dateTime={post.date}>{date}</time> · {post.readingMinutes} min read
           </p>
         </header>
+        {cover && (
+          <div className="relative mt-10 aspect-[16/9] overflow-hidden rounded-[1.4rem] bg-sand">
+            <PhotoFill photo={cover} priority sizes="(min-width: 1280px) 1200px, 100vw" />
+          </div>
+        )}
         <div className="prose-rcl mt-12 text-[1.08rem]">{post.body.map(render)}</div>
         <div className="mt-16 flex flex-wrap gap-3 border-t border-line pt-10">
           <ButtonLink href="/book">
