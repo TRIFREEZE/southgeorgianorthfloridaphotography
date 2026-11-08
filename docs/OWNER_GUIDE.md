@@ -19,6 +19,8 @@ The site launches with clearly labeled sample placeholders. Here's the fastest w
 
 Spots you don't set by hand are **Automatic**: they use your *Featured* photos first, then the first photo in the category. Once a category has any real photo, its samples disappear.
 
+**Homepage "selected work":** your picks from Site photos (topped up with featured photos, up to 13) are arranged as a round cluster in different sizes, each photo shown whole. The first one is the biggest and sits in the middle. As visitors scroll down, the photos drift in from the edges and settle into the circle. Phones show the first 9.
+
 ## Editing a photo
 
 Click any photo in the library (or **Crop & text** on a Site photos card):

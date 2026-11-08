@@ -60,14 +60,15 @@ export function aboutPhotos(d: SiteData): Photo[] {
 }
 
 /** Homepage mosaic: the hand-picked order first, topped up with featured photos. */
-export function mosaicPhotos(d: SiteData, limit = 7): Photo[] {
+/** Homepage selected work: the hand-picked order first, topped up with featured photos (always, with `fill`). */
+export function mosaicPhotos(d: SiteData, limit = 7, opts: { fill?: boolean } = {}): Photo[] {
   const hero = heroPhoto(d);
   const picked = d.content.layout.mosaic.map((id) => photoById(d, id)).filter((p): p is Photo => Boolean(p));
   const { photos, isReal } = portfolio(d);
   if (!isReal && !picked.length) return photos.filter((p) => p.featured && p.id !== hero.id).slice(0, limit);
   const out = [...picked];
   const pool = photos.filter((p) => p.id !== hero.id && !out.some((o) => o.id === p.id));
-  if (out.length < 5) out.push(...pool.filter((p) => p.featured), ...pool.filter((p) => !p.featured));
+  if (opts.fill || out.length < 5) out.push(...pool.filter((p) => p.featured), ...pool.filter((p) => !p.featured));
   return out.slice(0, limit);
 }
 

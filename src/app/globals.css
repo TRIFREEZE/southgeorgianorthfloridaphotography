@@ -633,3 +633,26 @@
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------ homepage photo cluster */
+.photo-cluster {
+  container-type: inline-size;
+}
+.photo-cluster-tile {
+  /* Outer photos start gathering a little later than the centre ones. */
+  --q: clamp(0, calc((var(--p) - var(--delay) * 0.45) / (1 - var(--delay) * 0.45)), 1);
+  transform: translate3d(calc(var(--ex) * (1 - var(--q)) * 1cqw + var(--mx) * var(--d) * 1px), calc(var(--ey) * (1 - var(--q)) * 1cqw + var(--my) * var(--d) * 1px), 0)
+    rotate(calc(var(--rot) * (1 - var(--q)) * 1deg)) scale(calc(0.8 + 0.2 * var(--q)));
+  opacity: calc(0.2 + 0.8 * var(--q));
+  transition:
+    transform 420ms var(--ease-out-soft),
+    opacity 420ms var(--ease-out-soft);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-cluster-tile {
+    transform: none;
+    opacity: 1;
+    transition: none;
+  }
+}

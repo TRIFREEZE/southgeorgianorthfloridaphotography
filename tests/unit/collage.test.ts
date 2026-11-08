@@ -1,19 +1,50 @@
 import { describe, expect, it } from "vitest";
-import { collageRows } from "@/components/media/Gallery";
+import { clusterLayout } from "@/components/media/cluster-layout";
 import { zoomedSizes } from "@/components/media/Photo";
-import type { Photo } from "@/lib/photo-types";
 
-const ph = (id: string, w: number, h: number) => ({ id, width: w, height: h, category: null, title: id, alt: id, src: null }) as unknown as Photo;
 
-describe("homepage collage", () => {
-  it("keeps every photo, in order, and splits into evenly filled rows", () => {
-    const photos = [ph("a", 3, 2), ph("b", 2, 3), ph("c", 2, 3), ph("d", 3, 2), ph("e", 16, 9), ph("f", 4, 5), ph("g", 1, 1)];
-    const rows = collageRows(photos, 1248, 360);
-    expect(rows.flat().map((p) => p.id)).toEqual(["a", "b", "c", "d", "e", "f", "g"]);
-    expect(rows.length).toBe(2);
-    const sums = rows.map((r) => r.reduce((s, p) => s + p.width / p.height, 0));
-    expect(Math.abs(sums[0] - sums[1])).toBeLessThan(1.5);
-    expect(collageRows(photos, 350, 165).length).toBeGreaterThan(rows.length);
+describe("homepage photo cluster", () => {
+  const photos = [
+    { id: "a", width: 2, height: 3 },
+    { id: "b", width: 3, height: 2 },
+    { id: "c", width: 2, height: 3 },
+    { id: "d", width: 1, height: 1 },
+    { id: "e", width: 16, height: 9 },
+    { id: "f", width: 4, height: 5 },
+    { id: "g", width: 2, height: 3 },
+    { id: "h", width: 3, height: 2 },
+    { id: "i", width: 2, height: 3 },
+    { id: "j", width: 2, height: 3 },
+    { id: "k", width: 3, height: 2 },
+    { id: "l", width: 2, height: 3 },
+    { id: "m", width: 1, height: 1 },
+  ];
+  const { tiles, aspect } = clusterLayout(photos);
+  const boxes = tiles.map((t) => ({ l: t.left, t: t.top, r: t.left + t.width, b: t.top + t.height }));
+
+  it("keeps every photo, uncropped, inside the box, with the first one biggest", () => {
+    expect(tiles).toHaveLength(13);
+    for (const [i, t] of tiles.entries()) {
+      expect(t.whole).toBe(true);
+      // shape preserved: width/height in real units matches the photo
+      expect((t.width * aspect) / t.height).toBeCloseTo(photos[i].width / photos[i].height, 1);
+      expect(boxes[i].l).toBeGreaterThanOrEqual(-0.01);
+      expect(boxes[i].r).toBeLessThanOrEqual(100.01);
+    }
+    const areas = tiles.map((t) => t.width * t.height);
+    expect(Math.max(...areas)).toBe(areas[0]);
+  });
+
+  it("never overlaps and packs into a roughly round shape", () => {
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i];
+        const b = boxes[j];
+        expect(a.r <= b.l + 0.01 || b.r <= a.l + 0.01 || a.b <= b.t + 0.01 || b.b <= a.t + 0.01).toBe(true);
+      }
+    expect(aspect).toBeGreaterThan(0.75);
+    expect(aspect).toBeLessThan(1.6);
+    expect(clusterLayout(photos)).toEqual(clusterLayout(photos)); // deterministic
   });
 });
 
