@@ -54,8 +54,10 @@ export function Hero({ photo, texts, pricing }: { photo: Photo; texts: Record<st
 
         <div className="md:col-span-5 lg:col-span-5">
           <figure className="relative">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand shadow-[0_30px_60px_-30px_rgba(37,39,35,0.45)] md:aspect-[3/4]">
-              <PhotoFill photo={photo} priority sizes="(min-width: 768px) 40vw, 100vw" quality={85} />
+            <div className="rounded-[1.4rem] shadow-[0_30px_60px_-30px_rgba(37,39,35,0.45)]">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.4rem] bg-sand md:aspect-[3/4]">
+                <PhotoFill photo={photo} priority sizes="(min-width: 768px) 40vw, 100vw" quality={85} />
+              </div>
             </div>
             <figcaption className="mt-3 flex items-center justify-between gap-4 text-xs text-muted md:absolute md:inset-x-0 md:top-full">
               <span>{photo.isSample ? "Hero photograph: replace it in Admin → Site photos" : photo.title}</span>

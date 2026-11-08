@@ -635,24 +635,63 @@
 }
 
 /* ------------------------------------------------------------------ homepage photo cluster */
+/*
+ * The gather-in motion is a scroll-driven CSS animation where the browser
+ * supports it: it runs on the compositor thread, so it stays perfectly smooth
+ * on phones however busy the page is. Elsewhere the photos gather once, on a
+ * timer, when the cluster comes into view. The pointer lean (desktop only) uses
+ * the separate `translate` property, so it never fights the animation.
+ */
 .photo-cluster {
   container-type: inline-size;
+  view-timeline-name: --cluster;
 }
-.photo-cluster-tile {
-  /* Outer photos start gathering a little later than the centre ones. */
-  --q: clamp(0, calc((var(--p) - var(--delay) * 0.45) / (1 - var(--delay) * 0.45)), 1);
-  transform: translate3d(calc(var(--ex) * (1 - var(--q)) * 1cqw + var(--mx) * var(--d) * 1px), calc(var(--ey) * (1 - var(--q)) * 1cqw + var(--my) * var(--d) * 1px), 0)
-    rotate(calc(var(--rot) * (1 - var(--q)) * 1deg)) scale(calc(0.8 + 0.2 * var(--q)));
-  opacity: calc(0.2 + 0.8 * var(--q));
-  transition:
-    transform 420ms var(--ease-out-soft),
-    opacity 420ms var(--ease-out-soft);
-  will-change: transform;
-}
-@media (prefers-reduced-motion: reduce) {
-  .photo-cluster-tile {
+@keyframes cluster-gather {
+  from {
+    transform: translate3d(calc(var(--ex) * 1cqw), calc(var(--ey) * 1cqw), 0) rotate(calc(var(--rot) * 1deg)) scale(0.8);
+    opacity: 0.2;
+  }
+  to {
     transform: none;
     opacity: 1;
-    transition: none;
   }
+}
+.photo-cluster-tile {
+  translate: calc(var(--mx, 0) * var(--d) * 1px) calc(var(--my, 0) * var(--d) * 1px);
+  transition: translate 700ms var(--ease-out-soft);
+  backface-visibility: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .photo-cluster-tile {
+      animation: cluster-gather cubic-bezier(0.33, 1, 0.68, 1) both;
+      animation-timeline: --cluster;
+      /* animation-range is set per photo (outer ones finish a little later). */
+      will-change: transform, opacity;
+    }
+  }
+  @supports not (animation-timeline: view()) {
+    .js-reveal .photo-cluster:not(.is-in) .photo-cluster-tile {
+      transform: translate3d(calc(var(--ex) * 1cqw), calc(var(--ey) * 1cqw), 0) rotate(calc(var(--rot) * 1deg)) scale(0.8);
+      opacity: 0.2;
+    }
+    .photo-cluster.is-in .photo-cluster-tile {
+      animation: cluster-gather 1100ms var(--ease-out-soft) both;
+      animation-delay: calc(var(--delay) * 1s);
+    }
+  }
+}
+
+/*
+ * Rounded photo frames keep their corners. When a photo inside a rounded,
+ * overflow-hidden frame is handed to the GPU (fade-in, hover zoom, scroll
+ * motion), some browsers stop clipping it and the corners flash square. A
+ * mask on the frame keeps the clip on the GPU too. Frames with their own
+ * shadow are skipped (a mask would clip the shadow); those put the shadow on
+ * a wrapper instead.
+ */
+.overflow-hidden[class*="rounded"]:has(img):not([class*="shadow"]) {
+  isolation: isolate;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
 }

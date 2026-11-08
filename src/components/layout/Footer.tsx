@@ -3,7 +3,7 @@ import { site } from "@/content/site";
 import { getSiteData, getT } from "@/lib/cms/data";
 import { servicePages } from "@/lib/cms/sessions";
 import { publicEnv, socialLinks } from "@/lib/env";
-import { LogoMark, Wordmark } from "@/components/ui/Logo";
+import { Lockup } from "@/components/ui/Logo";
 import { Container } from "@/components/ui/primitives";
 import { ContactLink } from "./ContactLink";
 import { FlickFooterControl } from "./FlickFooterControl";
@@ -19,8 +19,7 @@ export async function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="max-w-sm">
             <Link href="/" className="inline-flex items-center gap-3 text-gallery">
-              <LogoMark className="h-11 w-11" />
-              <Wordmark className="h-9" />
+              <Lockup className="h-11" />
             </Link>
             <p className="mt-5 font-display text-xl text-gallery/90 italic">{t("site.primaryLine")}</p>
             <p className="mt-4 text-sm leading-relaxed text-sand/80">{t("site.footer.blurb")}</p>

@@ -14,7 +14,7 @@ export default function OpengraphImage() {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "#F6F2EA", padding: 72, color: "#252723" }}>
         {/* eslint-disable-next-line jsx-a11y/alt-text -- rendered to PNG by ImageResponse */}
-        <img src={lockup} width={420} height={82} />
+        <img src={lockup} width={460} height={75} />
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: 76, lineHeight: 1.04, letterSpacing: -2, maxWidth: 980 }}>The good moments deserve more than a timer.</div>
           <div style={{ fontSize: 30, marginTop: 28, color: "#5d5c55" }}>{site.seoHeadline}</div>

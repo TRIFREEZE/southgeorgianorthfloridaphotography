@@ -11,7 +11,7 @@ export default function AppleIcon() {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#F6F2EA" }}>
         {/* eslint-disable-next-line jsx-a11y/alt-text -- rendered to PNG by ImageResponse */}
-        <img src={mark} width={136} height={140} />
+        <img src={mark} width={140} height={100} />
       </div>
     ),
     size,

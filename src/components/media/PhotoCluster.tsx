@@ -8,11 +8,11 @@ import { clusterLayout } from "./cluster-layout";
 /**
  * Homepage "selected work": a round cluster of photos in different sizes.
  * As it scrolls into view the photos drift in from around the edges and
- * settle into the circle; on desktop the cluster also leans gently toward
- * the pointer (bigger photos move less, like depth). Motion is driven by two
- * CSS variables on the cluster (--p for scroll progress, --mx/--my for the
- * pointer), so React never re-renders while you scroll. Reduced motion: it
- * simply shows the finished circle.
+ * settle into the circle. That motion is a scroll-driven CSS animation (see
+ * globals.css), so it runs on the compositor with no JavaScript per frame:
+ * smooth on phones. On desktop the cluster also leans gently toward the
+ * pointer (bigger photos move less, like depth). Reduced motion: it simply
+ * shows the finished circle.
  */
 export function PhotoCluster({ photos, label, onOpen, className = "", testId }: { photos: Photo[]; label: string; onOpen: (i: number, e: React.MouseEvent) => void; className?: string; testId?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -20,51 +20,55 @@ export function PhotoCluster({ photos, label, onOpen, className = "", testId }: 
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let raf = 0;
-    let mx = 0;
-    let my = 0;
-    const update = () => {
-      raf = 0;
-      const r = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      if (r.width === 0) return; // hidden arrangement (phone vs desktop)
-      // 0 when the cluster's top reaches the bottom of the screen, 1 once its middle is a little above centre.
-      const raw = (vh - r.top) / (vh * 0.55 + r.height * 0.45);
-      const p = Math.min(1, Math.max(0, raw));
-      const eased = 1 - Math.pow(1 - p, 3);
-      el.style.setProperty("--p", eased.toFixed(4));
-      el.style.setProperty("--mx", mx.toFixed(3));
-      el.style.setProperty("--my", my.toFixed(3));
-    };
-    const queue = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    const onPointer = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
-      const r = el.getBoundingClientRect();
-      mx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / (r.width / 2)));
-      my = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / (r.height / 2)));
-      queue();
-    };
-    const onLeave = () => {
-      mx = 0;
-      my = 0;
-      queue();
-    };
-    update();
-    window.addEventListener("scroll", queue, { passive: true });
-    window.addEventListener("resize", queue);
-    el.addEventListener("pointermove", onPointer);
-    el.addEventListener("pointerleave", onLeave);
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", queue);
-      window.removeEventListener("resize", queue);
-      el.removeEventListener("pointermove", onPointer);
-      el.removeEventListener("pointerleave", onLeave);
-    };
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const cleanups: (() => void)[] = [];
+
+    // Browsers without scroll-driven animations: gather once, when the cluster comes into view.
+    if (!CSS.supports("animation-timeline: view()")) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            el.classList.add("is-in");
+            io.disconnect();
+          }
+        },
+        { threshold: 0.15 },
+      );
+      io.observe(el);
+      cleanups.push(() => io.disconnect());
+    }
+
+    // Desktop: lean gently toward the pointer. Only a mouse triggers it, so phones do no work at all.
+    if (window.matchMedia("(pointer: fine)").matches) {
+      let raf = 0;
+      let mx = 0;
+      let my = 0;
+      const apply = () => {
+        raf = 0;
+        el.style.setProperty("--mx", mx.toFixed(3));
+        el.style.setProperty("--my", my.toFixed(3));
+      };
+      const onMove = (e: PointerEvent) => {
+        if (e.pointerType !== "mouse") return;
+        const r = el.getBoundingClientRect();
+        mx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / (r.width / 2)));
+        my = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / (r.height / 2)));
+        if (!raf) raf = requestAnimationFrame(apply);
+      };
+      const onLeave = () => {
+        mx = 0;
+        my = 0;
+        if (!raf) raf = requestAnimationFrame(apply);
+      };
+      el.addEventListener("pointermove", onMove);
+      el.addEventListener("pointerleave", onLeave);
+      cleanups.push(() => {
+        if (raf) cancelAnimationFrame(raf);
+        el.removeEventListener("pointermove", onMove);
+        el.removeEventListener("pointerleave", onLeave);
+      });
+    }
+    return () => cleanups.forEach((c) => c());
   }, []);
 
   return (
@@ -74,7 +78,7 @@ export function PhotoCluster({ photos, label, onOpen, className = "", testId }: 
       aria-label={label}
       data-testid={testId}
       className={`photo-cluster relative mx-auto w-full ${className}`}
-      style={{ aspectRatio: String(layout.aspect), maxWidth: `min(100%, calc(88svh * ${layout.aspect.toFixed(3)}))`, ["--p" as string]: 1, ["--mx" as string]: 0, ["--my" as string]: 0 }}
+      style={{ aspectRatio: String(layout.aspect), maxWidth: `min(100%, calc(88svh * ${layout.aspect.toFixed(3)}))` }}
     >
       {layout.tiles.map((t) => {
         const p = photos[t.index];
@@ -85,7 +89,7 @@ export function PhotoCluster({ photos, label, onOpen, className = "", testId }: 
         return (
           <div
             key={p.id}
-            className="photo-cluster-tile absolute"
+            className="photo-cluster-tile absolute rounded-[clamp(0.6rem,1.4cqw,1.25rem)] shadow-[0_18px_40px_-28px_rgba(37,39,35,0.55)]"
             data-cluster-tile
             style={{
               left: `${t.left}%`,
@@ -97,13 +101,15 @@ export function PhotoCluster({ photos, label, onOpen, className = "", testId }: 
               ["--rot" as string]: turn.toFixed(2),
               ["--d" as string]: depth.toFixed(2),
               ["--delay" as string]: (t.ring * 0.35).toFixed(3),
+              // Scroll range for the gather-in: the centre settles first, the outer photos a moment later.
+              animationRange: `cover ${Math.round(t.ring * 8)}% cover ${Math.round(36 + t.ring * 14)}%`,
             }}
           >
             <button
               type="button"
               onClick={(e) => onOpen(t.index, e)}
               data-flick-look
-              className="group relative block h-full w-full overflow-hidden rounded-[clamp(0.6rem,1.4cqw,1.25rem)] bg-sand text-left shadow-[0_18px_40px_-28px_rgba(37,39,35,0.55)]"
+              className="group relative block h-full w-full overflow-hidden rounded-[clamp(0.6rem,1.4cqw,1.25rem)] bg-sand text-left"
               aria-label={`Open photo: ${p.title}${p.isSample ? " (sample placeholder)" : ""}`}
             >
               <span className="absolute inset-0 transition-transform duration-[1200ms] ease-[var(--ease-out-soft)] group-hover:scale-[1.04]">

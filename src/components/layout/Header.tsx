@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { site } from "@/content/site";
-import { LogoMark, Wordmark } from "@/components/ui/Logo";
+import { Lockup, LogoMark } from "@/components/ui/Logo";
 import { Container } from "@/components/ui/primitives";
 import { getT } from "@/lib/cms/data";
 import { editedNav } from "@/lib/cms/texts";
@@ -16,10 +16,9 @@ export async function Header() {
     <header className="sticky top-0 z-40 border-b border-line/70 bg-parchment/90 backdrop-blur-md supports-[backdrop-filter]:bg-parchment/75">
       <Container className="flex h-[4.25rem] items-center justify-between gap-4 lg:h-20">
         <Link href="/" className="-m-2 rounded-lg p-2 text-ink" aria-label={`${site.shortName}, home`}>
-          <span className="inline-flex items-center gap-2">
-            <LogoMark className="h-8 w-8 shrink-0 lg:h-9 lg:w-9" />
-            <Wordmark className="h-[1.6rem] max-[359px]:hidden lg:h-[1.8rem]" />
-          </span>
+          {/* Same height as the Book button's text block, centred on it. Tiny phones show just the mark. */}
+          <Lockup className="h-8 max-[359px]:hidden lg:h-10" />
+          <LogoMark className="h-8 w-auto min-[360px]:hidden" title="Southstill" />
         </Link>
         <nav aria-label="Primary" className="hidden lg:block">
           <Suspense fallback={<NavLinksStatic items={nav} />}>
