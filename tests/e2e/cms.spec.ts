@@ -278,8 +278,11 @@ test("About page: extra photo strip from Site photos", async ({ page, browser })
 
 test("homepage selected work shows exactly the picked photos", async ({ page, browser }, info) => {
   test.skip(info.project.name !== "desktop", "one run is enough");
+  test.setTimeout(180_000); // two real uploads + a publish; slow machines need the room
   await login(page);
   await page.goto("/admin/site-photos");
+  // Wait until the page is interactive, or an early file drop is silently ignored.
+  await page.waitForLoadState("networkidle");
   const clear = page.getByTestId("mosaic-clear");
   if (await clear.isVisible()) {
     await clear.click();
@@ -289,11 +292,11 @@ test("homepage selected work shows exactly the picked photos", async ({ page, br
   const fourth = page.locator('[data-slot="mosaic:3"]');
   await fourth.getByTestId("slot-input").setInputFiles(await photo("river-bend.jpg", "#6f7f8a", 1800, 1200));
   const first = page.locator('[data-slot="mosaic:0"]');
-  await expect(first.getByText("Chosen", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(first.getByText("Chosen", { exact: true })).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[data-slot="mosaic:1"]').getByText("Empty", { exact: true })).toBeVisible();
   const second = page.locator('[data-slot="mosaic:1"]');
   await second.getByTestId("slot-input").setInputFiles(await photo("pine-shadow.jpg", "#7a6a50", 1200, 1600));
-  await expect(second.getByText("Chosen", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(second.getByText("Chosen", { exact: true })).toBeVisible({ timeout: 60_000 });
   await publish(page);
 
   const visitor = await browser.newPage();

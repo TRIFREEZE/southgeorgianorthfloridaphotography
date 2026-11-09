@@ -261,8 +261,8 @@ export function ErrorSummary({ tick, message, items, onFix }: { tick: number; me
               {items.length === 0
                 ? "We couldn't send this yet."
                 : items.length === 1
-                  ? "One thing needs fixing before we can continue:"
-                  : `${items.length} things need fixing before we can continue:`}
+                  ? "One thing needs fixing before we can send this:"
+                  : `${items.length} things need fixing before we can send this:`}
             </span>
           </p>
           {message && <p className="mt-2 text-[0.98rem]">{message}</p>}

@@ -54,6 +54,10 @@ test("booking wizard submits and lands on the confirmation page", async ({ page 
   await expect(wizard.getByTestId("tap-hint")).toContainText("Continue");
   await wizard.getByRole("button", { name: "Continue" }).click();
   await expect(page.locator("#wizard-step-title")).toHaveText("What would make this perfect?");
+  // Before Send, a missing choice is explained right where it is, with no summary box.
+  await wizard.getByRole("button", { name: "Continue" }).click();
+  await expect(wizard.getByText("Choose how many photos you'd like.")).toBeVisible();
+  await expect(wizard.getByTestId("error-summary")).toHaveCount(0);
   // Estimate updates live from config.
   await wizard.locator("label", { hasText: "20" }).filter({ hasText: "photos" }).first().click();
   await expect(page.getByLabel("Estimate")).toContainText("$149");
@@ -64,6 +68,7 @@ test("booking wizard submits and lands on the confirmation page", async ({ page 
   await wizard.getByRole("button", { name: "Continue" }).click();
   // Validation: problems are listed in plain words in a box the page jumps to.
   await expect(wizard.getByTestId("tap-hint")).toContainText("Type here");
+  await expect(wizard.getByTestId("error-summary")).toHaveCount(0);
   await wizard.getByRole("button", { name: "Send my inquiry" }).click();
   const summary = wizard.getByTestId("error-summary");
   await expect(summary).toBeVisible();

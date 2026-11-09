@@ -100,6 +100,8 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
   const favorites = useFavorites();
   const { state, submit, tick: serverTick, clearField } = useInquirySubmit();
   const [localTick, setLocalTick] = useState(0);
+  /** The "things need fixing" box only appears once Send has been pressed and didn't go through. */
+  const [sendFailed, setSendFailed] = useState(false);
   const [step, setStep] = useState(0);
   const [d, setD] = useState<Draft>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -201,9 +203,17 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
       if (!d.consent) e.consent = "Please tick the box to agree to the privacy policy, so we're allowed to reply.";
     }
     setErrors(e);
-    if (Object.keys(e).length) {
+    const keys = Object.keys(e);
+    if (keys.length) {
       emitFlick({ type: "form-error" });
-      setLocalTick((t) => t + 1);
+      if (s === 3) {
+        setSendFailed(true);
+        setLocalTick((t) => t + 1);
+      } else {
+        // Earlier steps: no summary box, just glide to the choice that's missing (its message sits right there).
+        const first = [...keys].sort((a, b) => ((FIELD_ORDER.indexOf(a) + 99) % 99) - ((FIELD_ORDER.indexOf(b) + 99) % 99))[0];
+        requestAnimationFrame(() => focusField(FIELD_ID[first] ?? ""));
+      }
       return false;
     }
     return true;
@@ -355,7 +365,9 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
 
         <div className="lg:col-span-8 lg:row-start-2">
           <div className="space-y-7">
-            <ErrorSummary tick={localTick + serverTick} message={state.status === "error" ? state.message : undefined} items={errorItems} onFix={fix} />
+            {step === 3 && (sendFailed || state.status === "error") && (
+              <ErrorSummary tick={localTick + serverTick} message={state.status === "error" ? state.message : undefined} items={errorItems} onFix={fix} />
+            )}
             {step === 0 && (
               <fieldset>
                 <legend className="sr-only">Session type</legend>
@@ -610,8 +622,10 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
                 Back
               </Button>
             )}
+            {/* Separate keys: reusing one button for Continue and Send would let the tap that
+                opens the last step also count as pressing Send. */}
             {step < 3 ? (
-              <span className="relative inline-flex">
+              <span key="continue" className="relative inline-flex">
                 {nextUp === "continue" && (
                   <TapHint point="down" float className="absolute bottom-full left-0 mb-3">
                     <Verb /> Continue
@@ -622,7 +636,7 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
                 </Button>
               </span>
             ) : (
-              <span className="relative inline-flex">
+              <span key="send" className="relative inline-flex">
                 {nextUp === "send" && state.status !== "submitting" && (
                   <TapHint point="down" float className="absolute bottom-full left-0 mb-3">
                     <Verb /> to send
