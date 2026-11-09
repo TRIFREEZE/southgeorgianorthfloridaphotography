@@ -104,6 +104,15 @@ Then set `published: true`. Thin, copy-paste city pages hurt rankings and trust,
 
 Three practical guides are included. Add posts by copying one and editing the blocks (`p`, `h2`, `ul`, `note`). Shoot stories should use real sessions you have permission to share. Set `published: false` to hide a draft.
 
+## Emails (`/admin/emails`)
+
+The moment someone sends an inquiry, two emails go out (once Resend is set up, see DEPLOYMENT.md step 3):
+
+- **To the client: their confirmation.** In Southstill's colors and type, with the logo. It thanks them by first name, says a real person will reply personally, and makes the promise up front: *this isn't a confirmed booking yet; nothing is reserved or charged until you've agreed on the details together.* It shows their reference number, walks through **How it works** (step 01 marked *Happening now*, the other steps worded exactly as on the site, plus your gallery delivery line), repeats back everything they sent so they can check it, invites them to just hit reply, and ends with links to the portfolio and journal and your tagline.
+- **To you: the heads-up.** Their name, session and estimate at the top, a **Reply to …** button (opens an email to them with a greeting started), **Open in dashboard**, every detail they gave, and a tap-to-find link for their Facebook or Instagram name.
+
+**Emails** in the dashboard shows both with a made-up sample client, at computer or phone width, and **Send me a test** sends one to your inbox. The client email's wording is all editable in **Pricing & text → Confirmation email** (use `{first}` for their first name and `{ref}` for the reference); the steps follow your "How it works" text automatically.
+
 ## How the booking form guides visitors
 
 The booking form is built so anyone, including older visitors, can finish it without help:

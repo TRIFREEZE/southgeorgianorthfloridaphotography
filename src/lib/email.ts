@@ -1,6 +1,5 @@
 import "server-only";
 import { serverEnv } from "@/lib/server-env";
-import { escapeHtml } from "@/lib/security";
 
 export interface EmailMessage {
   to: string | string[];
@@ -44,17 +43,3 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
     return { status: "failed", reason: err instanceof Error ? err.message : "unknown error" };
   }
 }
-
-export function emailLayout(title: string, rows: string) {
-  return `<!doctype html><html><body style="margin:0;background:#F6F2EA;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#252723">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFCF7;border:1px solid #E3D9CA;border-radius:14px">
-<tr><td style="padding:28px 28px 8px"><p style="margin:0;font-family:Georgia,serif;font-size:20px">Southstill</p>
-<h1 style="margin:18px 0 0;font-family:Georgia,serif;font-weight:400;font-size:24px;line-height:1.25">${escapeHtml(title)}</h1></td></tr>
-<tr><td style="padding:8px 28px 28px;font-size:15px;line-height:1.6">${rows}</td></tr></table>
-</td></tr></table></body></html>`;
-}
-
-export const p = (s: string) => `<p style="margin:12px 0">${escapeHtml(s)}</p>`;
-export const kv = (k: string, v: string | undefined | null) =>
-  v ? `<p style="margin:6px 0"><strong>${escapeHtml(k)}:</strong> ${escapeHtml(v)}</p>` : "";

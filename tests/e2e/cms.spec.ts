@@ -316,6 +316,22 @@ test("homepage selected work shows exactly the picked photos", async ({ page, br
   await publish(page);
 });
 
+test("Emails page previews the client confirmation and the owner email", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "one run is enough");
+  await login(page);
+  await page.goto("/admin/emails");
+  await expect(page.getByTestId("email-subject")).toHaveText("We got your note · Southstill");
+  const frame = page.frameLocator("[data-testid=email-frame]");
+  await expect(frame.getByText("How it works from here")).toBeVisible();
+  await expect(frame.getByText("Happening now")).toBeVisible();
+  await page.getByRole("button", { name: "Your new-inquiry email" }).click();
+  await expect(page.getByTestId("email-subject")).toContainText("New inquiry RCL-SAMPLE");
+  await expect(frame.getByRole("link", { name: /Reply to/ })).toBeVisible();
+  // Without Resend set up, a test send explains what's missing instead of failing silently.
+  await page.getByTestId("send-test-email").click();
+  await expect(page.getByText(/RESEND_API_KEY/).last()).toBeVisible();
+});
+
 test("private client gallery: password, signed photos, downloads", async ({ page, browser }) => {
   await login(page);
   await page.goto("/admin/galleries");

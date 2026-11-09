@@ -1,16 +1,15 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { packagePhotos, packagePrice } from "@/content/pricing";
 import { getSiteData } from "@/lib/cms/data";
-import type { Pricing } from "@/lib/cms/schema";
+import type { SiteContent } from "@/lib/cms/schema";
 import { bookingOptions, type BookingOption } from "@/lib/cms/sessions";
-import { site } from "@/content/site";
 import { publicEnv } from "@/lib/env";
 import { serverEnv } from "@/lib/server-env";
-import { emailLayout, kv, p, sendEmail } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 import { hashIp, sha256 } from "@/lib/security";
 import { verifyTurnstile } from "@/lib/turnstile";
-import { estimate } from "./estimate";
+import { clientConfirmationEmail, ownerNotificationEmail, type EmailContext } from "./emails";
+import { estimate, type Estimate } from "./estimate";
 import { fieldErrors, inquirySchema, type Inquiry } from "./schema";
 import { resolveStore, type InquiryRow } from "./store";
 
@@ -169,7 +168,8 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
     };
   }
 
-  const [owner, client] = await Promise.all([notifyOwner(data, saved.ref, est.label, pricing, options), confirmClient(data, saved.ref)]);
+  const ctx = emailContext(content, options);
+  const [owner, client] = await Promise.all([notifyOwner(data, saved.ref, est, ctx, saved.id), confirmClient(data, saved.ref, est, ctx)]);
   await store.updateNotification(saved.id, owner, client);
   if (owner !== "sent") console.warn(`[inquiry] ${saved.ref} saved; owner notification ${owner}`);
 
@@ -189,58 +189,21 @@ const isCheckViolation = (err: unknown) => {
 };
 const labelOf = (options: BookingOption[], id: string) => options.find((c) => c.bookingId === id)?.label ?? id;
 
-async function notifyOwner(d: Inquiry, ref: string, estimateLabel: string, pricing: Pricing, options: BookingOption[]) {
-  const categoryLabel = (id: string) => labelOf(options, id);
+function emailContext(content: SiteContent, options: BookingOption[]): EmailContext {
+  return { content, options, siteUrl: publicEnv.siteUrl, contactEmail: publicEnv.contactEmail, contactPhone: publicEnv.contactPhone };
+}
+
+async function notifyOwner(d: Inquiry, ref: string, est: Estimate, ctx: EmailContext, leadId: string) {
   const to = serverEnv().ownerNotificationEmail;
   if (!to) return "skipped";
-  const pkg = pricing.packages.find((x) => x.id === d.packageId);
-  const lines = [
-    kv("Reference", ref),
-    kv("Type", `${d.kind} · ${categoryLabel(d.category)}`),
-    kv("Name", d.name),
-    kv("Email", d.email),
-    kv("Phone", d.phone),
-    kv("OK to text", d.smsOptIn && d.phone ? "Yes" : "No"),
-    kv("Social", d.social),
-    kv("Package", pkg ? `${pkg.name} (${packagePhotos(pkg)} photos, ${packagePrice(pkg)})` : undefined),
-    kv("Estimate", estimateLabel),
-    kv("Extra photos", d.extraPhotos ? String(d.extraPhotos) : undefined),
-    kv("Add-ons", d.addOns?.length ? d.addOns.join(", ") : undefined),
-    kv("Group", d.groupDetails),
-    kv("Animals", d.animals),
-    kv("Where", [d.city, d.zip].filter(Boolean).join(" ") || undefined),
-    kv("Setting", d.locationPreference),
-    kv("Date", [d.dateFlexibility, d.preferredDate, d.preferredDateAlt, d.preferredTime].filter(Boolean).join(" · ") || undefined),
-    kv("Travel", d.travelNotes),
-    kv("Special needs", d.specialNeeds),
-    kv("Story card", [d.storySubject, d.storyFeeling].filter(Boolean).join(" · ") || undefined),
-    kv("Inspiration photos", d.inspirationIds?.length ? d.inspirationIds.join(", ") : undefined),
-    kv("Message", d.message),
-    kv("Source", [d.utm?.source, d.utm?.medium, d.utm?.campaign].filter(Boolean).join(" / ") || d.referrer || undefined),
-  ].join("");
-  const res = await sendEmail({
-    to,
-    replyTo: d.email,
-    subject: `New inquiry ${ref}: ${categoryLabel(d.category)} from ${d.name}`,
-    html: emailLayout(`New ${categoryLabel(d.category).toLowerCase()} inquiry`, lines + p("Reply to this email to answer them directly, or open /admin/leads.")),
-    text: `New inquiry ${ref}\n${d.name} <${d.email}>${d.phone ? ` ${d.phone}` : ""}\nSocial: ${d.social}\n${categoryLabel(d.category)} · ${estimateLabel}\n\n${d.message ?? ""}`,
-  });
+  const mail = ownerNotificationEmail(d, ref, est, ctx, leadId);
+  const res = await sendEmail({ to, replyTo: d.email, ...mail });
   return res.status;
 }
 
-async function confirmClient(d: Inquiry, ref: string) {
+async function confirmClient(d: Inquiry, ref: string, est: Estimate, ctx: EmailContext) {
   const owner = serverEnv().ownerNotificationEmail;
-  const res = await sendEmail({
-    to: d.email,
-    replyTo: owner ?? publicEnv.contactEmail,
-    subject: `We got your note: ${site.shortName}`,
-    html: emailLayout(`Thanks, ${d.name.split(" ")[0]}. Your note arrived.`, [
-      p("A real person will read it and reply personally, usually with a couple of questions and availability."),
-      p("This isn't a confirmed booking yet. Nothing is reserved or charged until we've agreed on the details together."),
-      kv("Your reference", ref),
-      p(site.primaryLine),
-    ].join("")),
-    text: `Thanks, ${d.name}. Your note arrived (reference ${ref}). A real person will reply personally. This isn't a confirmed booking yet; nothing is reserved or charged until we agree on the details.`,
-  });
+  const mail = clientConfirmationEmail(d, ref, est, ctx);
+  const res = await sendEmail({ to: d.email, replyTo: owner ?? publicEnv.contactEmail, ...mail });
   return res.status;
 }

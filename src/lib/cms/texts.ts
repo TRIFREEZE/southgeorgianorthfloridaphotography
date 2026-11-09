@@ -111,6 +111,7 @@ const SVC_ALL = "Every service page (shared wording)";
 const PRICE = "Pricing page";
 const EXP = "Our approach page";
 const BOOK = "Book page & thank-you page";
+const EMAIL = "Confirmation email (sent to clients)";
 const CONTACT = "Contact page";
 const FAQ = "FAQ page";
 const JOURNAL = "Journal (list page)";
@@ -289,6 +290,36 @@ export const TEXT_FIELDS: TextField[] = [
   f(BOOK, "thanks.email", "Thank-you page: email note", "If you gave an email address, a copy of this confirmation is on its way (check spam just in case)."),
   f(BOOK, "thanks.cta1", "Thank-you page: first button", "Browse the portfolio"),
   f(BOOK, "thanks.cta2", "Thank-you page: second button", "Read a prep guide"),
+
+  // Confirmation email
+  f(EMAIL, "email.subject", "Subject line", "We got your note · Southstill", { hint: "Use {first} for their first name and {ref} for the reference." }),
+  f(EMAIL, "email.preheader", "Preview line (shown after the subject in most inboxes)", "A real person will read it and reply personally. Reference {ref}."),
+  f(EMAIL, "email.eyebrow", "Small heading", "Inquiry received"),
+  f(EMAIL, "email.title", "Headline", "Thank you, {first}. Your note arrived.", { hint: "{first} becomes their first name." }),
+  f(EMAIL, "email.intro", "Opening paragraph", "A real person will read it and reply personally, usually with a couple of questions and availability."),
+  f(EMAIL, "email.promiseBold", "Reassurance box: bold start", "This isn't a confirmed booking yet."),
+  f(EMAIL, "email.promise", "Reassurance box: rest", "Nothing is reserved or charged until we've agreed on the details together."),
+  f(EMAIL, "email.refLabel", "Reference box: label", "Your reference"),
+  f(EMAIL, "email.refNote", "Reference box: note", "Keep this handy. Mention it any time you get in touch."),
+  f(EMAIL, "email.summaryTitle", "Summary: heading", "What you sent us"),
+  f(EMAIL, "email.summaryNote", "Summary: note", "Something not quite right? Just reply and tell us. Nothing here is set in stone."),
+  f(EMAIL, "email.estimateNote", "Summary: estimate note", "An estimate from our published rates, not a bill. Travel is quoted if needed."),
+  f(EMAIL, "email.stepsTitle", "How it works: heading", "How it works from here"),
+  f(EMAIL, "email.nowTag", "How it works: tag on the current step", "Happening now"),
+  f(
+    EMAIL,
+    "email.nowBody",
+    "How it works: the current step",
+    "You've done your part. Next, we'll reply personally to talk through what you're picturing, confirm availability and make sure the scope is right before anything is booked.",
+    { hint: "Shown under the first “How it works” step. The other steps use the site's own wording." },
+  ),
+  f(EMAIL, "email.replyTitle", "Replying: heading", "Questions or something to add?"),
+  f(EMAIL, "email.replyNote", "Replying: paragraph", "Just reply to this email. It comes straight to us, and a real person reads every one."),
+  f(EMAIL, "email.spamNote", "Replying: inbox tip", "Tip: add this address to your contacts so our reply doesn't end up in spam."),
+  f(EMAIL, "email.waitTitle", "While you wait: heading", "While you wait"),
+  f(EMAIL, "email.signoff", "Sign-off", "Talk soon,"),
+  f(EMAIL, "email.signature", "Signature", "The Southstill team"),
+  f(EMAIL, "email.footer", "Footer note", "You're getting this one email because you sent an inquiry at {site}."),
 
   // Contact
   f(CONTACT, "contact.eyebrow", "Small heading", "Contact"),

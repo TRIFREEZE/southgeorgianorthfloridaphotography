@@ -29,6 +29,8 @@ Time needed: about 45 minutes, most of it waiting for DNS.
 2. API Keys → create a key with *Sending access* → `RESEND_API_KEY`.
 3. Set `EMAIL_FROM` to an address on that verified domain, e.g. `Southstill <hello@yourdomain.com>`, and `OWNER_NOTIFICATION_EMAIL` to the inbox that should receive new inquiries.
 
+Then open **/admin/emails** and press **Send me a test** to see the client confirmation in your own inbox. Set `NEXT_PUBLIC_SITE_URL` to your real domain so the logo and links in emails point at it.
+
 Without Resend the site still works: inquiries are stored and visible in `/admin`, but nobody gets emailed. `/admin` flags this.
 
 ## 3. (Optional) Cloudflare Turnstile
