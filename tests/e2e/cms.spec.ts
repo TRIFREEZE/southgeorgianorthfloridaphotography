@@ -56,6 +56,7 @@ test("owner can log in; wrong password is refused", async ({ page }) => {
 test("replace the hero by uploading onto its spot, preview, then publish", async ({ page, browser }) => {
   await login(page);
   await page.goto("/admin/site-photos");
+  await page.waitForLoadState("networkidle"); // interactive before any file drop
   const hero = page.locator('[data-slot="hero"]');
   await expect(hero.getByText("Sample", { exact: true })).toBeVisible();
   await hero.getByTestId("slot-input").setInputFiles(await photo("golden-hour-family.jpg", "#a46b55"));
@@ -83,6 +84,7 @@ test("replace the hero by uploading onto its spot, preview, then publish", async
 test("bulk upload into a category, crop for desktop and mobile, publish", async ({ page, browser }) => {
   await login(page);
   await page.goto("/admin/library");
+  await page.waitForLoadState("networkidle"); // interactive before any file drop
   await page.getByTestId("upload-category").selectOption("people");
   const files = await Promise.all(["#727f70", "#5e6a5c", "#d4a28c", "#8e5a46"].map((c, i) => photo(`session-${i + 1}.jpg`, c, 1800, 1200)));
   await page.getByTestId("upload-input").setInputFiles(files);
@@ -127,6 +129,7 @@ test("30 photos upload in one drop, well within a couple of minutes", async ({ p
   test.setTimeout(150_000);
   await login(page);
   await page.goto("/admin/library");
+  await page.waitForLoadState("networkidle"); // interactive before any file drop
   await page.getByTestId("upload-category").selectOption("animals");
   const files = await Promise.all(Array.from({ length: 30 }, (_, i) => photo(`barn-${String(i + 1).padStart(2, "0")}.jpg`, i % 2 ? "#727f70" : "#a46b55", 2400, 1600)));
   const started = Date.now();
@@ -149,6 +152,7 @@ test("30 photos upload in one drop, well within a couple of minutes", async ({ p
 test("replace a published photo keeps its text, delete needs confirmation", async ({ page, browser }) => {
   await login(page);
   await page.goto("/admin/library");
+  await page.waitForLoadState("networkidle"); // interactive before any file drop
   const tile = page.getByTestId("library-tile").filter({ hasText: "Session 2" });
   await tile.getByRole("button").first().click();
   const oldSrc = await page.getByTestId("focal-area").locator("img").getAttribute("src");
@@ -264,6 +268,7 @@ test("categories: rename, add, reorder; text and pricing edits go live", async (
 test("About page: extra photo strip from Site photos", async ({ page, browser }) => {
   await login(page);
   await page.goto("/admin/site-photos");
+  await page.waitForLoadState("networkidle"); // interactive before any file drop
   const slot = page.locator('[data-slot="about:0"]');
   await expect(slot.getByText("Empty", { exact: true })).toBeVisible();
   await slot.getByTestId("slot-input").setInputFiles(await photo("porch-light.jpg", "#d4a28c", 1600, 2000));
@@ -281,8 +286,7 @@ test("homepage selected work shows exactly the picked photos", async ({ page, br
   test.setTimeout(180_000); // two real uploads + a publish; slow machines need the room
   await login(page);
   await page.goto("/admin/site-photos");
-  // Wait until the page is interactive, or an early file drop is silently ignored.
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("networkidle"); // interactive before any file drop
   const clear = page.getByTestId("mosaic-clear");
   if (await clear.isVisible()) {
     await clear.click();
@@ -309,6 +313,7 @@ test("homepage selected work shows exactly the picked photos", async ({ page, br
   await visitor.close();
 
   await page.goto("/admin/site-photos");
+  await page.waitForLoadState("networkidle"); // interactive before any file drop
   await page.locator('[data-slot="mosaic:0"]').getByTestId("slot-remove").click();
   await expect(page.locator('[data-slot="mosaic:1"]').getByText("Empty", { exact: true })).toBeVisible();
   await page.getByTestId("mosaic-clear").click();
@@ -333,6 +338,43 @@ test("Emails page previews the client confirmation and the owner email", async (
   // Receiving: setup steps and the webhook address to paste into Resend.
   await expect(page.getByTestId("receiving")).toContainText("Receiving is off");
   await expect(page.getByTestId("receiving")).toContainText("/api/email/inbound");
+});
+
+test("write a booking confirmation and a gallery email from the dashboard", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "one run is enough");
+  await login(page);
+  await page.goto("/admin/emails");
+  await page.getByTestId("write-booking").click();
+  await page.waitForLoadState("networkidle");
+  // Nothing filled in: the form explains what's missing.
+  await page.getByTestId("compose-send").click();
+  await page.getByTestId("confirm-ok").click();
+  await expect(page.getByText("Add the client's name.")).toBeVisible();
+  await expect(page.getByText("Choose the session date.")).toBeVisible();
+
+  await page.getByTestId("c-name").fill("Jane Smith");
+  await page.getByTestId("c-email").fill("jane@example.com");
+  await page.getByTestId("booking-composer").locator("label", { hasText: "Pets & horses" }).click();
+  await page.getByTestId("c-date").fill("2027-03-13");
+  await page.getByTestId("c-time").fill("4:30 PM");
+  await page.getByTestId("c-note").fill("Can't wait to meet Biscuit!");
+  await expect(page.getByTestId("compose-subject")).toContainText("Saturday, March 13, 2027");
+  const frame = page.frameLocator("[data-testid=compose-frame]");
+  await expect(frame.getByText("Coming soon")).toBeVisible();
+  await expect(frame.getByText("Can't wait to meet Biscuit!")).toBeVisible();
+  // Without Resend in tests, sending says so and sends nothing.
+  await page.getByTestId("compose-send").click();
+  await page.getByTestId("confirm-ok").click();
+  await expect(page.getByText(/Email isn't set up yet/).last()).toBeVisible();
+
+  await page.goto("/admin/emails/gallery");
+  await page.waitForLoadState("networkidle");
+  await page.getByTestId("g-name").fill("Jane Smith");
+  await page.getByTestId("g-email").fill("jane@example.com");
+  await page.getByTestId("g-link").fill("https://example.com/client-gallery/smith-x7k2");
+  await page.getByTestId("g-password").fill("pecan-sunset-42");
+  await expect(page.getByTestId("compose-subject")).toHaveText("Your photos are ready, Jane");
+  await expect(page.frameLocator("[data-testid=compose-frame]").getByText("pecan-sunset-42")).toBeVisible();
 });
 
 test("inbound webhook refuses unsigned or unconfigured requests", async ({ request }) => {
@@ -375,6 +417,7 @@ test("private client gallery: password, signed photos, downloads", async ({ page
 
 test("admin pages and actions require a session", async ({ page }) => {
   await page.goto("/admin/library");
+  await page.waitForLoadState("networkidle"); // interactive before any file drop
   await expect(page).toHaveURL(/\/admin\/login/);
   const res = await page.request.get("/api/preview/enable?to=/");
   expect(res.status()).toBe(401);

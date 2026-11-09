@@ -40,6 +40,8 @@ export interface InquiryRow {
   ip_hash: string;
   user_agent: string | null;
   dedupe_key: string;
+  /** Leads start as "new"; bookings added from the dashboard start as "booked". */
+  status?: "new" | "booked";
 }
 
 export interface InquiryStore {
@@ -87,7 +89,7 @@ class SupabaseStore implements InquiryStore {
   async insert(row: InquiryRow) {
     const { data, error } = await this.db.from("inquiries").insert(row).select("id, ref").single();
     if (error) throw error;
-    await this.db.from("inquiry_events").insert({ inquiry_id: data.id, type: "created", to_status: "new", actor: "system" });
+    await this.db.from("inquiry_events").insert({ inquiry_id: data.id, type: "created", to_status: row.status ?? "new", actor: row.status === "booked" ? "owner" : "system" });
     return data;
   }
 

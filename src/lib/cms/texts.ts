@@ -114,6 +114,8 @@ const BOOK = "Book page & thank-you page";
 const EMAIL = "Confirmation email (sent to clients)";
 const OWNER_EMAIL = "New-inquiry email (sent to you)";
 const EMAIL_LABELS = "Email details list (both emails)";
+const BOOKED_EMAIL = "Booking confirmed email (you send it)";
+const GALLERY_EMAIL = "Gallery ready email (you send it)";
 const CONTACT = "Contact page";
 const FAQ = "FAQ page";
 const JOURNAL = "Journal (list page)";
@@ -345,6 +347,51 @@ export const TEXT_FIELDS: TextField[] = [
   f(OWNER_EMAIL, "ownerEmail.searchFacebook", "Link under a Facebook name", "Search on Facebook"),
   f(OWNER_EMAIL, "ownerEmail.lookInstagram", "Link under an @name", "Look up on Instagram"),
   f(OWNER_EMAIL, "ownerEmail.openProfile", "Link under a pasted profile link", "Open profile"),
+
+  // Booking confirmed (written and sent from /admin/emails)
+  f(BOOKED_EMAIL, "bookedEmail.subject", "Subject line", "You're booked! {session} on {date}", { hint: "{first}, {name}, {session}, {date} and {time} are filled in for you." }),
+  f(BOOKED_EMAIL, "bookedEmail.preheader", "Preview line", "Your {session} is confirmed for {date}. Here's everything in one place."),
+  f(BOOKED_EMAIL, "bookedEmail.eyebrow", "Small heading", "Booking confirmed"),
+  f(BOOKED_EMAIL, "bookedEmail.title", "Headline", "You're booked, {first}!"),
+  f(BOOKED_EMAIL, "bookedEmail.intro", "Opening paragraph", "We can't wait. Here's everything in one place, so you can relax until the day."),
+  f(BOOKED_EMAIL, "bookedEmail.whenLabel", "Date box: label", "Your session"),
+  f(BOOKED_EMAIL, "bookedEmail.detailsTitle", "Details: heading", "The details"),
+  f(BOOKED_EMAIL, "bookedEmail.timeLabel", "Details: time", "Time"),
+  f(BOOKED_EMAIL, "bookedEmail.placeLabel", "Details: where we'll meet", "Where we'll meet"),
+  f(BOOKED_EMAIL, "bookedEmail.priceLabel", "Details: price", "Price"),
+  f(BOOKED_EMAIL, "bookedEmail.stepsTitle", "How it works: heading", "How it works from here"),
+  f(BOOKED_EMAIL, "bookedEmail.doneTag", "How it works: tag on finished steps", "Done"),
+  f(BOOKED_EMAIL, "bookedEmail.nowTag", "How it works: tag on step 03", "Coming soon"),
+  f(BOOKED_EMAIL, "bookedEmail.nowNote", "How it works: line under step 03", "See you {date}{at}."),
+  f(BOOKED_EMAIL, "bookedEmail.prepTitle", "Before the day: heading", "Before the day"),
+  f(
+    BOOKED_EMAIL,
+    "bookedEmail.prep",
+    "Before the day: tips (one per line)",
+    "Wear what you feel like yourself in. Solid colors and soft textures photograph beautifully.\nBring water, and anything that keeps little ones (or animals) happy.\nPlan to arrive a few minutes early so nobody feels rushed.",
+    { multiline: true, hint: "Each line becomes a bullet. Leave empty to hide this part." },
+  ),
+  f(BOOKED_EMAIL, "bookedEmail.weather", "Weather line", "If the weather turns, we'll get in touch about the backup plan."),
+  f(BOOKED_EMAIL, "bookedEmail.changeTitle", "Changes: heading", "Need to change something?"),
+  f(BOOKED_EMAIL, "bookedEmail.change", "Changes: paragraph", "Just reply to this email. It comes straight to us."),
+  f(BOOKED_EMAIL, "bookedEmail.signoff", "Sign-off", "See you soon,"),
+  f(BOOKED_EMAIL, "bookedEmail.footer", "Footer note", "You're getting this because you booked a session with {site}."),
+
+  // Gallery ready (sent from /admin/emails)
+  f(GALLERY_EMAIL, "galleryEmail.subject", "Subject line", "Your photos are ready, {first}"),
+  f(GALLERY_EMAIL, "galleryEmail.preheader", "Preview line", "Your private gallery is ready to view and download."),
+  f(GALLERY_EMAIL, "galleryEmail.eyebrow", "Small heading", "Your gallery is ready"),
+  f(GALLERY_EMAIL, "galleryEmail.title", "Headline", "Your photos are here, {first}."),
+  f(GALLERY_EMAIL, "galleryEmail.intro", "Opening paragraph", "Your finished, edited photographs are waiting in your private gallery."),
+  f(GALLERY_EMAIL, "galleryEmail.button", "Button", "Open your gallery"),
+  f(GALLERY_EMAIL, "galleryEmail.passwordLabel", "Password box: label", "Your password"),
+  f(GALLERY_EMAIL, "galleryEmail.passwordNote", "Password box: note", "You'll need it each time you open the gallery, so keep this email."),
+  f(GALLERY_EMAIL, "galleryEmail.expires", "Available-until line", "Your gallery is available until {date}. Please download your favorites before then."),
+  f(GALLERY_EMAIL, "galleryEmail.howTitle", "What you can do: heading", "What you can do"),
+  f(GALLERY_EMAIL, "galleryEmail.how", "What you can do: paragraph", "Download your photos, share them with family and print your favorites. Want more than your package includes? Extra photos can be added from your gallery."),
+  f(GALLERY_EMAIL, "galleryEmail.linkFallback", "Line for when the button doesn't work", "Button not working? Copy this link into your browser:"),
+  f(GALLERY_EMAIL, "galleryEmail.signoff", "Sign-off", "With thanks,"),
+  f(GALLERY_EMAIL, "galleryEmail.footer", "Footer note", "You're getting this because we photographed your session ({site})."),
 
   // Labels used in both emails' details list
   f(EMAIL_LABELS, "emailLabel.email", "Email", "Email"),

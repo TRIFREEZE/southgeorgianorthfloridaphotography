@@ -7,6 +7,7 @@ export interface EmailMessage {
   html: string;
   text: string;
   replyTo?: string | string[];
+  bcc?: string | string[];
   /** Hosted files Resend fetches and attaches (e.g. a received email's attachments). */
   attachments?: { filename: string; path: string; content_type?: string; content_id?: string }[];
   headers?: Record<string, string>;
@@ -35,6 +36,7 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
         html: msg.html,
         text: msg.text,
         reply_to: msg.replyTo,
+        bcc: msg.bcc,
         attachments: msg.attachments?.length ? msg.attachments : undefined,
         headers: msg.headers,
       }),

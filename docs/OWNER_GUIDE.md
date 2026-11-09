@@ -113,6 +113,13 @@ The moment someone sends an inquiry, two emails go out (once Resend is set up, s
 
 **Emails** in the dashboard shows both with a made-up sample client, at computer or phone width, and **Send me a test** sends one to your inbox. Every word of both emails is editable in **Pricing & text**: **Confirmation email** (the client's), **New-inquiry email** (yours) and **Email details list** (the labels both use, like "Session" or "When"). Use `{first}` for their first name and `{ref}` for the reference; the steps follow your "How it works" text automatically.
 
+**Write and send (Emails → Write and send):**
+
+- **Booking confirmation:** for clients who book with you directly instead of through the site. Fill it in like the booking form (session type, photo count, extras, who's in the photos), plus the date, time, where you'll meet, the price to show (leave it empty to use your rates) and **your own note**, which sits near the top of the email, set apart. The email builds itself on the right as you type, in the same look as the inquiry email: the date up top, the details, and How it works with 01 and 02 marked *Done* and **03 Relax & shoot marked Coming soon** with "See you {date}". It also has "Before the day" tips you can edit. Tick **Also add it to Leads as Booked** to keep a record, and **Send me a copy** to get one yourself.
+- **Gallery ready:** paste their gallery link and password (or pick one of your client galleries to fill in the link; the password you type, because it's stored scrambled), add a note if you like, and send. The link is a big button, the password is set apart in easy-to-read letters, and an optional "available until" date reminds them to download.
+
+Both ask "Send this email?" before anything goes out, and every fixed word is editable in **Pricing & text → Booking confirmed email / Gallery ready email**.
+
 **Receiving email:** once set up (DEPLOYMENT.md → "Receiving email at your domain"), anything sent to an address at your domain is forwarded to your inbox, marked with the address it was sent to. Just hit Reply to answer. The Emails page shows a checklist of what's set up.
 
 ## How the booking form guides visitors

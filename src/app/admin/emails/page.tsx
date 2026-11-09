@@ -29,7 +29,7 @@ async function Body() {
           <Link href="/admin/content" className="underline">
             Pricing &amp; text
           </Link>{" "}
-          under <strong>Confirmation email</strong>, <strong>New-inquiry email</strong> and <strong>Email details list</strong>. The steps come from “How it works” on the site, so they always match.
+          under the sections that end in “email” (Confirmation, New-inquiry, Booking confirmed, Gallery ready) and <strong>Email details list</strong>. The steps come from “How it works” on the site, so they always match.
         </p>
         {!env.resendApiKey || !env.emailFrom ? (
           <p className="mt-4 rounded-xl border border-[#a3392b]/30 bg-[#a3392b]/[0.06] px-4 py-3 text-sm text-[#7d2a20]">
@@ -37,6 +37,22 @@ async function Body() {
           </p>
         ) : null}
       </header>
+      <section aria-labelledby="write-title">
+        <h2 id="write-title" className="text-[1.6rem]">
+          Write and send
+        </h2>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <Link href="/admin/emails/booking" className="group rounded-2xl border border-line bg-parchment p-5 hover:border-ink/40" data-testid="write-booking">
+            <p className="font-display text-xl">Booking confirmation →</p>
+            <p className="mt-1 text-sm text-muted">For clients who book with you directly: fill in the session like the booking form, add your own note, send.</p>
+          </Link>
+          <Link href="/admin/emails/gallery" className="group rounded-2xl border border-line bg-parchment p-5 hover:border-ink/40" data-testid="write-gallery">
+            <p className="font-display text-xl">Gallery ready →</p>
+            <p className="mt-1 text-sm text-muted">Drop in their gallery link and password, add a note if you like, send.</p>
+          </Link>
+        </div>
+      </section>
+      <h2 className="text-[1.6rem]">Sent automatically</h2>
       <EmailPreview
         emails={[
           { id: "client", label: "Client confirmation", subject: client.subject, html: client.html },

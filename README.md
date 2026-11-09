@@ -43,7 +43,7 @@ E2E needs a Chromium: `npx playwright install chromium`, or point `PLAYWRIGHT_CH
 
 The full guide is in **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**. In short:
 
-1. Create a Supabase project and run the four files in `supabase/migrations/` in order (SQL editor or `supabase db push`).
+1. Create a Supabase project and run the five files in `supabase/migrations/` in order (SQL editor or `supabase db push`).
 2. Create your admin user in Supabase → Authentication → Users.
 3. Push this repo to GitHub → import it in Vercel → add the environment variables from `.env.example` → Deploy.
 4. Add your domain in Vercel → Settings → Domains, then set `NEXT_PUBLIC_SITE_URL` to it and redeploy.
@@ -112,7 +112,7 @@ src/
       repo/              CmsRepo interface → SupabaseRepo (production) / LocalRepo (dev & tests)
     admin-auth.ts      Supabase-password + signed HttpOnly session cookie
     env.ts / server-env.ts   public vs server-only configuration
-supabase/migrations/   schema, RLS policies, storage buckets (run all four, in order)
+supabase/migrations/   schema, RLS policies, storage buckets (run all five, in order)
 tests/unit, tests/e2e
 docs/                  deployment, owner guide, Flick, launch checklist
 ```

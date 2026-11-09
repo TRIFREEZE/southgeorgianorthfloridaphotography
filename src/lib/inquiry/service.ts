@@ -23,7 +23,7 @@ export type InquiryResult =
 const fallbackContact = () =>
   publicEnv.contactEmail ? ` You can also email ${publicEnv.contactEmail} directly.` : "";
 
-function newRef() {
+export function newRef() {
   const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   const bytes = randomBytes(6);
   return `RCL-${Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("")}`;

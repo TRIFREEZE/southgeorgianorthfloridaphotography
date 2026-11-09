@@ -29,13 +29,13 @@ export interface BuiltEmail {
   text: string;
 }
 
-function niceDate(iso?: string) {
+export function niceDate(iso?: string) {
   if (!iso) return "";
   const d = new Date(`${iso}T12:00:00Z`);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
-const domainOf = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+export const domainOf = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
 
 /** A site page ("/portfolio") or a full address, as an absolute link. */
 const absolute = (href: string, home: string) => (/^https?:\/\//i.test(href) ? href : `${home}${href.startsWith("/") ? "" : "/"}${href}`);

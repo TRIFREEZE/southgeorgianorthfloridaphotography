@@ -102,12 +102,12 @@ export function button(label: string, href: string, variant: "dark" | "light" = 
 }
 
 /** The reference number, set apart so it's easy to find later. */
-export function refBox(label: string, ref: string, note: string) {
+export function refBox(label: string, ref: string, note: string, { size = 26, spacing = "0.04em", mono = false }: { size?: number; spacing?: string; /** Typewriter letters, so l / 1 / O / 0 can't be confused (passwords). */ mono?: boolean } = {}) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.parchment};border-radius:14px;">
 <tr><td style="padding:16px 20px;">
 <p style="margin:0;font-family:${SANS};font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${C.muted};">${esc(label)}</p>
-<p style="margin:4px 0 0;font-family:${SERIF};font-size:26px;letter-spacing:0.04em;color:${C.ink};">${esc(ref)}</p>
-<p style="margin:6px 0 0;font-family:${SANS};font-size:13px;line-height:1.55;color:${C.muted};">${esc(note)}</p>
+<p style="margin:4px 0 0;font-family:${mono ? "'SFMono-Regular',Menlo,Consolas,'Courier New',monospace" : SERIF};font-size:${size}px;line-height:1.2;letter-spacing:${spacing};color:${C.ink};">${esc(ref)}</p>
+${note ? `<p style="margin:6px 0 0;font-family:${SANS};font-size:13px;line-height:1.55;color:${C.muted};">${escLines(note)}</p>` : ""}
 </td></tr></table>`;
 }
 
@@ -130,7 +130,7 @@ export function details(items: Detail[]) {
 }
 
 /** The "How it works" steps, with the current one highlighted. */
-export function steps(items: { n: string; title: string; body: string; tag?: string; note?: string }[]) {
+export function steps(items: { n: string; title: string; body: string; tag?: string; note?: string; done?: string }[]) {
   return items
     .map((s, i) => {
       const current = Boolean(s.tag);
@@ -139,7 +139,7 @@ export function steps(items: { n: string; title: string; body: string; tag?: str
 <td valign="top" width="54" style="padding:${current ? "16px 0 16px 16px" : "6px 0"};width:54px;font-family:${SERIF};font-size:24px;line-height:1;color:${current ? C.clayDeep : C.clayLight};">${esc(s.n)}</td>
 <td valign="top" style="padding:${current ? "16px 16px 16px 4px" : "6px 0"};">
 ${current ? `<p style="margin:0 0 6px;"><span style="display:inline-block;padding:3px 10px;border-radius:999px;background:${C.clayDeep};font-family:${SANS};font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${C.gallery};">${esc(s.tag!)}</span></p>` : ""}
-<p style="margin:0;font-family:${SANS};font-size:16px;font-weight:700;line-height:1.35;color:${C.ink};">${esc(s.title)}</p>
+<p style="margin:0;font-family:${SANS};font-size:16px;font-weight:700;line-height:1.35;color:${C.ink};">${esc(s.title)}${s.done ? ` <span style="font-size:12px;font-weight:700;color:${C.muted};">&#10003; ${esc(s.done)}</span>` : ""}</p>
 <p style="margin:4px 0 0;font-family:${SANS};font-size:14.5px;line-height:1.6;color:${C.inkSoft};">${esc(s.body)}</p>
 ${s.note ? `<p style="margin:6px 0 0;font-family:${SANS};font-size:13px;line-height:1.55;color:${C.muted};">${esc(s.note)}</p>` : ""}
 </td>
@@ -155,3 +155,17 @@ export const callout = (strong: string, rest: string) =>
 export const divider = () => `<div style="height:1px;line-height:1px;background:${C.line};margin:30px 0 26px;">&nbsp;</div>`;
 
 export const tagline = (s: string) => `<p style="margin:0;font-family:${SERIF};font-style:italic;font-size:20px;line-height:1.4;color:${C.clayDeep};">${esc(s)}</p>`;
+
+/** The owner's own words, set apart with a clay rule. */
+export const noteBlock = (s: string) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-left:3px solid ${C.clay};padding:4px 0 4px 18px;font-family:${SANS};font-size:16px;line-height:1.7;color:${C.ink};">${escLines(s)}</td></tr></table>`;
+
+/** A simple bullet list (bullets drawn as text so every inbox shows them). */
+export const bullets = (items: string[]) =>
+  items
+    .filter((x) => x.trim())
+    .map(
+      (x) =>
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;"><tr><td valign="top" width="20" style="width:20px;font-family:${SANS};font-size:15px;line-height:1.6;color:${C.clay};">&#9679;</td><td style="font-family:${SANS};font-size:15px;line-height:1.6;color:${C.inkSoft};">${esc(x.trim())}</td></tr></table>`,
+    )
+    .join("");
