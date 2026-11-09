@@ -69,7 +69,7 @@ test("booking wizard submits and lands on the confirmation page", async ({ page 
   await expect(summary).toBeVisible();
   await expect(summary).toBeInViewport();
   await expect(summary).toContainText("Please type your name.");
-  await expect(summary).toContainText("Facebook, Instagram");
+  await expect(summary).toContainText("Facebook or Instagram name");
   await wizard.getByLabel("Your name").fill("Test Person");
   await wizard.getByLabel("Email").fill("test@example");
   await wizard.getByRole("button", { name: "Send my inquiry" }).click();
@@ -81,7 +81,7 @@ test("booking wizard submits and lands on the confirmation page", async ({ page 
   await wizard.getByLabel("Email").blur();
   await wizard.getByTestId("email-suggestion").getByRole("button", { name: "Yes, use that" }).click();
   await expect(wizard.getByLabel("Email")).toHaveValue("test@gmail.com");
-  await wizard.getByLabel(/social media link/).fill("facebook.com/testperson");
+  await wizard.getByLabel(/Facebook or Instagram name/).fill("Test Person");
   await expect(wizard.getByTestId("social-why")).toContainText("who we're photographing");
   await expect(wizard.getByTestId("tap-hint")).toContainText("the box to agree");
   await wizard.getByLabel(/I agree to the/).check();
@@ -97,7 +97,7 @@ test("quick inquiry validates on the server and inline", async ({ page }) => {
   await page.getByRole("button", { name: "Send message" }).click();
   await expect(page.getByRole("alert").first()).toBeVisible();
   await expect(page.getByTestId("error-summary")).toContainText("Please type your name.");
-  await expect(page.getByTestId("error-summary")).toContainText("social media");
+  await expect(page.getByTestId("error-summary")).toContainText("Facebook or Instagram");
 });
 
 test("API: honeypot and validation behave", async ({ request }) => {
@@ -107,7 +107,7 @@ test("API: honeypot and validation behave", async ({ request }) => {
   expect((await bad.json()).fields.email).toContain("“@”");
   const noSocial = await request.post("/api/inquiry", { data: { ...ok, social: "" } });
   expect(noSocial.status()).toBe(422);
-  expect((await noSocial.json()).fields.social).toContain("Facebook");
+  expect((await noSocial.json()).fields.social).toContain("Facebook or Instagram name");
   const trap = await request.post("/api/inquiry", { data: { ...ok, company_website: "spam.example" } });
   expect(trap.status()).toBe(200); // looks successful to bots, stores nothing
   const cross = await request.post("/api/inquiry", { data: ok, headers: { origin: "https://evil.example" } });
@@ -120,7 +120,7 @@ test("no-JavaScript quick form still posts", async ({ browser }) => {
   await page.goto("/contact");
   await page.locator("#contact-name").fill("No Script");
   await page.locator("#contact-email").fill("noscript@example.com");
-  await page.locator("#contact-social").fill("instagram.com/noscript");
+  await page.locator("#contact-social").fill("No Script");
   await page.locator("#contact-message").fill("Testing without JavaScript");
   await page.locator("#contact-consent").check();
   await page.getByRole("button", { name: "Send message" }).click();

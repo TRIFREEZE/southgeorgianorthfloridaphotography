@@ -116,7 +116,7 @@ The booking form is built so anyone, including older visitors, can finish it wit
 ## Handling leads (`/admin/leads`)
 
 - New inquiries arrive by email (if Resend is set up) and always appear here.
-- Every inquiry includes a **social media link** (Facebook, Instagram or similar, or an @username), shown as **Social** on the lead and in the email, so you know who you'll be photographing. Visitors see why you ask, right under the box, plus simple steps for finding their link.
+- Every inquiry includes the visitor's **Facebook or Instagram name** (no link needed: "Jane Smith" or "@janesmith"; if someone pastes a link, it's clickable), shown as **Social** on the lead and in the email, so you know who you'll be photographing. Visitors see why you ask, right under the box.
 - Use **Reply by email** (pre-filled), then move the **stage**: new → contacted → quoted → accepted/declined → booked → archived.
 - **Booked** is your manual confirmation. The site never tells a client they're booked.
 - **Notes** are private. **Export CSV** for your records or a spreadsheet.

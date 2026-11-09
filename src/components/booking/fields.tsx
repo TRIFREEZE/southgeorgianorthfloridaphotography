@@ -370,19 +370,19 @@ export function EmailField({
   );
 }
 
-/** Facebook, Instagram or other profile link, with why we ask and how to find it. */
+/** Their Facebook or Instagram name (no link needed), with why we ask. */
 export function SocialField({ id, error, nudge, ...input }: { id: string; error?: string; nudge?: ReactNode } & ComponentProps<"input">) {
   return (
     <div>
       <TextField
         id={id}
         name="social"
-        label="Facebook, Instagram or other social media link"
-        inputMode="url"
-        autoCapitalize="none"
-        autoCorrect="off"
+        label="Your Facebook or Instagram name"
+        autoComplete="off"
+        autoCapitalize="words"
         spellCheck={false}
-        placeholder="facebook.com/yourname or @yourname"
+        placeholder="Jane Smith, or @janesmith"
+        hint="Just your name as it shows on Facebook, or your Instagram @name. No link needed."
         error={error}
         nudge={nudge}
         required
@@ -391,21 +391,6 @@ export function SocialField({ id, error, nudge, ...input }: { id: string; error?
       <p className="mt-2 rounded-xl bg-gallery px-3.5 py-2.5 text-[0.88rem] leading-snug text-ink-soft" data-testid="social-why">
         {SOCIAL_WHY}
       </p>
-      <details className="mt-2 text-[0.88rem]">
-        <summary className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-clay-deep underline underline-offset-4">How do I find my link?</summary>
-        <ul className="mt-1 list-disc space-y-1.5 pl-5 text-ink-soft">
-          <li>
-            <strong>Facebook on a phone:</strong> open your profile, <Verb lower /> the <strong>⋯</strong> button, then <strong>Copy profile link</strong>, and paste it here.
-          </li>
-          <li>
-            <strong>On a computer:</strong> open your profile and copy the web address from the bar at the very top of the window.
-          </li>
-          <li>
-            <strong>Instagram, TikTok and others:</strong> just type your username with an @ in front, like <strong>@janesmith</strong>.
-          </li>
-          <li>Any page that shows it&apos;s you works too, like LinkedIn or a business page.</li>
-        </ul>
-      </details>
     </div>
   );
 }

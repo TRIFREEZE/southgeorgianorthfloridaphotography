@@ -73,30 +73,30 @@ export function emailSuggestion(raw: string): string | null {
 export const SOCIAL_WHY =
   "Why we ask: we just like to know who we're photographing before we meet. We only use it to put a face to your name for this inquiry.";
 
-/** The social profile as we'll store it: a full link, or an @username. Null if it's not usable. */
+const LOOKS_LIKE_LINK = /^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i;
+
+/**
+ * Their Facebook or Instagram name as we'll store it. A plain name ("Jane Smith"),
+ * an @username or a pasted link all work; a link is tidied into a full https address.
+ */
 export function normalizeSocial(raw: string): string | null {
-  let v = raw.trim();
-  if (!v) return null;
-  if (/^@[a-z0-9._-]{2,40}$/i.test(v)) return v;
-  if (/\s/.test(v)) return null;
-  if (!/^https?:\/\//i.test(v)) v = `https://${v.replace(/^\/+/, "")}`;
-  try {
-    const u = new URL(v);
-    if (u.protocol !== "https:" && u.protocol !== "http:") return null;
-    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(u.hostname)) return null;
-    if (u.username || u.password) return null;
-    return u.toString().slice(0, 300);
-  } catch {
-    return null;
+  const v = raw.trim().replace(/\s+/g, " ");
+  if (v.length < 2 || v.length > 120) return null;
+  if (!/\s/.test(v) && LOOKS_LIKE_LINK.test(v) && !/^@/.test(v)) {
+    try {
+      const u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`);
+      if ((u.protocol === "https:" || u.protocol === "http:") && !u.username && !u.password) return u.toString();
+    } catch {
+      /* not a link after all: keep it as typed */
+    }
   }
+  return /[<>]/.test(v) ? null : v;
 }
 
 export function socialProblem(raw: string): string | null {
   const v = raw.trim();
-  if (!v) return "Please add a link to your Facebook, Instagram or other social media page, or your @username.";
-  if (v.length > 300) return "That link is too long. Please paste just the link to your profile.";
-  if (/^@/.test(v) && !normalizeSocial(v)) return "That @username doesn't look right. Usernames have no spaces, like @janesmith.";
-  if (/\s/.test(v) && !/^@/.test(v))
-    return "That doesn't look like a link. Please paste the link to your profile (like facebook.com/janesmith), or type your @username.";
-  return normalizeSocial(v) ? null : "That doesn't look like a link. Please paste the link to your profile (like facebook.com/janesmith), or type your @username.";
+  if (!v) return "Please type your Facebook or Instagram name, so we know who we're photographing.";
+  if (v.length < 2) return "That's a little short. Please type your name as it shows on Facebook, or your Instagram @name.";
+  if (v.length > 120) return "That's a little long. Just your Facebook name or Instagram @name is plenty.";
+  return normalizeSocial(v) ? null : "Please type just your Facebook name or Instagram @name (no special symbols like < or >).";
 }

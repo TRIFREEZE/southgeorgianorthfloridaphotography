@@ -168,7 +168,7 @@ export function buildGuide({ pricing, faqs, sessions, founders }: GuideData): Gu
       id: "book",
       question: "How do I book?",
       answer:
-        "Tap Book at the top of the page. There are 4 short steps: pick the kind of photos, pick how many, add where and when (optional), then your name, email and a social media link. Tap Continue after each step and Send my inquiry at the end. A real person replies personally. Nothing is reserved or charged until you agree on the details together.",
+        "Tap Book at the top of the page. There are 4 short steps: pick the kind of photos, pick how many, add where and when (optional), then your name, email and your Facebook or Instagram name. Tap Continue after each step and Send my inquiry at the end. A real person replies personally. Nothing is reserved or charged until you agree on the details together.",
       links: [{ label: "Start booking", href: "/book" }],
       keywords: ["book", "booking", "schedule", "reserve", "sign up", "how do i", "appointment", "inquiry", "form", "start", "help", "send"],
       followUps: ["social", "cost", "human"],
@@ -176,7 +176,7 @@ export function buildGuide({ pricing, faqs, sessions, founders }: GuideData): Gu
     {
       id: "social",
       question: "Why do you ask for my Facebook or Instagram?",
-      answer: `${SOCIAL_WHY} A Facebook or Instagram link, or just your @username, is all it takes. Any page that shows it's you works too.`,
+      answer: `${SOCIAL_WHY} Just type your name as it shows on Facebook, or your Instagram @name. No link needed.`,
       links: [{ label: "Privacy policy", href: "/privacy" }],
       keywords: ["facebook", "instagram", "social", "social media", "link", "profile", "username", "tiktok", "why", "don't have", "privacy"],
       followUps: ["book", "human"],

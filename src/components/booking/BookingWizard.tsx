@@ -86,7 +86,7 @@ const FIELD_LABEL: Record<string, string> = {
   preferredDateAlt: "Second date",
   name: "Your name",
   email: "Email",
-  social: "Social media link",
+  social: "Facebook or Instagram name",
   phone: "Phone",
   message: "Notes",
   consent: "Privacy agreement",
@@ -261,7 +261,7 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
       Everything on this page is optional. Fill in what you know, then <Verb lower /> <strong>Continue</strong>.
     </>,
     <>
-      Type your name, email and a social media link, <Verb lower /> the box to agree, then <Verb lower /> <strong>Send my inquiry</strong>. That&apos;s it.
+      Type your name, email and your Facebook or Instagram name, <Verb lower /> the box to agree, then <Verb lower /> <strong>Send my inquiry</strong>. That&apos;s it.
     </>,
   ][step];
 
@@ -558,7 +558,7 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
                   <TextField id="w-name" label="Your name" autoComplete="name" value={d.name} onChange={(e) => set("name", e.target.value)} error={shownErrors.name} required nudge={nextUp === "name" ? "Type here" : undefined} />
                   <EmailField id="w-email" value={d.email} onChange={(e) => set("email", e.target.value)} onUse={(v) => set("email", v)} error={shownErrors.email} required nudge={nextUp === "email" ? "Type here" : undefined} />
                 </div>
-                <SocialField id="w-social" value={d.social} onChange={(e) => set("social", e.target.value)} error={shownErrors.social} nudge={nextUp === "social" ? "Paste or type here" : undefined} />
+                <SocialField id="w-social" value={d.social} onChange={(e) => set("social", e.target.value)} error={shownErrors.social} nudge={nextUp === "social" ? "Type here" : undefined} />
                 <TextField id="w-phone" type="tel" label="Phone" autoComplete="tel" inputMode="tel" value={d.phone} onChange={(e) => set("phone", e.target.value)} error={shownErrors.phone} optional />
                 {d.phone.trim() && (
                   <Checkbox id="w-sms" checked={d.smsOptIn} onChange={(e) => set("smsOptIn", e.target.checked)} label="It's okay to text me about this inquiry. Message and data rates may apply. Reply STOP to opt out." />

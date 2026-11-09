@@ -48,7 +48,7 @@ export function QuickInquiry({
   const onToken = useCallback((t: string) => setToken(t), []);
   const errors: Record<string, string> = { ...(state.status === "error" ? state.fields : {}), ...local };
   const id = (n: string) => `${idPrefix}-${n}`;
-  const labels: Record<string, string> = { name: "Your name", email: "Email", social: "Social media link", phone: "Phone", category: "What we're photographing", message: "Your idea", consent: "Privacy agreement", form: "Form" };
+  const labels: Record<string, string> = { name: "Your name", email: "Email", social: "Facebook or Instagram name", phone: "Phone", category: "What we're photographing", message: "Your idea", consent: "Privacy agreement", form: "Form" };
   const order = ["name", "email", "social", "category", "phone", "smsOptIn", "message", "consent"];
   const items = Object.entries(errors)
     .filter(([, m]) => m)

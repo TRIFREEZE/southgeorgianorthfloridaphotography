@@ -66,9 +66,9 @@ export const inquirySchema = z
         if (problem) ctx.addIssue({ code: "custom", message: problem });
       })
       .pipe(z.email("Please check your email address. It should look like name@example.com.")),
-    /** Facebook, Instagram or other profile, so the owner knows who they're photographing. */
+    /** Facebook or Instagram name (or a link), so the owner knows who they're photographing. */
     social: z
-      .string({ error: "Please add a link to your Facebook, Instagram or other social media page, or your @username." })
+      .string({ error: "Please type your Facebook or Instagram name, so we know who we're photographing." })
       .superRefine((v, ctx) => {
         const problem = socialProblem(v);
         if (problem) ctx.addIssue({ code: "custom", message: problem });

@@ -1,7 +1,7 @@
 -- Southstill: a social media link on every inquiry.
 -- Run after 20261109000000_flexible.sql. Safe to re-run.
 --
--- Visitors now add a Facebook, Instagram or other profile link (or an @username)
+-- Visitors now add their Facebook or Instagram name (or a link, if they like)
 -- so you know who you'll be photographing. Until this runs, inquiries are still
 -- saved: the link is kept at the top of the message instead.
 
