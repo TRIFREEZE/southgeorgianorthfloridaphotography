@@ -24,6 +24,7 @@ export interface InquiryRow {
   email: string;
   phone: string | null;
   sms_opt_in: boolean;
+  social_link: string | null;
   message: string | null;
   inspiration_photo_ids: string[];
   story_subject: string | null;

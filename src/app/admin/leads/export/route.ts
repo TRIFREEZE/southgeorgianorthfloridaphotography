@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ADMIN_COOKIE, verifySessionToken } from "@/lib/admin-auth";
 import { listLeads } from "@/lib/admin-data";
 
-const cols = ["ref", "created_at", "status", "kind", "category", "package_id", "extra_photos", "estimate_label", "name", "email", "phone", "sms_opt_in", "city", "zip", "date_flexibility", "preferred_date", "preferred_date_alt", "preferred_time", "group_details", "animals", "location_preference", "special_needs", "travel_notes", "message", "admin_notes"] as const;
+const cols = ["ref", "created_at", "status", "kind", "category", "package_id", "extra_photos", "estimate_label", "name", "email", "phone", "sms_opt_in", "social_link", "city", "zip", "date_flexibility", "preferred_date", "preferred_date_alt", "preferred_time", "group_details", "animals", "location_preference", "special_needs", "travel_notes", "message", "admin_notes"] as const;
 
 const cell = (v: unknown) => {
   const s = v == null ? "" : Array.isArray(v) ? v.join("; ") : String(v);

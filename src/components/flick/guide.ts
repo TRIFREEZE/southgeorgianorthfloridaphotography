@@ -1,3 +1,4 @@
+import { SOCIAL_WHY } from "@/lib/inquiry/checks";
 import { formatPrice, packagePhotos, packagePrice, pricedPackages } from "@/content/pricing";
 import type { Pricing } from "@/lib/cms/schema";
 import { experienceSteps } from "@/content/experience";
@@ -162,6 +163,23 @@ export function buildGuide({ pricing, faqs, sessions, founders }: GuideData): Gu
       links: [{ label: "Our approach", href: "/experience" }],
       keywords: ["process", "steps", "what happens", "expect", "work", "first time", "nervous", "pose", "awkward"],
       followUps: ["time", "delivery", "match"],
+    },
+    {
+      id: "book",
+      question: "How do I book?",
+      answer:
+        "Tap Book at the top of the page. There are 4 short steps: pick the kind of photos, pick how many, add where and when (optional), then your name, email and a social media link. Tap Continue after each step and Send my inquiry at the end. A real person replies personally. Nothing is reserved or charged until you agree on the details together.",
+      links: [{ label: "Start booking", href: "/book" }],
+      keywords: ["book", "booking", "schedule", "reserve", "sign up", "how do i", "appointment", "inquiry", "form", "start", "help", "send"],
+      followUps: ["social", "cost", "human"],
+    },
+    {
+      id: "social",
+      question: "Why do you ask for my Facebook or Instagram?",
+      answer: `${SOCIAL_WHY} A Facebook or Instagram link, or just your @username, is all it takes. Any page that shows it's you works too.`,
+      links: [{ label: "Privacy policy", href: "/privacy" }],
+      keywords: ["facebook", "instagram", "social", "social media", "link", "profile", "username", "tiktok", "why", "don't have", "privacy"],
+      followUps: ["book", "human"],
     },
     {
       id: "time",

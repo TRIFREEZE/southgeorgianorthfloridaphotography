@@ -20,6 +20,8 @@ export function useInquirySubmit() {
   const router = useRouter();
   const [state, setState] = useState<SubmitState>({ status: "idle" });
   const inFlight = useRef(false);
+  /** Bumps on every failed send, so the error box can scroll into view each time. */
+  const [tick, setTick] = useState(0);
 
   const submit = useCallback(
     async (payload: Record<string, unknown>) => {
@@ -46,11 +48,14 @@ export function useInquirySubmit() {
           return true;
         }
         emitFlick({ type: "form-error" });
+        const fields = data.fields ?? {};
         setState({
           status: "error",
-          message: data.message ?? "Something went wrong sending your message. Please try again.",
-          fields: data.fields ?? {},
+          // With field problems, the list itself explains them; the generic line would only repeat it.
+          message: Object.keys(fields).length && /highlighted fields/i.test(data.message ?? "") ? "" : (data.message ?? "Something went wrong sending your message. Please try again."),
+          fields,
         });
+        setTick((t) => t + 1);
         inFlight.current = false;
         return false;
       } catch {
@@ -60,6 +65,7 @@ export function useInquirySubmit() {
           message: "We couldn't reach the server. Check your connection and try again. Nothing was sent yet.",
           fields: {},
         });
+        setTick((t) => t + 1);
         inFlight.current = false;
         return false;
       }
@@ -67,5 +73,15 @@ export function useInquirySubmit() {
     [router],
   );
 
-  return { state, submit, setState };
+  /** Forget a server error once the visitor changes that field. */
+  const clearField = useCallback((key: string) => {
+    setState((s) => {
+      if (s.status !== "error" || !s.fields[key]) return s;
+      const fields = { ...s.fields };
+      delete fields[key];
+      return { ...s, fields };
+    });
+  }, []);
+
+  return { state, submit, setState, tick, clearField };
 }

@@ -9,9 +9,9 @@ Time needed: about 45 minutes, most of it waiting for DNS.
 ## 1. Supabase (database, photo storage, admin login)
 
 1. Create a project at [supabase.com](https://supabase.com). Pick a region close to Vercel's default (**East US / us-east-1** pairs well with Vercel's `iad1`). Save the database password somewhere safe.
-2. **Run the three migrations, in order.** Choose one:
-   - **SQL editor (simplest):** Supabase → SQL Editor → New query → paste the whole of `supabase/migrations/20261107000000_init.sql` → Run. Then a new query with the whole of `supabase/migrations/20261108000000_cms.sql` → Run. Then one more with `supabase/migrations/20261109000000_flexible.sql` → Run (it lets inquiries use categories and packages you create, and stores the Build-your-story setup). All are safe to run again.
-   - **CLI:** `npx supabase login`, `npx supabase link --project-ref YOUR-REF`, then `npx supabase db push` (runs both).
+2. **Run the four migrations, in order.** Choose one:
+   - **SQL editor (simplest):** Supabase → SQL Editor → New query → paste the whole of `supabase/migrations/20261107000000_init.sql` → Run. Then a new query with the whole of `supabase/migrations/20261108000000_cms.sql` → Run. Then one more with `supabase/migrations/20261109000000_flexible.sql` → Run (it lets inquiries use categories and packages you create, and stores the Build-your-story setup). Then one last query with `supabase/migrations/20261110000000_social.sql` → Run (it stores the social media link visitors add to each inquiry). All are safe to run again.
+   - **CLI:** `npx supabase login`, `npx supabase link --project-ref YOUR-REF`, then `npx supabase db push` (runs them all).
 
    The first creates the inquiry tables (`inquiries`, `inquiry_events`, `submission_events`) and the `portfolio` (public, optimized photos) and `portfolio-uploads` (private originals) storage buckets. The second adds the content manager: `media` (every photo with its draft and live versions), `site_content` (placements, categories, pricing, page text, FAQs, testimonials), `client_galleries` + `client_gallery_photos`, the private `client-galleries` bucket, and a `storage_usage()` function for the dashboard. Everything has Row Level Security on with **no public access**: only the server (secret key) reads or writes, and visitors only ever receive published content and optimized images.
 3. **Check it worked:** Table Editor shows `inquiries`, `inquiry_events`, `submission_events`, `media`, `site_content`, `client_galleries`, `client_gallery_photos` (each with RLS enabled). Storage shows `portfolio`, `portfolio-uploads` and `client-galleries`.
@@ -113,6 +113,7 @@ Honeypot, a minimum fill time and database-backed rate limiting are always on. F
 | Upload fails with "Upload failed (4xx)" | The storage buckets or the second migration are missing. Re-run `20261108000000_cms.sql`. Files must be JPEG/PNG/WebP/AVIF/TIFF under 100 MB. iPhone HEIC files need exporting as JPEG first. |
 | *Publish* is greyed out | The bar names the reason: a visible photo needs alt text, or its permission is still "Not confirmed yet". |
 | Published change doesn't appear | Hard-refresh or use a private window (you may still be in Preview; use *Exit preview*). Pages refresh on Publish and within an hour at most. |
+| A lead's message starts with `[Social: …]` | Run `supabase/migrations/20261110000000_social.sql` in the SQL Editor. Until then the social link is kept at the top of the message, so nothing is lost. |
 | "Your database needs a one-time update" when saving Build your story | Run `supabase/migrations/20261109000000_flexible.sql` in the SQL Editor. Until then, inquiries for new categories are still saved (as "other", with the real choice noted in the message). |
 | Storage shows "Empty" for everything | `storage_usage()` is missing: re-run the CMS migration. |
 | Images from a custom Supabase domain don't load | `next.config.ts` reads the Supabase host at build time. Redeploy after changing `NEXT_PUBLIC_SUPABASE_URL`. |

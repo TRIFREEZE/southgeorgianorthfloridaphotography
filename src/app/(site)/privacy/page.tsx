@@ -22,7 +22,7 @@ export default function PrivacyPage() {
       <h2>What we collect</h2>
       <ul>
         <li>
-          <strong>Inquiries you send us:</strong> your name, email, optional phone number, and what you tell us about your session
+          <strong>Inquiries you send us:</strong> your name, email, optional phone number, a link to a social media profile you choose to share (so we know who we&apos;ll be photographing), and what you tell us about your session
           (type of session, package, dates, general location, notes, and any inspiration photos you saved).
         </li>
         <li>

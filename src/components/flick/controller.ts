@@ -746,6 +746,8 @@ export class FlickController {
         if (Math.random() < 0.3) this.sayEvent("card-pick", { force: true });
         break;
       case "booking-step":
+        // Someone filling in the booking form is busy: put the hello card away.
+        if (this.introOpen) this.endIntro("timeout");
         this.engine.blink();
         break;
       case "booking-complete":
@@ -757,6 +759,8 @@ export class FlickController {
         this.sayEvent("celebrate-story", { force: true, announce: true });
         break;
       case "form-error":
+        // Never let the hello card cover the box explaining what to fix.
+        if (this.introOpen) this.endIntro("timeout");
         if ((this.machine.cooldownUntil.help ?? 0) > performance.now()) break;
         this.dispatch({ type: "request", state: "help" });
         this.sayEvent("help-error", { force: true, announce: true });

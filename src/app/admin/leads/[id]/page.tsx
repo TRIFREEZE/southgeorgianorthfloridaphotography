@@ -31,6 +31,7 @@ async function Lead({ params }: Pick<PageProps<"/admin/leads/[id]">, "params">) 
     ["Email", lead.email],
     ["Phone", lead.phone],
     ["OK to text", lead.sms_opt_in ? "Yes (opted in)" : "No"],
+    ["Social", lead.social_link],
     ["Type", `${lead.kind} · ${lead.category}`],
     ["Package", lead.package_id],
     ["Extra photos", lead.extra_photos ? String(lead.extra_photos) : null],
@@ -67,7 +68,15 @@ async function Lead({ params }: Pick<PageProps<"/admin/leads/[id]">, "params">) 
             .map(([k, v]) => (
               <div key={k}>
                 <dt className="text-xs font-bold uppercase tracking-wider text-muted">{k}</dt>
-                <dd className="break-words">{v}</dd>
+                <dd className="break-words">
+                  {k === "Social" && v && /^https?:\/\//.test(v) ? (
+                    <a href={v} target="_blank" rel="noopener noreferrer nofollow" className="underline">
+                      {v}
+                    </a>
+                  ) : (
+                    v
+                  )}
+                </dd>
               </div>
             ))}
         </dl>

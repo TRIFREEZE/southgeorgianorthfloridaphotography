@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailProblem, normalizeSocial, socialProblem } from "./checks";
 
 const opt = (max: number) =>
   z
@@ -55,8 +56,24 @@ export const inquirySchema = z
       .or(z.literal("").transform(() => undefined)),
     preferredTime: z.enum(["morning", "midday", "evening", "any"]).optional().or(z.literal("").transform(() => undefined)),
     travelNotes: opt(400),
-    name: z.string().trim().min(1, "Please add your name.").max(120, "That name is a little long."),
-    email: z.string().trim().toLowerCase().max(200).pipe(z.email("Please check your email address.")),
+    name: z.string().trim().min(1, "Please type your name.").max(120, "That name is a little long."),
+    email: z
+      .string({ error: "Please type your email address, so we can reply to you." })
+      .trim()
+      .toLowerCase()
+      .superRefine((v, ctx) => {
+        const problem = emailProblem(v);
+        if (problem) ctx.addIssue({ code: "custom", message: problem });
+      })
+      .pipe(z.email("Please check your email address. It should look like name@example.com.")),
+    /** Facebook, Instagram or other profile, so the owner knows who they're photographing. */
+    social: z
+      .string({ error: "Please add a link to your Facebook, Instagram or other social media page, or your @username." })
+      .superRefine((v, ctx) => {
+        const problem = socialProblem(v);
+        if (problem) ctx.addIssue({ code: "custom", message: problem });
+      })
+      .transform((v) => normalizeSocial(v)!),
     phone: z
       .string()
       .trim()

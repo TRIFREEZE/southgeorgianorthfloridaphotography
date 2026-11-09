@@ -11,7 +11,8 @@ import { track } from "@/lib/analytics";
 import { emitFlick } from "@/components/flick/bus";
 import { Button } from "@/components/ui/primitives";
 import { captureAttribution } from "./attribution";
-import { Checkbox, ConsentLabel, FormAlert, Honeypot, SelectField, TextArea, TextField } from "./fields";
+import { emailProblem, socialProblem } from "@/lib/inquiry/checks";
+import { Checkbox, ConsentLabel, EmailField, ErrorSummary, focusField, Honeypot, SelectField, SocialField, TapHint, TextArea, TextField, Verb } from "./fields";
 import { Turnstile } from "./Turnstile";
 import { useInquirySubmit } from "./useInquirySubmit";
 
@@ -33,6 +34,7 @@ type Draft = {
   travelNotes: string;
   name: string;
   email: string;
+  social: string;
   phone: string;
   smsOptIn: boolean;
   message: string;
@@ -59,6 +61,7 @@ const EMPTY: Draft = {
   travelNotes: "",
   name: "",
   email: "",
+  social: "",
   phone: "",
   smsOptIn: false,
   message: "",
@@ -73,11 +76,30 @@ const PERSISTED: (keyof Draft)[] = ["category", "packageId", "extraPhotos", "add
 
 const steps = ["What are we capturing?", "What would make this perfect?", "Where & when?", "Let's make it happen"] as const;
 
+/** Which step each answer lives on, so "Take me there" can go back to it. */
+const FIELD_STEP: Record<string, number> = { category: 0, packageId: 1, extraPhotos: 1, addOns: 1, groupDetails: 1, animals: 1, specialNeeds: 1, locationPreference: 1, city: 2, zip: 2, dateFlexibility: 2, preferredDate: 2, preferredDateAlt: 2, preferredTime: 2, travelNotes: 2 };
+const FIELD_LABEL: Record<string, string> = {
+  category: "What we're photographing",
+  packageId: "Number of photos",
+  zip: "ZIP code",
+  preferredDate: "Date",
+  preferredDateAlt: "Second date",
+  name: "Your name",
+  email: "Email",
+  social: "Social media link",
+  phone: "Phone",
+  message: "Notes",
+  consent: "Privacy agreement",
+};
+const FIELD_ID: Record<string, string> = { zip: "w-zip", preferredDate: "w-date", preferredDateAlt: "w-date2", name: "w-name", email: "w-email", social: "w-social", phone: "w-phone", message: "w-message", consent: "w-consent", city: "w-city" };
+const FIELD_ORDER = ["category", "packageId", "zip", "preferredDate", "preferredDateAlt", "name", "email", "social", "phone", "message", "consent"];
+
 const settings = ["Your home, yard or farm", "A park or outdoor spot", "Downtown or a business", "A venue", "Not sure yet: help me choose"];
 
 export function BookingWizard({ pricing, options, story }: { pricing: Pricing; options: BookingOption[]; story: StoryContent }) {
   const favorites = useFavorites();
-  const { state, submit } = useInquirySubmit();
+  const { state, submit, tick: serverTick, clearField } = useInquirySubmit();
+  const [localTick, setLocalTick] = useState(0);
   const [step, setStep] = useState(0);
   const [d, setD] = useState<Draft>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -138,13 +160,14 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
       track("start_booking");
     }
     setD((x) => ({ ...x, [k]: v }));
+    clearField(k as string);
     setErrors((e) => {
       if (!e[k as string]) return e;
       const n = { ...e };
       delete n[k as string];
       return n;
     });
-  }, []);
+  }, [clearField]);
 
   const opt = options.find((o) => o.bookingId === d.category);
   const eligible = d.category ? isPackageEligible(d.category, options) : false;
@@ -169,19 +192,78 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
       if (d.dateFlexibility !== "flexible" && !d.preferredDate) e.preferredDate = "Add a date, or choose “I'm flexible”.";
     }
     if (s === 3) {
-      if (!d.name.trim()) e.name = "Please add your name.";
-      if (!/^\S+@\S+\.\S+$/.test(d.email.trim())) e.email = "Please check your email address.";
+      if (!d.name.trim()) e.name = "Please type your name.";
+      const em = emailProblem(d.email);
+      if (em) e.email = em;
+      const so = socialProblem(d.social);
+      if (so) e.social = so;
       if (d.smsOptIn && !d.phone.trim()) e.phone = "Add a phone number to receive texts, or untick the text option.";
-      if (!d.consent) e.consent = "Please agree to the privacy policy so we can reply.";
+      if (!d.consent) e.consent = "Please tick the box to agree to the privacy policy, so we're allowed to reply.";
     }
     setErrors(e);
     if (Object.keys(e).length) {
       emitFlick({ type: "form-error" });
-      requestAnimationFrame(() => document.querySelector<HTMLElement>("[aria-invalid='true'], [data-error-anchor]")?.focus());
+      setLocalTick((t) => t + 1);
       return false;
     }
     return true;
   };
+
+  const errorItems = Object.entries(shownErrors)
+    .filter(([, m]) => m)
+    .sort(([a], [b]) => ((FIELD_ORDER.indexOf(a) + 99) % 99) - ((FIELD_ORDER.indexOf(b) + 99) % 99))
+    .map(([key, message]) => ({ key, label: FIELD_LABEL[key] ?? "Form", message }));
+
+  const fix = (key: string) => {
+    const target = FIELD_STEP[key] ?? 3;
+    const go = () => focusField(FIELD_ID[key] ?? "");
+    if (target !== step) {
+      goto(target);
+      window.setTimeout(go, 120);
+    } else go();
+  };
+
+  // The one next thing to do, so a "tap here" guide can point at it.
+  const nextUp: string =
+    step === 0
+      ? d.category
+        ? "continue"
+        : "options"
+      : step === 1
+        ? eligible && !chosen
+          ? "packages"
+          : "continue"
+        : step === 2
+          ? "continue"
+          : !d.name.trim()
+            ? "name"
+            : emailProblem(d.email)
+              ? "email"
+              : socialProblem(d.social)
+                ? "social"
+                : !d.consent
+                  ? "consent"
+                  : "send";
+  const help = [
+    <>
+      <Verb /> the kind of photos you&apos;d like. Then <Verb lower /> the <strong>Continue</strong> button at the bottom.
+    </>,
+    eligible ? (
+      <>
+        <Verb /> how many photos you&apos;d like. Everything else on this page is optional. Then <Verb lower /> <strong>Continue</strong>.
+      </>
+    ) : (
+      <>
+        Everything on this page is optional. Fill in what you like, then <Verb lower /> <strong>Continue</strong>.
+      </>
+    ),
+    <>
+      Everything on this page is optional. Fill in what you know, then <Verb lower /> <strong>Continue</strong>.
+    </>,
+    <>
+      Type your name, email and a social media link, <Verb lower /> the box to agree, then <Verb lower /> <strong>Send my inquiry</strong>. That&apos;s it.
+    </>,
+  ][step];
 
   const goto = (s: number) => {
     setStep(s);
@@ -266,13 +348,22 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
           <h2 id="wizard-step-title" ref={headingRef} tabIndex={-1} className="mt-2 text-display-sm outline-none">
             {steps[step]}
           </h2>
+          <p className="mt-3 max-w-[38rem] text-[1.05rem] leading-relaxed text-ink-soft" data-testid="step-help">
+            {help}
+          </p>
         </div>
 
         <div className="lg:col-span-8 lg:row-start-2">
           <div className="space-y-7">
+            <ErrorSummary tick={localTick + serverTick} message={state.status === "error" ? state.message : undefined} items={errorItems} onFix={fix} />
             {step === 0 && (
               <fieldset>
                 <legend className="sr-only">Session type</legend>
+                {nextUp === "options" && (
+                  <TapHint point="down" className="mb-3">
+                    <Verb /> the kind of photos you&apos;d like
+                  </TapHint>
+                )}
                 <div className="grid gap-3 sm:grid-cols-2" data-error-anchor={shownErrors.category ? true : undefined} tabIndex={shownErrors.category ? -1 : undefined}>
                   {options.map((c) => (
                     <label
@@ -298,7 +389,7 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
                     </label>
                   ))}
                 </div>
-                {shownErrors.category && <p className="mt-3 text-sm font-medium text-[#a3392b]" role="alert">{shownErrors.category}</p>}
+                {shownErrors.category && <p className="mt-3 text-sm font-semibold text-[#a3392b]">{shownErrors.category}</p>}
               </fieldset>
             )}
 
@@ -307,6 +398,11 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
                 {eligible ? (
                   <fieldset>
                     <legend className="mb-3 font-semibold">How many finished photos?</legend>
+                    {nextUp === "packages" && (
+                      <TapHint point="down" className="mb-3">
+                        <Verb /> how many photos you&apos;d like
+                      </TapHint>
+                    )}
                     <div className={`grid gap-3 ${packages.length === 4 ? "sm:grid-cols-2 xl:grid-cols-4" : packages.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"}`} data-error-anchor={shownErrors.packageId ? true : undefined} tabIndex={shownErrors.packageId ? -1 : undefined}>
                       {packages.map((p) => (
                         <label
@@ -336,7 +432,7 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
                         </label>
                       ))}
                     </div>
-                    {shownErrors.packageId && <p className="mt-3 text-sm font-medium text-[#a3392b]" role="alert">{shownErrors.packageId}</p>}
+                    {shownErrors.packageId && <p className="mt-3 text-sm font-semibold text-[#a3392b]">{shownErrors.packageId}</p>}
                     {chosen && chosen.priceCents == null && (
                       <p className="mt-4 rounded-xl bg-gallery px-4 py-3 text-sm text-ink-soft" data-testid="custom-package-note">
                         <strong>{chosen.name} is quoted personally.</strong> Tell us what you have in mind below and we&apos;ll send a written quote.
@@ -458,11 +554,11 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
 
             {step === 3 && (
               <>
-                {state.status === "error" && <FormAlert message={state.message} />}
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <TextField id="w-name" label="Your name" autoComplete="name" value={d.name} onChange={(e) => set("name", e.target.value)} error={shownErrors.name} required />
-                  <TextField id="w-email" type="email" label="Email" autoComplete="email" inputMode="email" value={d.email} onChange={(e) => set("email", e.target.value)} error={shownErrors.email} required />
+                  <TextField id="w-name" label="Your name" autoComplete="name" value={d.name} onChange={(e) => set("name", e.target.value)} error={shownErrors.name} required nudge={nextUp === "name" ? "Type here" : undefined} />
+                  <EmailField id="w-email" value={d.email} onChange={(e) => set("email", e.target.value)} onUse={(v) => set("email", v)} error={shownErrors.email} required nudge={nextUp === "email" ? "Type here" : undefined} />
                 </div>
+                <SocialField id="w-social" value={d.social} onChange={(e) => set("social", e.target.value)} error={shownErrors.social} nudge={nextUp === "social" ? "Paste or type here" : undefined} />
                 <TextField id="w-phone" type="tel" label="Phone" autoComplete="tel" inputMode="tel" value={d.phone} onChange={(e) => set("phone", e.target.value)} error={shownErrors.phone} optional />
                 {d.phone.trim() && (
                   <Checkbox id="w-sms" checked={d.smsOptIn} onChange={(e) => set("smsOptIn", e.target.checked)} label="It's okay to text me about this inquiry. Message and data rates may apply. Reply STOP to opt out." />
@@ -484,7 +580,20 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
                   </dl>
                 </section>
 
-                <Checkbox id="w-consent" checked={d.consent} onChange={(e) => set("consent", e.target.checked)} label={<ConsentLabel />} error={shownErrors.consent} />
+                <Checkbox
+                  id="w-consent"
+                  checked={d.consent}
+                  onChange={(e) => set("consent", e.target.checked)}
+                  label={<ConsentLabel />}
+                  error={shownErrors.consent}
+                  nudge={
+                    nextUp === "consent" ? (
+                      <>
+                        <Verb /> the box to agree
+                      </>
+                    ) : undefined
+                  }
+                />
                 <Turnstile onToken={onToken} />
               </>
             )}
@@ -495,27 +604,41 @@ export function BookingWizard({ pricing, options, story }: { pricing: Pricing; o
               {est.kind === "package" ? `${est.label} · travel quoted if needed` : "Custom quote: you'll get a written quote"}
             </p>
           )}
-          <div className="mt-9 flex flex-wrap items-center gap-3">
+          <div className="mt-16 flex flex-wrap items-center gap-3">
             {step > 0 && (
               <Button type="button" variant="secondary" onClick={() => goto(step - 1)}>
                 Back
               </Button>
             )}
             {step < 3 ? (
-              <Button type="button" onClick={next}>
-                Continue
-              </Button>
-            ) : (
-              <Button type="submit" disabled={state.status === "submitting"}>
-                {state.status === "submitting" ? (
-                  <>
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-gallery/40 border-t-gallery" aria-hidden />
-                    Sending…
-                  </>
-                ) : (
-                  "Send my inquiry"
+              <span className="relative inline-flex">
+                {nextUp === "continue" && (
+                  <TapHint point="down" float className="absolute bottom-full left-0 mb-3">
+                    <Verb /> Continue
+                  </TapHint>
                 )}
-              </Button>
+                <Button type="button" onClick={next} className={nextUp === "continue" ? "attention" : ""}>
+                  Continue
+                </Button>
+              </span>
+            ) : (
+              <span className="relative inline-flex">
+                {nextUp === "send" && state.status !== "submitting" && (
+                  <TapHint point="down" float className="absolute bottom-full left-0 mb-3">
+                    <Verb /> to send
+                  </TapHint>
+                )}
+                <Button type="submit" disabled={state.status === "submitting"} className={nextUp === "send" && state.status !== "submitting" ? "attention" : ""}>
+                  {state.status === "submitting" ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-gallery/40 border-t-gallery" aria-hidden />
+                      Sending…
+                    </>
+                  ) : (
+                    "Send my inquiry"
+                  )}
+                </Button>
+              </span>
             )}
             <p className="sr-only" aria-live="polite">
               {state.status === "submitting" ? "Sending your inquiry" : ""}

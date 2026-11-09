@@ -45,7 +45,13 @@ test("key pages have no serious accessibility violations", async ({ page }) => {
 test("booking wizard submits and lands on the confirmation page", async ({ page }) => {
   await page.goto("/book");
   const wizard = page.locator("form[aria-labelledby=wizard-step-title]");
+  // A "tap here" guide points at the next thing to do, one at a time.
+  await expect(wizard.getByTestId("tap-hint")).toHaveCount(1);
+  await expect(wizard.getByTestId("tap-hint")).toContainText("the kind of photos");
+  await expect(wizard.getByTestId("step-help")).toContainText("Continue");
   await page.locator("form[aria-labelledby=wizard-step-title] label", { hasText: "Pets & horses" }).click();
+  await expect(wizard.getByTestId("tap-hint")).toHaveCount(1);
+  await expect(wizard.getByTestId("tap-hint")).toContainText("Continue");
   await wizard.getByRole("button", { name: "Continue" }).click();
   await expect(page.locator("#wizard-step-title")).toHaveText("What would make this perfect?");
   // Estimate updates live from config.
@@ -56,12 +62,30 @@ test("booking wizard submits and lands on the confirmation page", async ({ page 
   await wizard.getByRole("button", { name: "Continue" }).click();
   await wizard.getByLabel("City or area").fill("Thomasville, GA");
   await wizard.getByRole("button", { name: "Continue" }).click();
-  // Validation: consent and email required.
+  // Validation: problems are listed in plain words in a box the page jumps to.
+  await expect(wizard.getByTestId("tap-hint")).toContainText("Type here");
   await wizard.getByRole("button", { name: "Send my inquiry" }).click();
-  await expect(wizard.getByText("Please add your name.")).toBeVisible();
+  const summary = wizard.getByTestId("error-summary");
+  await expect(summary).toBeVisible();
+  await expect(summary).toBeInViewport();
+  await expect(summary).toContainText("Please type your name.");
+  await expect(summary).toContainText("Facebook, Instagram");
   await wizard.getByLabel("Your name").fill("Test Person");
-  await wizard.getByLabel("Email").fill("test@example.com");
+  await wizard.getByLabel("Email").fill("test@example");
+  await wizard.getByRole("button", { name: "Send my inquiry" }).click();
+  await expect(summary).toContainText("missing its ending");
+  // "Take me there" puts the cursor in the field to fix.
+  await summary.getByTestId("error-fix").first().click();
+  await expect(wizard.getByLabel("Email")).toBeFocused();
+  await wizard.getByLabel("Email").fill("test@gmial.com");
+  await wizard.getByLabel("Email").blur();
+  await wizard.getByTestId("email-suggestion").getByRole("button", { name: "Yes, use that" }).click();
+  await expect(wizard.getByLabel("Email")).toHaveValue("test@gmail.com");
+  await wizard.getByLabel(/social media link/).fill("facebook.com/testperson");
+  await expect(wizard.getByTestId("social-why")).toContainText("who we're photographing");
+  await expect(wizard.getByTestId("tap-hint")).toContainText("the box to agree");
   await wizard.getByLabel(/I agree to the/).check();
+  await expect(wizard.getByTestId("tap-hint")).toContainText("to send");
   await page.waitForTimeout(2600); // the server rejects impossibly fast bots
   await wizard.getByRole("button", { name: "Send my inquiry" }).click();
   await expect(page).toHaveURL(/\/book\/thanks\?ref=RCL-/);
@@ -72,13 +96,18 @@ test("quick inquiry validates on the server and inline", async ({ page }) => {
   await page.goto("/contact");
   await page.getByRole("button", { name: "Send message" }).click();
   await expect(page.getByRole("alert").first()).toBeVisible();
-  await expect(page.getByText("Please add your name.")).toBeVisible();
+  await expect(page.getByTestId("error-summary")).toContainText("Please type your name.");
+  await expect(page.getByTestId("error-summary")).toContainText("social media");
 });
 
 test("API: honeypot and validation behave", async ({ request }) => {
-  const ok = { kind: "quick", category: "people", name: "Bot", email: "bot@example.com", message: "hi", consent: true };
+  const ok = { kind: "quick", category: "people", name: "Bot", email: "bot@example.com", social: "@bot", message: "hi", consent: true };
   const bad = await request.post("/api/inquiry", { data: { ...ok, email: "nope" } });
   expect(bad.status()).toBe(422);
+  expect((await bad.json()).fields.email).toContain("“@”");
+  const noSocial = await request.post("/api/inquiry", { data: { ...ok, social: "" } });
+  expect(noSocial.status()).toBe(422);
+  expect((await noSocial.json()).fields.social).toContain("Facebook");
   const trap = await request.post("/api/inquiry", { data: { ...ok, company_website: "spam.example" } });
   expect(trap.status()).toBe(200); // looks successful to bots, stores nothing
   const cross = await request.post("/api/inquiry", { data: ok, headers: { origin: "https://evil.example" } });
@@ -91,6 +120,7 @@ test("no-JavaScript quick form still posts", async ({ browser }) => {
   await page.goto("/contact");
   await page.locator("#contact-name").fill("No Script");
   await page.locator("#contact-email").fill("noscript@example.com");
+  await page.locator("#contact-social").fill("instagram.com/noscript");
   await page.locator("#contact-message").fill("Testing without JavaScript");
   await page.locator("#contact-consent").check();
   await page.getByRole("button", { name: "Send message" }).click();

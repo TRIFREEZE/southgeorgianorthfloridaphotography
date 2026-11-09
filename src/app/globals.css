@@ -695,3 +695,108 @@
   -webkit-mask-image: -webkit-radial-gradient(white, black);
   mask-image: radial-gradient(white, black);
 }
+
+/* ------------------------------------------------------------------ booking guidance */
+/* "Tap here" bubbles: a gentle bob, a finger that presses, and a ripple where it taps. */
+@media (pointer: fine) {
+  .tap-touch {
+    display: none;
+  }
+}
+@media not (pointer: fine) {
+  .tap-mouse {
+    display: none;
+  }
+}
+@keyframes tap-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes tap-press {
+  0%,
+  55%,
+  100% {
+    transform: scale(1);
+  }
+  68% {
+    transform: scale(0.82);
+  }
+}
+@keyframes tap-ripple {
+  0%,
+  55% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  65% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+@keyframes attention-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-clay-deep) 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-clay-deep) 0%, transparent);
+  }
+}
+@keyframes summary-in {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+.tap-hint {
+  animation: tap-bob 1.6s ease-in-out infinite;
+}
+.tap-hint .tap-hand {
+  animation: tap-press 1.6s ease-in-out infinite;
+  transform-origin: 50% 85%;
+}
+.tap-hint .tap-ripple {
+  animation: tap-ripple 1.6s ease-out infinite;
+}
+.attention:not(:focus) {
+  animation: attention-ring 1.8s ease-out infinite;
+}
+.error-summary {
+  animation: summary-in 0.5s ease-out 0.35s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tap-hint,
+  .tap-hint *,
+  .error-summary {
+    animation: none !important;
+  }
+  .tap-hint .tap-ripple {
+    display: none;
+  }
+  .attention:not(:focus) {
+    animation: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-clay-deep) 45%, transparent);
+  }
+}

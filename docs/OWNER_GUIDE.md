@@ -104,9 +104,19 @@ Then set `published: true`. Thin, copy-paste city pages hurt rankings and trust,
 
 Three practical guides are included. Add posts by copying one and editing the blocks (`p`, `h2`, `ul`, `note`). Shoot stories should use real sessions you have permission to share. Set `published: false` to hide a draft.
 
+## How the booking form guides visitors
+
+The booking form is built so anyone, including older visitors, can finish it without help:
+
+- Each step starts with one plain sentence saying exactly what to do ("Tap the kind of photos you'd like. Then tap Continue.").
+- A gently bobbing **"Tap here"** bubble with a pressing finger points at the one next thing to do: the session choices, then **Continue**, then each box to fill in, the agree box and finally **Send my inquiry**. It says "Click" instead of "Tap" for people using a mouse, and stays still for anyone who has reduced motion turned on.
+- If something is missing or mistyped, the page glides up to a red box that lists each problem in plain words ("Your email address is missing the “@” sign. It should look like name@example.com.") with a **Take me there to fix it** button for each.
+- Email typos like `gmial.com` or `yahoo.con` get a one-tap **"Did you mean …?"** fix.
+
 ## Handling leads (`/admin/leads`)
 
 - New inquiries arrive by email (if Resend is set up) and always appear here.
+- Every inquiry includes a **social media link** (Facebook, Instagram or similar, or an @username), shown as **Social** on the lead and in the email, so you know who you'll be photographing. Visitors see why you ask, right under the box, plus simple steps for finding their link.
 - Use **Reply by email** (pre-filled), then move the **stage**: new → contacted → quoted → accepted/declined → booked → archived.
 - **Booked** is your manual confirmation. The site never tells a client they're booked.
 - **Notes** are private. **Export CSV** for your records or a spreadsheet.

@@ -117,6 +117,7 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
     email: data.email,
     phone: data.phone ?? null,
     sms_opt_in: Boolean(data.smsOptIn && data.phone),
+    social_link: data.social,
     message: data.message ?? null,
     inspiration_photo_ids: data.inspirationIds ?? [],
     story_subject: data.storySubject ?? null,
@@ -136,15 +137,28 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
 
   let saved: { id: string; ref: string };
   try {
-    try {
-      saved = await store.insert(row);
-    } catch (err) {
-      // Before the 20261109 database update, inquiries only accept the original session types.
-      // Never lose an inquiry over that: store it as "other" and keep the real choice in the message.
-      if (!isCheckViolation(err)) throw err;
-      console.warn("[inquiry] database is missing the flexible-categories update (supabase/migrations/20261109000000_flexible.sql); storing as 'other'");
-      const note = `[Session: ${labelOf(options, data.category)}${data.packageId ? ` · package ${data.packageId}` : ""}]`;
-      saved = await store.insert({ ...row, category: LEGACY_CATEGORIES.has(row.category) ? row.category : "other", package_id: row.package_id && LEGACY_PACKAGES.has(row.package_id) ? row.package_id : null, message: [note, row.message].filter(Boolean).join("\n\n") });
+    // Never lose an inquiry because the database hasn't had a one-time update yet:
+    // fall back to an older shape and keep the details in the message instead.
+    let attempt = row;
+    for (let tries = 0; ; tries++) {
+      try {
+        saved = await store.insert(attempt);
+        break;
+      } catch (err) {
+        if (tries >= 2) throw err;
+        if (isMissingColumn(err, "social_link") && "social_link" in attempt) {
+          // Before supabase/migrations/20261110000000_social.sql there's no social_link column.
+          console.warn("[inquiry] database is missing the social link column (supabase/migrations/20261110000000_social.sql); keeping it in the message");
+          const { social_link, ...rest } = attempt;
+          attempt = { ...rest, message: [`[Social: ${social_link}]`, rest.message].filter(Boolean).join("\n\n") } as InquiryRow;
+          continue;
+        }
+        // Before the 20261109 database update, inquiries only accept the original session types.
+        if (!isCheckViolation(err)) throw err;
+        console.warn("[inquiry] database is missing the flexible-categories update (supabase/migrations/20261109000000_flexible.sql); storing as 'other'");
+        const note = `[Session: ${labelOf(options, data.category)}${data.packageId ? ` · package ${data.packageId}` : ""}]`;
+        attempt = { ...attempt, category: LEGACY_CATEGORIES.has(attempt.category) ? attempt.category : "other", package_id: attempt.package_id && LEGACY_PACKAGES.has(attempt.package_id) ? attempt.package_id : null, message: [note, attempt.message].filter(Boolean).join("\n\n") };
+      }
     }
   } catch (err) {
     console.error("[inquiry] INSERT FAILED", err instanceof Error ? err.message : err);
@@ -164,6 +178,11 @@ export async function handleInquiry(raw: unknown, meta: { ip: string; userAgent:
 
 const LEGACY_CATEGORIES = new Set(["people", "animals", "weddings-events", "business-branding", "other"]);
 const LEGACY_PACKAGES = new Set(["little", "full", "whole"]);
+/** Postgres "undefined column" or PostgREST's "could not find the column in the schema cache". */
+const isMissingColumn = (err: unknown, column: string) => {
+  const e = err as { code?: string; message?: string } | null;
+  return (e?.code === "42703" || e?.code === "PGRST204") && (e?.message ?? "").includes(column);
+};
 const isCheckViolation = (err: unknown) => {
   const e = err as { code?: string; message?: string } | null;
   return e?.code === "23514" || /check constraint/i.test(e?.message ?? "");
@@ -182,6 +201,7 @@ async function notifyOwner(d: Inquiry, ref: string, estimateLabel: string, prici
     kv("Email", d.email),
     kv("Phone", d.phone),
     kv("OK to text", d.smsOptIn && d.phone ? "Yes" : "No"),
+    kv("Social", d.social),
     kv("Package", pkg ? `${pkg.name} (${packagePhotos(pkg)} photos, ${packagePrice(pkg)})` : undefined),
     kv("Estimate", estimateLabel),
     kv("Extra photos", d.extraPhotos ? String(d.extraPhotos) : undefined),
@@ -203,7 +223,7 @@ async function notifyOwner(d: Inquiry, ref: string, estimateLabel: string, prici
     replyTo: d.email,
     subject: `New inquiry ${ref}: ${categoryLabel(d.category)} from ${d.name}`,
     html: emailLayout(`New ${categoryLabel(d.category).toLowerCase()} inquiry`, lines + p("Reply to this email to answer them directly, or open /admin/leads.")),
-    text: `New inquiry ${ref}\n${d.name} <${d.email}>${d.phone ? ` ${d.phone}` : ""}\n${categoryLabel(d.category)} · ${estimateLabel}\n\n${d.message ?? ""}`,
+    text: `New inquiry ${ref}\n${d.name} <${d.email}>${d.phone ? ` ${d.phone}` : ""}\nSocial: ${d.social}\n${categoryLabel(d.category)} · ${estimateLabel}\n\n${d.message ?? ""}`,
   });
   return res.status;
 }

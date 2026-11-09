@@ -35,6 +35,7 @@
 - [ ] Publish 12–24 original photos across the categories, with alt text and permissions, and replace every **Sample** card in `/admin` → Site photos
 - [ ] Set both founders' portraits (Site photos → About page); write both founders' names and stories in the dashboard in your own words, then set `about.ts` → `confirmed: true`
 - [ ] Run `supabase/migrations/20261109000000_flexible.sql` in Supabase → SQL Editor (needed for new categories, the Custom package and Build your story)
+- [ ] Run `supabase/migrations/20261110000000_social.sql` in Supabase → SQL Editor (gives each lead its own Social field; until then the link is kept at the top of the message)
 - [ ] Confirm prices, photo counts, travel radius, deposit/refund, weather/reschedule terms, turnaround, licensing and sales tax (with local professional advice)
 - [ ] Set real public email/phone/social links (env vars)
 - [ ] Verify the Resend sending domain; send yourself a test inquiry
