@@ -112,6 +112,8 @@ const PRICE = "Pricing page";
 const EXP = "Our approach page";
 const BOOK = "Book page & thank-you page";
 const EMAIL = "Confirmation email (sent to clients)";
+const OWNER_EMAIL = "New-inquiry email (sent to you)";
+const EMAIL_LABELS = "Email details list (both emails)";
 const CONTACT = "Contact page";
 const FAQ = "FAQ page";
 const JOURNAL = "Journal (list page)";
@@ -317,9 +319,64 @@ export const TEXT_FIELDS: TextField[] = [
   f(EMAIL, "email.replyNote", "Replying: paragraph", "Just reply to this email. It comes straight to us, and a real person reads every one."),
   f(EMAIL, "email.spamNote", "Replying: inbox tip", "Tip: add this address to your contacts so our reply doesn't end up in spam."),
   f(EMAIL, "email.waitTitle", "While you wait: heading", "While you wait"),
+  f(EMAIL, "email.cta1", "While you wait: first button", "Browse the portfolio"),
+  f(EMAIL, "email.cta1Link", "While you wait: first button link", "/portfolio", { hint: "A page on your site (like /portfolio) or a full web address." }),
+  f(EMAIL, "email.cta2", "While you wait: second button", "Read a prep guide", { hint: "Leave the label empty to hide this button." }),
+  f(EMAIL, "email.cta2Link", "While you wait: second button link", "/journal"),
   f(EMAIL, "email.signoff", "Sign-off", "Talk soon,"),
   f(EMAIL, "email.signature", "Signature", "The Southstill team"),
   f(EMAIL, "email.footer", "Footer note", "You're getting this one email because you sent an inquiry at {site}."),
+  f(EMAIL, "email.tagline", "Closing tagline (in italics)", site.primaryLine),
+  f(EMAIL, "email.logoAlt", "Logo description (read aloud / shown if images are off)", "Southstill"),
+
+  // New-inquiry email to the owner
+  f(OWNER_EMAIL, "ownerEmail.subject", "Subject line", "New inquiry {ref}: {session} from {name}", { hint: "{name}, {first}, {session}, {ref} and {estimate} are filled in for you." }),
+  f(OWNER_EMAIL, "ownerEmail.preheader", "Preview line", "{name} · {session} · {estimate}"),
+  f(OWNER_EMAIL, "ownerEmail.eyebrow", "Small heading", "New inquiry · {ref}"),
+  f(OWNER_EMAIL, "ownerEmail.title", "Headline", "{name} · {session}"),
+  f(OWNER_EMAIL, "ownerEmail.quote", "Shown instead of a price for custom quotes", "Custom quote"),
+  f(OWNER_EMAIL, "ownerEmail.replyButton", "Reply button", "Reply to {first}"),
+  f(OWNER_EMAIL, "ownerEmail.dashboardButton", "Dashboard button", "Open in dashboard"),
+  f(OWNER_EMAIL, "ownerEmail.replySubject", "Your reply: subject it starts with", "Your Southstill inquiry ({ref})"),
+  f(OWNER_EMAIL, "ownerEmail.replyGreeting", "Your reply: greeting it starts with", "Hi {first},\n\nThanks so much for reaching out about your session!\n\n", { multiline: true }),
+  f(OWNER_EMAIL, "ownerEmail.note", "Note at the bottom", "Replying to this email goes straight to them. They've already been sent a confirmation with their reference and the next steps."),
+  f(OWNER_EMAIL, "ownerEmail.source", "Footer: where they came from", "Came from: {source}"),
+  f(OWNER_EMAIL, "ownerEmail.noSource", "Footer when the source is unknown", "Southstill dashboard"),
+  f(OWNER_EMAIL, "ownerEmail.searchFacebook", "Link under a Facebook name", "Search on Facebook"),
+  f(OWNER_EMAIL, "ownerEmail.lookInstagram", "Link under an @name", "Look up on Instagram"),
+  f(OWNER_EMAIL, "ownerEmail.openProfile", "Link under a pasted profile link", "Open profile"),
+
+  // Labels used in both emails' details list
+  f(EMAIL_LABELS, "emailLabel.email", "Email", "Email"),
+  f(EMAIL_LABELS, "emailLabel.session", "Session", "Session"),
+  f(EMAIL_LABELS, "emailLabel.photos", "Photos", "Photos"),
+  f(EMAIL_LABELS, "emailLabel.photosValue", "Photos: the line itself", "{package}: {count} photos, {price}", { hint: "{package}, {count} and {price} are filled in." }),
+  f(EMAIL_LABELS, "emailLabel.extra", "Extra photos", "Extra photos"),
+  f(EMAIL_LABELS, "emailLabel.addOns", "Add-ons", "Add-ons"),
+  f(EMAIL_LABELS, "emailLabel.estimate", "Estimate", "Estimate"),
+  f(EMAIL_LABELS, "emailLabel.group", "Who's in the photos", "Who's in the photos"),
+  f(EMAIL_LABELS, "emailLabel.animals", "Animals", "Animals"),
+  f(EMAIL_LABELS, "emailLabel.setting", "Setting", "Setting"),
+  f(EMAIL_LABELS, "emailLabel.where", "Where", "Where"),
+  f(EMAIL_LABELS, "emailLabel.when", "When", "When"),
+  f(EMAIL_LABELS, "emailLabel.flexible", "When: if they're flexible", "Flexible"),
+  f(EMAIL_LABELS, "emailLabel.or", "When: between two dates", "or"),
+  f(EMAIL_LABELS, "emailLabel.time", "Time of day", "Time of day"),
+  f(EMAIL_LABELS, "emailLabel.time.morning", "Time of day: morning", "Morning (soft light, cooler)"),
+  f(EMAIL_LABELS, "emailLabel.time.midday", "Time of day: midday", "Midday"),
+  f(EMAIL_LABELS, "emailLabel.time.evening", "Time of day: evening", "Evening / golden hour"),
+  f(EMAIL_LABELS, "emailLabel.time.any", "Time of day: any", "Whatever works best"),
+  f(EMAIL_LABELS, "emailLabel.travel", "Travel notes", "Travel notes"),
+  f(EMAIL_LABELS, "emailLabel.planAround", "Plan around", "Plan around"),
+  f(EMAIL_LABELS, "emailLabel.story", "Story card", "Story card"),
+  f(EMAIL_LABELS, "emailLabel.social", "Facebook / Instagram", "Facebook / Instagram"),
+  f(EMAIL_LABELS, "emailLabel.phone", "Phone", "Phone"),
+  f(EMAIL_LABELS, "emailLabel.textOk", "Phone: OK to text", "OK to text"),
+  f(EMAIL_LABELS, "emailLabel.noText", "Phone: no texts", "Calls or email only (no texts)"),
+  f(EMAIL_LABELS, "emailLabel.yourNote", "Their message (in their email)", "Your note"),
+  f(EMAIL_LABELS, "emailLabel.theirNote", "Their message (in your email)", "Their note"),
+  f(EMAIL_LABELS, "emailLabel.inspiration", "Inspiration photos", "Inspiration"),
+  f(EMAIL_LABELS, "emailLabel.inspirationValue", "Inspiration photos: the line itself", "{count} saved photo(s)", { hint: "{count} is filled in." }),
 
   // Contact
   f(CONTACT, "contact.eyebrow", "Small heading", "Contact"),

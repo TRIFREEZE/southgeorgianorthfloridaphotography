@@ -54,6 +54,14 @@ describe("client confirmation email", () => {
 });
 
 describe("owner email", () => {
+  it("uses the owner's edited wording too", () => {
+    const edited = { ...content, texts: { ...content.texts, "ownerEmail.subject": "Lead: {first} ({estimate})", "ownerEmail.replyButton": "Write back to {first}", "emailLabel.session": "Kind of shoot" } };
+    const m = ownerNotificationEmail(d, "RCL-1", est, { ...ctx, content: edited });
+    expect(m.subject).toMatch(/^Lead: Jane \(\$\d+\)$/);
+    expect(m.html).toContain("Write back to Jane");
+    expect(m.html).toContain("Kind of shoot");
+  });
+
   it("has reply and dashboard buttons and a way to find them", () => {
     const m = ownerNotificationEmail(d, "RCL-TEST12", est, ctx, "0b5c2a8e-0000-4000-8000-000000000000");
     expect(m.html).toContain("mailto:jane@example.com");

@@ -29,8 +29,6 @@ export interface BuiltEmail {
   text: string;
 }
 
-const TIME: Record<string, string> = { morning: "Morning (soft light, cooler)", midday: "Midday", evening: "Evening / golden hour", any: "Whatever works best" };
-
 function niceDate(iso?: string) {
   if (!iso) return "";
   const d = new Date(`${iso}T12:00:00Z`);
@@ -39,19 +37,23 @@ function niceDate(iso?: string) {
 
 const domainOf = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
 
+/** A site page ("/portfolio") or a full address, as an absolute link. */
+const absolute = (href: string, home: string) => (/^https?:\/\//i.test(href) ? href : `${home}${href.startsWith("/") ? "" : "/"}${href}`);
+
 /** A link the owner can tap to find someone from a typed name or @username. */
-export function socialLookup(social: string): { href: string; label: string } | null {
-  if (/^https?:\/\//i.test(social)) return { href: social, label: "Open profile" };
+export function socialLookup(social: string, texts: Record<string, string> = {}): { href: string; label: string } | null {
+  if (/^https?:\/\//i.test(social)) return { href: social, label: textOf(texts, "ownerEmail.openProfile") };
   const handle = social.match(/^@([a-z0-9._]{1,30})$/i)?.[1];
-  if (handle) return { href: `https://www.instagram.com/${handle}/`, label: "Look up on Instagram" };
-  return { href: `https://www.facebook.com/search/people/?q=${encodeURIComponent(social)}`, label: "Search on Facebook" };
+  if (handle) return { href: `https://www.instagram.com/${handle}/`, label: textOf(texts, "ownerEmail.lookInstagram") };
+  return { href: `https://www.facebook.com/search/people/?q=${encodeURIComponent(social)}`, label: textOf(texts, "ownerEmail.searchFacebook") };
 }
 
 /** Everything the visitor told us, in plain words, in the order they answered. */
 function summary(d: Inquiry, est: Estimate, ctx: EmailContext, forOwner: boolean): Detail[] {
-  const t = (k: string) => textOf(ctx.content.texts, k);
+  const texts = ctx.content.texts;
+  const L = (k: string, vars?: Record<string, string>) => textOf(texts, `emailLabel.${k}`, vars);
   const { pricing } = ctx.content;
-  const session = ctx.options.find((o) => o.bookingId === d.category)?.label ?? "Something else";
+  const session = ctx.options.find((o) => o.bookingId === d.category)?.label ?? textOf(texts, "book.other.label");
   const pkg = pricing.packages.find((p) => p.id === d.packageId);
   const priced = est.kind === "package";
   const addOns = (d.addOns ?? []).map((id) => pricing.addOns.find((a) => a.id === id)?.name ?? id);
@@ -59,29 +61,30 @@ function summary(d: Inquiry, est: Estimate, ctx: EmailContext, forOwner: boolean
     d.dateFlexibility === "specific"
       ? niceDate(d.preferredDate)
       : d.dateFlexibility === "range"
-        ? [niceDate(d.preferredDate), niceDate(d.preferredDateAlt)].filter(Boolean).join(" or ")
-        : "Flexible";
+        ? [niceDate(d.preferredDate), niceDate(d.preferredDateAlt)].filter(Boolean).join(` ${L("or")} `)
+        : L("flexible");
   const story = [d.storySubject, d.storyFeeling].filter(Boolean).join(" · ");
-  const look = socialLookup(d.social);
+  const look = socialLookup(d.social, texts);
+  const inspo = d.inspirationIds?.length ?? 0;
   const list: Detail[] = [
-    { k: "Session", v: session },
-    { k: "Photos", v: pkg ? `${pkg.name}: ${packagePhotos(pkg)} photos, ${packagePrice(pkg)}` : "" },
-    { k: "Extra photos", v: priced && d.extraPhotos ? `${d.extraPhotos} (${formatPrice(pricing.extraPhoto.priceCents * d.extraPhotos)})` : "" },
-    { k: "Add-ons", v: addOns.join(", ") },
-    { k: "Estimate", v: est.kind === "incomplete" ? "" : est.label, extra: forOwner ? undefined : t("email.estimateNote") },
-    { k: "Who's in the photos", v: d.groupDetails ?? "" },
-    { k: "Animals", v: d.animals ?? "" },
-    { k: "Setting", v: d.locationPreference ?? "" },
-    { k: "Where", v: [d.city, d.zip].filter(Boolean).join(" ") },
-    { k: "When", v: d.kind === "wizard" ? when : "" },
-    { k: "Time of day", v: d.preferredTime ? (TIME[d.preferredTime] ?? d.preferredTime) : "" },
-    { k: "Travel notes", v: d.travelNotes ?? "" },
-    { k: "Plan around", v: d.specialNeeds ?? "" },
-    { k: "Story card", v: story },
-    { k: "Facebook / Instagram", v: d.social, href: forOwner ? look?.href : undefined, extra: forOwner && look && !/^https?:/i.test(d.social) ? look.label : undefined },
-    { k: "Phone", v: d.phone ?? "", href: forOwner && d.phone ? `tel:${d.phone.replace(/[^\d+]/g, "")}` : undefined, extra: d.phone ? (d.smsOptIn ? "OK to text" : "Calls or email only (no texts)") : undefined },
-    { k: forOwner ? "Their note" : "Your note", v: d.message ?? "" },
-    { k: "Inspiration", v: d.inspirationIds?.length ? `${d.inspirationIds.length} saved photo${d.inspirationIds.length === 1 ? "" : "s"}` : "" },
+    { k: L("session"), v: session },
+    { k: L("photos"), v: pkg ? L("photosValue", { package: pkg.name, count: packagePhotos(pkg), price: packagePrice(pkg) }) : "" },
+    { k: L("extra"), v: priced && d.extraPhotos ? `${d.extraPhotos} (${formatPrice(pricing.extraPhoto.priceCents * d.extraPhotos)})` : "" },
+    { k: L("addOns"), v: addOns.join(", ") },
+    { k: L("estimate"), v: est.kind === "incomplete" ? "" : est.label, extra: forOwner ? undefined : textOf(texts, "email.estimateNote") },
+    { k: L("group"), v: d.groupDetails ?? "" },
+    { k: L("animals"), v: d.animals ?? "" },
+    { k: L("setting"), v: d.locationPreference ?? "" },
+    { k: L("where"), v: [d.city, d.zip].filter(Boolean).join(" ") },
+    { k: L("when"), v: d.kind === "wizard" ? when : "" },
+    { k: L("time"), v: d.preferredTime ? L(`time.${d.preferredTime}`) : "" },
+    { k: L("travel"), v: d.travelNotes ?? "" },
+    { k: L("planAround"), v: d.specialNeeds ?? "" },
+    { k: L("story"), v: story },
+    { k: L("social"), v: d.social, href: forOwner ? look?.href : undefined, extra: forOwner && look && !/^https?:/i.test(d.social) ? look.label : undefined },
+    { k: L("phone"), v: d.phone ?? "", href: forOwner && d.phone ? `tel:${d.phone.replace(/[^\d+]/g, "")}` : undefined, extra: d.phone ? (d.smsOptIn ? L("textOk") : L("noText")) : undefined },
+    { k: forOwner ? L("theirNote") : L("yourNote"), v: d.message ?? "" },
+    { k: L("inspiration"), v: inspo ? L("inspirationValue", { count: String(inspo) }) : "" },
   ];
   return list.filter((x) => x.v.trim());
 }
@@ -125,12 +128,12 @@ export function clientConfirmationEmail(d: Inquiry, ref: string, est: Estimate, 
       row(
         divider() +
           h2(t("email.waitTitle")) +
-          `<div style="margin-top:14px;">${button(textOf(texts, "thanks.cta1"), `${home}/portfolio`)}${button(textOf(texts, "thanks.cta2"), `${home}/journal`, "light")}</div>`,
+          `<div style="margin-top:14px;">${t("email.cta1").trim() ? button(t("email.cta1"), absolute(t("email.cta1Link"), home)) : ""}${t("email.cta2").trim() ? button(t("email.cta2"), absolute(t("email.cta2Link"), home), "light") : ""}</div>`,
         "0 40px",
       ),
-      row(divider() + para(t("email.signoff"), { margin: "0" }) + para(t("email.signature"), { margin: "2px 0 0", color: C.ink }) + `<div style="margin-top:22px;">${tagline(textOf(texts, "site.primaryLine"))}</div>`, "0 40px 36px"),
+      row(divider() + para(t("email.signoff"), { margin: "0" }) + para(t("email.signature"), { margin: "2px 0 0", color: C.ink }) + (t("email.tagline").trim() ? `<div style="margin-top:22px;">${tagline(t("email.tagline"))}</div>` : ""), "0 40px 36px"),
     ].join(""),
-    { logoSrc: `${home}/email/southstill-logo.png`, href: home },
+    { logoSrc: `${home}/email/southstill-logo.png`, href: home, alt: t("email.logoAlt") },
   );
 
   const footer = [
@@ -162,7 +165,7 @@ export function clientConfirmationEmail(d: Inquiry, ref: string, est: Estimate, 
     t("email.signoff"),
     t("email.signature"),
     "",
-    textOf(texts, "site.primaryLine"),
+    t("email.tagline"),
     home,
   ].join("\n");
 
@@ -172,31 +175,34 @@ export function clientConfirmationEmail(d: Inquiry, ref: string, est: Estimate, 
 /* ------------------------------------------------------------------ owner heads-up */
 
 export function ownerNotificationEmail(d: Inquiry, ref: string, est: Estimate, ctx: EmailContext, leadId?: string): BuiltEmail {
+  const texts = ctx.content.texts;
   const first = d.name.trim().split(/\s+/)[0] || d.name;
-  const session = ctx.options.find((o) => o.bookingId === d.category)?.label ?? "Something else";
+  const session = ctx.options.find((o) => o.bookingId === d.category)?.label ?? textOf(texts, "book.other.label");
   const home = ctx.siteUrl;
+  const estimateText = est.kind === "package" ? est.label.replace(/^Estimated /, "") : est.kind === "quote" ? textOf(texts, "ownerEmail.quote") : "";
+  const source = [d.utm?.source, d.utm?.medium, d.utm?.campaign].filter(Boolean).join(" / ") || d.referrer || "";
+  const vars = { name: d.name, first, session, ref, estimate: estimateText, source, site: domainOf(home) };
+  const t = (k: string) => textOf(texts, k, vars);
   const items = summary(d, est, ctx, true);
-  const replySubject = `Your ${domainOf(home).replace(/^www\./, "")} inquiry (${ref})`;
-  const mailto = `mailto:${d.email}?subject=${encodeURIComponent(replySubject)}&body=${encodeURIComponent(`Hi ${first},\n\nThanks so much for reaching out about your session!\n\n`)}`;
+  const mailto = `mailto:${d.email}?subject=${encodeURIComponent(t("ownerEmail.replySubject"))}&body=${encodeURIComponent(t("ownerEmail.replyGreeting").replace(/\\n/g, "\n"))}`;
   const leadUrl = leadId ? `${home}/admin/leads/${leadId}` : `${home}/admin/leads`;
-  const headline = est.kind === "package" ? est.label.replace(/^Estimated /, "") : est.kind === "quote" ? "Custom quote" : "";
 
   const body = card(
     [
-      row(eyebrow(`New inquiry · ${ref}`), "8px 40px 0"),
-      row(title(`${d.name} · ${session}`), "0 40px"),
-      headline ? row(`<p style="margin:10px 0 0;font-family:'Fraunces',Georgia,serif;font-size:26px;color:${C.clayDeep};">${esc(headline)}</p>`, "0 40px") : "",
-      row(`<div>${button(`Reply to ${first}`, mailto)}${button("Open in dashboard", leadUrl, "light")}</div>`, "18px 40px 0"),
-      row(`<div style="margin-top:6px;">${details([{ k: "Email", v: d.email, href: `mailto:${d.email}` }, ...items])}</div>`, "20px 40px 0"),
-      row(para("Replying to this email goes straight to them. They've already been sent a confirmation with their reference and the next steps.", { size: 13, color: C.muted, margin: "20px 0 0" }), "0 40px 32px"),
+      row(eyebrow(t("ownerEmail.eyebrow")), "8px 40px 0"),
+      row(title(t("ownerEmail.title")), "0 40px"),
+      estimateText ? row(`<p style="margin:10px 0 0;font-family:'Fraunces',Georgia,serif;font-size:26px;color:${C.clayDeep};">${esc(estimateText)}</p>`, "0 40px") : "",
+      row(`<div>${button(t("ownerEmail.replyButton"), mailto)}${button(t("ownerEmail.dashboardButton"), leadUrl, "light")}</div>`, "18px 40px 0"),
+      row(`<div style="margin-top:6px;">${details([{ k: textOf(texts, "emailLabel.email"), v: d.email, href: `mailto:${d.email}` }, ...items])}</div>`, "20px 40px 0"),
+      row(para(t("ownerEmail.note"), { size: 13, color: C.muted, margin: "20px 0 0" }), "0 40px 32px"),
     ].join(""),
-    { logoSrc: `${home}/email/southstill-logo.png`, href: home },
+    { logoSrc: `${home}/email/southstill-logo.png`, href: home, alt: textOf(texts, "email.logoAlt") },
   );
 
-  const source = [d.utm?.source, d.utm?.medium, d.utm?.campaign].filter(Boolean).join(" / ") || d.referrer || "";
-  const footer = source ? `Came from: ${esc(source)}` : "Southstill dashboard";
-  const subject = `New inquiry ${ref}: ${session} from ${d.name}`;
-  const html = shell({ title: subject, preheader: `${d.name} · ${session}${headline ? ` · ${headline}` : ""}`, body, footer });
-  const text = [`New inquiry ${ref}`, `${d.name} <${d.email}>`, plain(items), "", `Open: ${leadUrl}`].join("\n");
+  const footer = esc(source ? t("ownerEmail.source") : t("ownerEmail.noSource"));
+  const clean = (s: string) => s.replace(/\s*·\s*$/, "").replace(/^\s*·\s*/, "");
+  const subject = clean(t("ownerEmail.subject"));
+  const html = shell({ title: subject, preheader: clean(t("ownerEmail.preheader")), body, footer });
+  const text = [subject, `${d.name} <${d.email}>`, plain(items), "", `${t("ownerEmail.dashboardButton")}: ${leadUrl}`].join("\n");
   return { subject, html, text };
 }

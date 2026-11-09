@@ -72,10 +72,10 @@ ${body}
 }
 
 /** The cream card everything sits on, with the logo across the top. */
-export function card(inner: string, { logoSrc, href }: { logoSrc: string; href: string }) {
+export function card(inner: string, { logoSrc, href, alt = "Southstill" }: { logoSrc: string; href: string; alt?: string }) {
   return `<tr><td style="background:${C.gallery};border:1px solid ${C.line};border-radius:20px;overflow:hidden;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-<tr><td class="ss-pad" style="padding:30px 40px 6px;"><a href="${safeHref(href)}" style="text-decoration:none;"><img src="${safeHref(logoSrc)}" width="180" height="29" alt="Southstill" style="display:block;border:0;width:180px;height:auto;max-width:180px;"></a></td></tr>
+<tr><td class="ss-pad" style="padding:30px 40px 6px;"><a href="${safeHref(href)}" style="text-decoration:none;"><img src="${safeHref(logoSrc)}" width="180" height="29" alt="${esc(alt)}" style="display:block;border:0;width:180px;height:auto;max-width:180px;"></a></td></tr>
 <tr><td class="ss-pad" style="padding:0 40px;"><div style="height:1px;line-height:1px;background:${C.line};margin:22px 0 4px;">&nbsp;</div></td></tr>
 ${inner}
 </table>

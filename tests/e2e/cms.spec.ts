@@ -330,6 +330,14 @@ test("Emails page previews the client confirmation and the owner email", async (
   // Without Resend set up, a test send explains what's missing instead of failing silently.
   await page.getByTestId("send-test-email").click();
   await expect(page.getByText(/RESEND_API_KEY/).last()).toBeVisible();
+  // Receiving: setup steps and the webhook address to paste into Resend.
+  await expect(page.getByTestId("receiving")).toContainText("Receiving is off");
+  await expect(page.getByTestId("receiving")).toContainText("/api/email/inbound");
+});
+
+test("inbound webhook refuses unsigned or unconfigured requests", async ({ request }) => {
+  const r = await request.post("/api/email/inbound", { data: { type: "email.received", data: { email_id: "x" } } });
+  expect(r.status()).toBe(503); // no RESEND_WEBHOOK_SECRET in tests: never forwards anything
 });
 
 test("private client gallery: password, signed photos, downloads", async ({ page, browser }) => {

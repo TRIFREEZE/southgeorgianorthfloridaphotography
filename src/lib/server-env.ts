@@ -17,6 +17,10 @@ export function serverEnv() {
     resendApiKey: clean(process.env.RESEND_API_KEY),
     emailFrom: clean(process.env.EMAIL_FROM),
     ownerNotificationEmail: clean(process.env.OWNER_NOTIFICATION_EMAIL),
+    /** Signing secret of the Resend "email.received" webhook (starts with whsec_). */
+    resendWebhookSecret: clean(process.env.RESEND_WEBHOOK_SECRET),
+    /** Where mail received at your domain is forwarded. Defaults to OWNER_NOTIFICATION_EMAIL. */
+    inboundForwardTo: clean(process.env.INBOUND_FORWARD_TO),
     turnstileSecret: clean(process.env.TURNSTILE_SECRET_KEY),
     ipHashSalt: clean(process.env.IP_HASH_SALT),
     adminEmails: (clean(process.env.ADMIN_EMAILS) ?? "")

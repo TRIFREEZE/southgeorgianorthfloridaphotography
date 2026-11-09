@@ -111,7 +111,9 @@ The moment someone sends an inquiry, two emails go out (once Resend is set up, s
 - **To the client: their confirmation.** In Southstill's colors and type, with the logo. It thanks them by first name, says a real person will reply personally, and makes the promise up front: *this isn't a confirmed booking yet; nothing is reserved or charged until you've agreed on the details together.* It shows their reference number, walks through **How it works** (step 01 marked *Happening now*, the other steps worded exactly as on the site, plus your gallery delivery line), repeats back everything they sent so they can check it, invites them to just hit reply, and ends with links to the portfolio and journal and your tagline.
 - **To you: the heads-up.** Their name, session and estimate at the top, a **Reply to …** button (opens an email to them with a greeting started), **Open in dashboard**, every detail they gave, and a tap-to-find link for their Facebook or Instagram name.
 
-**Emails** in the dashboard shows both with a made-up sample client, at computer or phone width, and **Send me a test** sends one to your inbox. The client email's wording is all editable in **Pricing & text → Confirmation email** (use `{first}` for their first name and `{ref}` for the reference); the steps follow your "How it works" text automatically.
+**Emails** in the dashboard shows both with a made-up sample client, at computer or phone width, and **Send me a test** sends one to your inbox. Every word of both emails is editable in **Pricing & text**: **Confirmation email** (the client's), **New-inquiry email** (yours) and **Email details list** (the labels both use, like "Session" or "When"). Use `{first}` for their first name and `{ref}` for the reference; the steps follow your "How it works" text automatically.
+
+**Receiving email:** once set up (DEPLOYMENT.md → "Receiving email at your domain"), anything sent to an address at your domain is forwarded to your inbox, marked with the address it was sent to. Just hit Reply to answer. The Emails page shows a checklist of what's set up.
 
 ## How the booking form guides visitors
 

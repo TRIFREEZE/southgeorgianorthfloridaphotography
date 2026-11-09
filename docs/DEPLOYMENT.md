@@ -33,6 +33,17 @@ Then open **/admin/emails** and press **Send me a test** to see the client confi
 
 Without Resend the site still works: inquiries are stored and visible in `/admin`, but nobody gets emailed. `/admin` flags this.
 
+### Receiving email at your domain (optional)
+
+Lets people email an address at your domain (like `hello@yourdomain.com`) and have it land in your normal inbox, with Reply going straight back to them. Resend also keeps a copy of every received email (Emails → Receiving).
+
+1. **Resend → Domains →** your domain → switch on **Receiving** and add the **MX** record it shows at your DNS provider. If you already receive email at this domain (Google Workspace, Outlook…), don't touch its existing MX records: turn on receiving for a **subdomain** instead (e.g. `mail.yourdomain.com`) so your current email keeps working.
+2. **Resend → Webhooks → Add webhook:** URL `https://YOUR-DOMAIN/api/email/inbound`, event **email.received**.
+3. Copy that webhook's **signing secret** (`whsec_…`) into Vercel as `RESEND_WEBHOOK_SECRET`. Optionally set `INBOUND_FORWARD_TO` (defaults to `OWNER_NOTIFICATION_EMAIL`; it must not be an address at the receiving domain, or mail would loop). Redeploy.
+4. `/admin/emails` shows a checklist; when it says **Receiving is switched on**, send a test email to any address at the receiving domain.
+
+The webhook only accepts requests signed with your secret (and recent ones, so old requests can't be replayed). If forwarding fails, the webhook answers with an error and Resend retries; a retry never sends you a second copy.
+
 ## 3. (Optional) Cloudflare Turnstile
 
 Honeypot, a minimum fill time and database-backed rate limiting are always on. For extra protection: Cloudflare dashboard → Turnstile → Add site → your domain (plus `*.vercel.app` if you want it on previews) → copy the **Site key** to `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and the **Secret key** to `TURNSTILE_SECRET_KEY`. Set both or neither.
