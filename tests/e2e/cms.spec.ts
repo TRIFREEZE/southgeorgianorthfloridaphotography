@@ -82,6 +82,7 @@ test("replace the hero by uploading onto its spot, preview, then publish", async
 });
 
 test("bulk upload into a category, crop for desktop and mobile, publish", async ({ page, browser }) => {
+  test.setTimeout(150_000); // four real image uploads, crops and a publish
   await login(page);
   await page.goto("/admin/library");
   await page.waitForLoadState("networkidle"); // interactive before any file drop
@@ -375,6 +376,71 @@ test("write a booking confirmation and a gallery email from the dashboard", asyn
   await page.getByTestId("g-password").fill("pecan-sunset-42");
   await expect(page.getByTestId("compose-subject")).toHaveText("Your photos are ready, Jane");
   await expect(page.frameLocator("[data-testid=compose-frame]").getByText("pecan-sunset-42")).toBeVisible();
+});
+
+test("add leads by hand; Coming up turns red within 3 days; booked → shot → edited → delivered", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "one run is enough");
+  // Dates in the studio's time zone, like the dashboard.
+  const studioDay = (offset: number) => {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+    return new Date(Date.parse(`${today}T12:00:00Z`) + offset * 86_400_000).toISOString().slice(0, 10);
+  };
+  await login(page);
+
+  const add = async (name: string, offset: number) => {
+    await page.goto("/admin/leads");
+    await page.locator("[data-testid=new-lead]:visible").click();
+    await page.waitForLoadState("networkidle");
+    await page.locator("[data-testid=nl-name]:visible").fill(name);
+    await page.locator("[data-testid=nl-email]:visible").fill(`${name.split(" ")[0].toLowerCase()}@example.com`);
+    await page.locator("[data-testid=nl-category]:visible").selectOption({ label: "Pets & horses" });
+    await page.locator("[data-testid=nl-status]:visible").selectOption("booked");
+    await page.locator("[data-testid=nl-date]:visible").fill(studioDay(offset));
+    await page.locator("[data-testid=nl-save]:visible").click();
+    await expect(page.locator("[data-testid=lead-added]:visible")).toBeVisible();
+  };
+
+  await add("Soon Client", 2);
+  await expect(page.locator("[data-testid=shoot-date]:visible [data-testid=countdown]")).toContainText("In 2 days");
+  await expect(page.locator("[data-testid=shoot-date]:visible [data-testid=countdown]")).toHaveAttribute("data-soon", "true");
+  await add("Later Client", 10);
+  await expect(page.locator("[data-testid=shoot-date]:visible [data-testid=countdown]")).toHaveAttribute("data-soon", "false");
+
+  await page.goto("/admin/leads");
+  const soon = page.locator("[data-testid=upcoming]:visible").filter({ hasText: "Soon Client" });
+  const later = page.locator("[data-testid=upcoming]:visible").filter({ hasText: "Later Client" });
+  await expect(soon).toHaveAttribute("data-soon", "true");
+  await expect(later).toHaveAttribute("data-soon", "false");
+  // Soonest first.
+  await expect(page.locator("[data-testid=upcoming]:visible").first()).toContainText("Soon Client");
+
+  // Shot from Coming up, then edited and delivered from the lead page.
+  await soon.getByTestId("mark-shot").click();
+  await expect(page.locator("[data-testid=upcoming]:visible").filter({ hasText: "Soon Client" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Shot" }).first().click();
+  await page.getByRole("link", { name: "Soon Client" }).click();
+  await expect(page.locator("[data-testid=advance]:visible")).toHaveText(/Mark as edited/);
+  await page.locator("[data-testid=advance]:visible").click();
+  await expect(page.locator("[data-testid=advance]:visible")).toHaveText(/Mark as delivered/);
+  await page.locator("[data-testid=advance]:visible").click();
+  await expect(page.locator("[data-testid=advance]:visible")).toHaveCount(0);
+  await expect(page.locator("main :visible", { hasText: /^Delivered$/ }).first()).toBeVisible();
+
+  // Changing a session date moves it into the red zone.
+  await page.goto("/admin/leads");
+  await page.getByRole("link", { name: "Later Client" }).first().click();
+  await page.locator("[data-testid=session-date]:visible").fill(studioDay(1));
+  await page.locator("[data-testid=save-session]:visible").click();
+  await expect(page.locator("[data-testid=shoot-date]:visible [data-testid=countdown]")).toContainText("Tomorrow");
+  await expect(page.locator("[data-testid=shoot-date]:visible [data-testid=countdown]")).toHaveAttribute("data-soon", "true");
+
+  // A lead needs a way to reach them.
+  await page.goto("/admin/leads/new");
+  await page.waitForLoadState("networkidle");
+  await page.locator("[data-testid=nl-name]:visible").fill("No Contact");
+  await page.locator("[data-testid=nl-category]:visible").selectOption({ label: "Pets & horses" });
+  await page.locator("[data-testid=nl-save]:visible").click();
+  await expect(page.locator("[role=alert]:visible", { hasText: /at least one way to reach them/ })).toBeVisible();
 });
 
 test("inbound webhook refuses unsigned or unconfigured requests", async ({ request }) => {

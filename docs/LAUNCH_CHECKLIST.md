@@ -37,6 +37,7 @@
 - [ ] Run `supabase/migrations/20261109000000_flexible.sql` in Supabase → SQL Editor (needed for new categories, the Custom package and Build your story)
 - [ ] Run `supabase/migrations/20261110000000_social.sql` in Supabase → SQL Editor (gives each lead its own Social field; until then the link is kept at the top of the message)
 - [ ] Run `supabase/migrations/20261111000000_bookings.sql` in Supabase → SQL Editor (bookings sent from /admin/emails are saved as leads; until then they're saved with a note instead)
+- [ ] Run `supabase/migrations/20261112000000_pipeline.sql` in Supabase → SQL Editor (needed for Coming up dates and the shot / edited / delivered stages)
 - [ ] Confirm prices, photo counts, travel radius, deposit/refund, weather/reschedule terms, turnaround, licensing and sales tax (with local professional advice)
 - [ ] Set real public email/phone/social links (env vars)
 - [ ] Verify the Resend sending domain; send yourself a test inquiry

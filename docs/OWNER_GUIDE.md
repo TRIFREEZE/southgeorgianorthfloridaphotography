@@ -135,8 +135,10 @@ The booking form is built so anyone, including older visitors, can finish it wit
 
 - New inquiries arrive by email (if Resend is set up) and always appear here.
 - Every inquiry includes the visitor's **Facebook or Instagram name** (no link needed: "Jane Smith" or "@janesmith"; if someone pastes a link, it's clickable), shown as **Social** on the lead and in the email, so you know who you'll be photographing. Visitors see why you ask, right under the box.
-- Use **Reply by email** (pre-filled), then move the **stage**: new → contacted → quoted → accepted/declined → booked → archived.
-- **Booked** is your manual confirmation. The site never tells a client they're booked.
+- **+ New lead** adds someone who reached you another way (a call, a text, a DM, a referral). Name plus at least one way to reach them; pick the session type, the stage, and a date if you have one. Nothing is sent to them.
+- Use **Reply by email** (pre-filled), then move the **stage**: new → contacted → quoted → accepted → **booked → shot → edited → delivered** (or declined / archived). After booked, the big **Mark as shot / edited / delivered** button on a lead moves it one step.
+- **Coming up** (top of Leads, and on the Overview) lists every booked session with a date, soonest first. A session **turns red when it's 3 days away or less**, and stays red if the date passes without being marked shot. Set or change the date in **Session date** on the lead. Booking confirmations you send from Emails land here automatically.
+- **Booked** is your manual confirmation. The site never tells a client they're booked (except the booking confirmation you write and send yourself).
 - **Notes** are private. **Export CSV** for your records or a spreadsheet.
 - **Delete** permanently removes a lead (e.g. for a privacy request).
 - Each lead shows its source (UTM/referrer). Share links like `https://yourdomain.com/?utm_source=instagram&utm_medium=bio` to see which channels bring real inquiries.

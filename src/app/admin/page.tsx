@@ -5,7 +5,9 @@ import { publishedLocations } from "@/content/locations";
 import { site } from "@/content/site";
 import { formatBytes } from "@/lib/format-bytes";
 import { requireAdmin } from "@/lib/admin-auth";
-import { listLeads, statusCounts, STATUSES } from "@/lib/admin-data";
+import { Countdown, shortDate } from "@/components/admin/LeadBits";
+import { bookingOptions } from "@/lib/cms/sessions";
+import { listLeads, SOON_DAYS, STATUS_LABEL, statusCounts, STATUSES, upcomingSessions } from "@/lib/admin-data";
 import { getSiteData } from "@/lib/cms/data";
 import { founderPhoto } from "@/lib/cms/resolve";
 import { getRepo } from "@/lib/cms/repo";
@@ -28,7 +30,7 @@ async function Overview() {
   await requireAdmin();
   const env = serverEnv();
   const repo = getRepo();
-  const [counts, recent, d, usage] = await Promise.all([statusCounts(), listLeads(), getSiteData(), repo ? repo.storageUsage().catch(() => [] as UsageRow[]) : Promise.resolve([] as UsageRow[])]);
+  const [counts, recent, d, usage, upcoming] = await Promise.all([statusCounts(), listLeads(), getSiteData(), repo ? repo.storageUsage().catch(() => [] as UsageRow[]) : Promise.resolve([] as UsageRow[]), upcomingSessions()]);
   const { pricing, texts, testimonials } = d.content;
   const realPhotos = d.photos.filter((p) => p.category).length;
   const founder = Boolean(founderPhoto(d, 1).src && founderPhoto(d, 2).src);
@@ -60,17 +62,44 @@ async function Overview() {
     <div className="space-y-12">
       <section>
         <h1 className="text-display-sm">Overview</h1>
-        <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10">
           {STATUSES.map((s) => (
             <li key={s}>
               <Link href={`/admin/leads?status=${s}`} className="block rounded-xl border border-line bg-parchment p-4 hover:border-ink/40">
                 <span className="block font-display text-3xl">{counts[s]}</span>
-                <span className="text-sm capitalize text-muted">{s}</span>
+                <span className="text-sm text-muted">{STATUS_LABEL[s]}</span>
               </Link>
             </li>
           ))}
         </ul>
       </section>
+
+      {upcoming.length > 0 && (
+        <section aria-labelledby="overview-coming-up">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="overview-coming-up" className="text-[1.6rem]">
+              Coming up
+            </h2>
+            <Link href="/admin/leads" className="text-sm underline">
+              All leads →
+            </Link>
+          </div>
+          <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-parchment">
+            {upcoming.slice(0, 5).map(({ lead: l, date, days }) => (
+              <li key={l.id} className={`flex flex-wrap items-center gap-3 px-4 py-3 ${days <= SOON_DAYS ? "bg-[#fbeeea]" : ""}`}>
+                <span className={`w-28 font-semibold ${days <= SOON_DAYS ? "text-[#7d2a20]" : ""}`}>{shortDate(date)}</span>
+                <Link href={`/admin/leads/${l.id}`} className="font-semibold underline">
+                  {l.name}
+                </Link>
+                <span className="text-sm text-muted">{[l.session_time, bookingOptions(d.content, { includeHidden: true }).find((o) => o.bookingId === l.category)?.label ?? l.category].filter(Boolean).join(" · ")}</span>
+                <span className="ml-auto">
+                  <Countdown days={days} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="grid gap-4 md:grid-cols-3">
         {[

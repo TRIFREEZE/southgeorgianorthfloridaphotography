@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
+import { updateLead } from "@/lib/admin-data";
 import { getSiteData } from "@/lib/cms/data";
 import { draftContent } from "@/lib/cms/ops";
 import { getRepo } from "@/lib/cms/repo";
@@ -150,6 +151,8 @@ async function saveBooking(b: z.output<typeof bookingSchema>, ctx: EmailContext,
     try {
       const out = await r.store.insert(attempt);
       await r.store.updateNotification(out.id, "skipped", sent);
+      // Shows it in Leads → Coming up (needs the pipeline database update; harmless if not there yet).
+      await updateLead(out.id, { session_date: b.date, session_time: b.time || null }).catch(() => {});
       return out.ref;
     } catch (err) {
       const e = err as { code?: string; message?: string };
