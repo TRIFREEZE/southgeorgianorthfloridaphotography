@@ -139,3 +139,111 @@ export function clusterLayout(photos: ClusterInput[], gap = 0.03): Cluster {
     }),
   };
 }
+
+/* ------------------------------------------------------------------ phones */
+
+type Block =
+  | { kind: "single"; n: 1; cost: number; h: number; rects: Rect[] }
+  | { kind: "pair"; n: 2; cost: number; h: number; rects: Rect[] }
+  | { kind: "trio"; n: 3; cost: number; h: number; rects: Rect[]; mirror: boolean };
+
+const aspectOf = (p: ClusterInput) => Math.min(1.9, Math.max(0.55, p.width / p.height || 1));
+
+/**
+ * Phones: a full-width mosaic, about two photos across, that scrolls. Rows are
+ * edge to edge with even gaps and every photo keeps its own shape (uncropped).
+ * Three kinds of row keep it interesting: two side by side, one wide photo
+ * across, or one big photo beside two stacked (alternating sides). Photo #1 is
+ * always in the first row and the biggest in it. The mix of rows that keeps
+ * everything largest and most varied wins (checked exhaustively, it's tiny).
+ */
+export function phoneMosaicLayout(photos: ClusterInput[], gap = 0.03): Cluster {
+  if (!photos.length) return { tiles: [], aspect: 1 };
+  const W = 1;
+  const a = photos.map(aspectOf);
+  const IDEAL_PAIR_H = 0.72; // two portraits side by side
+  const ln = (x: number) => Math.abs(Math.log(x));
+
+  const blocksAt = (i: number, mirrorTrio: boolean): Block[] => {
+    const out: Block[] = [];
+    // One photo across: only for wide ones (a tall one alone would fill the screen).
+    if (a[i] >= 1.15 || i === photos.length - 1) {
+      const w = a[i] >= 1.15 ? W : Math.min(W, 0.62 * W * Math.max(1, a[i] / 0.67));
+      const h = w / a[i];
+      out.push({ kind: "single", n: 1, h, cost: a[i] >= 1.15 ? 0.35 : 1.6, rects: [{ x: (W - w) / 2, y: 0, w, h }] });
+    }
+    if (i + 1 < photos.length) {
+      const h = (W - gap) / (a[i] + a[i + 1]);
+      const w1 = h * a[i];
+      out.push({ kind: "pair", n: 2, h, cost: ln(h / IDEAL_PAIR_H) * 2.2 + (h < 0.4 ? 2 : 0), rects: [{ x: 0, y: 0, w: w1, h }, { x: w1 + gap, y: 0, w: W - w1 - gap, h }] });
+    }
+    if (i + 2 < photos.length) {
+      // Big photo i on one side, i+1 and i+2 stacked on the other, both columns the same height.
+      const k = 1 / a[i + 1] + 1 / a[i + 2];
+      const wR = (W - gap - a[i] * gap) / (a[i] * k + 1);
+      const wL = W - gap - wR;
+      const H = wR * k + gap;
+      if (wR >= 0.3 && wL >= 0.42) {
+        const big = { x: mirrorTrio ? wR + gap : 0, y: 0, w: wL, h: H };
+        const cx = mirrorTrio ? 0 : wL + gap;
+        const h1 = wR / a[i + 1];
+        out.push({
+          kind: "trio",
+          n: 3,
+          h: H,
+          mirror: mirrorTrio,
+          cost: ln(wR / 0.4) * 1.2 + ln(H / 1.0) * 0.8 - 0.25,
+          rects: [big, { x: cx, y: 0, w: wR, h: h1 }, { x: cx, y: h1 + gap, w: wR, h: H - h1 - gap }],
+        });
+      }
+    }
+    return out;
+  };
+
+  // Best sequence of rows (dynamic programming over position and the previous row's kind).
+  type Plan = { cost: number; blocks: Block[] };
+  const memo = new Map<string, Plan>();
+  const solve = (i: number, prev: string, trios: number): Plan => {
+    if (i >= photos.length) return { cost: 0, blocks: [] };
+    const key = `${i}|${prev}|${trios % 2}`;
+    const hit = memo.get(key);
+    if (hit) return hit;
+    let best: Plan = { cost: Infinity, blocks: [] };
+    for (const b of blocksAt(i, trios % 2 === 1)) {
+      // Photo #1 opens the mosaic as its biggest photo.
+      let c = b.cost + (b.kind === prev ? 0.45 : 0);
+      if (i === 0 && b.kind === "pair" && a[0] < a[1] * 0.95) c += 4; // side by side, #1 would be the smaller one
+      const rest = solve(i + b.n, b.kind, trios + (b.kind === "trio" ? 1 : 0));
+      if (c + rest.cost < best.cost) best = { cost: c + rest.cost, blocks: [b, ...rest.blocks] };
+    }
+    memo.set(key, best);
+    return best;
+  };
+  const plan = solve(0, "", 0).blocks;
+
+  const placed: Rect[] = [];
+  let y = 0;
+  for (const b of plan) {
+    for (const r of b.rects) placed.push({ x: r.x, y: y + r.y, w: r.w, h: r.h });
+    y += b.h + gap;
+  }
+  const H = y - gap;
+
+  return {
+    aspect: W / H,
+    tiles: placed.map((r, index) => {
+      const cx = r.x + r.w / 2 - W / 2;
+      return {
+        index,
+        left: (r.x / W) * 100,
+        top: (r.y / H) * 100,
+        width: (r.w / W) * 100,
+        height: (r.h / H) * 100,
+        // Each photo drifts in from its own side as it scrolls into view.
+        dir: { x: cx === 0 ? 0 : Math.sign(cx), y: 1 },
+        ring: Math.min(1, Math.abs(cx) * 2),
+        whole: true,
+      };
+    }),
+  };
+}

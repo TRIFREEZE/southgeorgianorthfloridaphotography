@@ -54,3 +54,46 @@ describe("zoomed crops", () => {
     expect(zoomedSizes("(min-width: 768px) 40vw, 100vw", 1)).toBe("(min-width: 768px) 40vw, 100vw");
   });
 });
+
+describe("phone mosaic", async () => {
+  const { phoneMosaicLayout } = await import("@/components/media/cluster-layout");
+  const mixes: Record<string, number[][]> = {
+    mixed: [[2, 3], [3, 2], [2, 3], [2, 3], [3, 2], [2, 3], [4, 5], [2, 3], [3, 2]],
+    portraits: [[2, 3], [2, 3], [4, 5], [2, 3], [2, 3], [2, 3], [2, 3], [4, 5], [2, 3]],
+    landscapes: [[3, 2], [3, 2], [2, 3], [3, 2], [16, 9], [3, 2], [2, 3], [3, 2], [3, 2]],
+    wideFirst: [[2, 3], [16, 9], [2, 3], [3, 2]],
+    few: [[2, 3], [3, 2]],
+    one: [[2, 3]],
+  };
+  for (const [name, shapes] of Object.entries(mixes)) {
+    it(`${name}: whole photos, no overlaps, full-width rows, #1 biggest up front`, () => {
+      const photos = shapes.map(([w, h], i) => ({ id: `${name}-${i}`, width: w * 1000, height: h * 1000 }));
+      const c = phoneMosaicLayout(photos);
+      expect(c.tiles).toHaveLength(photos.length);
+      expect(phoneMosaicLayout(photos)).toEqual(c); // same photos, same layout
+      const W = 100;
+      const H = 100 / c.aspect;
+      const px = c.tiles.map((t) => ({ ...t, x: t.left, y: (t.top / 100) * H, w: t.width, h: (t.height / 100) * H }));
+      for (const t of px) {
+        expect(t.x).toBeGreaterThanOrEqual(-1e-6);
+        expect(t.x + t.w).toBeLessThanOrEqual(W + 1e-6);
+        // Uncropped: each tile keeps its photo's shape.
+        const [w, h] = shapes[t.index];
+        expect(t.w / t.h).toBeCloseTo(w / h, 2);
+      }
+      for (let i = 0; i < px.length; i++)
+        for (let j = i + 1; j < px.length; j++) {
+          const a = px[i];
+          const b = px[j];
+          const overlap = a.x < b.x + b.w - 1e-6 && b.x < a.x + a.w - 1e-6 && a.y < b.y + b.h - 1e-6 && b.y < a.y + a.h - 1e-6;
+          expect(overlap, `${i} overlaps ${j}`).toBe(false);
+        }
+      // #1 is in the first row and (with 3 or more photos) the biggest photo in it.
+      const first = px[0];
+      expect(first.y).toBeCloseTo(0, 6);
+      if (photos.length >= 3) for (const t of px.filter((t) => t.y < first.h - 1e-6)) expect(first.w * first.h).toBeGreaterThanOrEqual(t.w * t.h - 1e-6);
+      // Big enough to see on a phone: every photo at least ~a third of the width.
+      if (photos.length > 1) for (const t of px) expect(t.w).toBeGreaterThan(28);
+    });
+  }
+});

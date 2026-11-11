@@ -671,11 +671,12 @@
     }
   }
   @supports not (animation-timeline: view()) {
-    .js-reveal .photo-cluster:not(.is-in) .photo-cluster-tile {
+    .js-reveal .photo-cluster:not(.is-in) .photo-cluster-tile:not(.is-in) {
       transform: translate3d(calc(var(--ex) * 1cqw), calc(var(--ey) * 1cqw), 0) rotate(calc(var(--rot) * 1deg)) scale(0.8);
       opacity: 0.2;
     }
-    .photo-cluster.is-in .photo-cluster-tile {
+    .photo-cluster.is-in .photo-cluster-tile,
+    .photo-cluster-tile.is-in {
       animation: cluster-gather 1100ms var(--ease-out-soft) both;
       animation-delay: calc(var(--delay) * 1s);
     }
